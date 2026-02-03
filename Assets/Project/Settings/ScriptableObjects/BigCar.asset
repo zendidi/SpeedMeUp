@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ac483f72fe85af4fbf91b62fd4891d4, type: 3}
+  m_Name: BigCar
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.VehicleStats
+  maxSpeed: 120
+  accelerationForce: 2000
+  naturalDeceleration: 2
+  brakeForce: 3500
+  reverseSpeedMultiplier: 0.5
+  steeringSpeed: 150
+  highSpeedSteeringReduction: 0.6
+  steeringReductionStartSpeed: 60
+  gripStrength: 5
+  steeringReturnSpeed: 5
+  allowDrift: 1
+  driftGripReduction: 0.4
+  driftSteeringMultiplier: 1.2
+  driftForce: 15
+  minDriftSpeed: 30
+  mass: 1000
+  centerOfMassY: -0.5
+  drag: 0.3
+  angularDrag: 1.5
+  groundCheckDistance: 0.5
+  downForce: 50
+  autoFlip: 1
+  autoFlipSpeed: 3
+  rotationSmoothing: 10

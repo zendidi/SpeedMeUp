@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ac483f72fe85af4fbf91b62fd4891d4, type: 3}
+  m_Name: FasterCar
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.VehicleStats
+  maxSpeed: 300
+  accelerationForce: 2996
+  naturalDecelerationInverted: 1
+  brakeForce: 2569
+  reverseSpeedMultiplier: 0.5
+  steeringSpeed: 167.1
+  highSpeedSteeringReduction: 0.755
+  steeringReductionStartSpeed: 80
+  gripStrength: 4.35
+  steeringReturnSpeed: 3.46
+  allowDrift: 0
+  driftGripReduction: 0.32
+  driftSteeringMultiplier: 1.5
+  driftForce: 25
+  minDriftSpeed: 15.000001
+  mass: 297
+  centerOfMassY: -0.655
+  drag: 0.264
+  angularDrag: 3.74
+  groundCheckDistance: 0.5
+  downForce: 50
+  autoFlip: 1
+  autoFlipSpeed: 3
+  rotationSmoothing: 18
