@@ -1,7 +1,9 @@
-using UnityEngine;
+using ArcadeRacer.Managers;
+using ArcadeRacer.Settings;
+using ArcadeRacer.Vehicle;
 using System.Collections.Generic;
 using System.Linq;
-using ArcadeRacer.Vehicle;
+using UnityEngine;
 
 namespace ArcadeRacer.RaceSystem
 {
@@ -24,6 +26,7 @@ namespace ArcadeRacer.RaceSystem
 
         [Header("=== REFERENCES ===")]
         [SerializeField] private CheckpointManager checkpointManager;
+        [SerializeField] private CircuitData circuitToLoad;
 
         [Header("=== VEHICLES ===")]
         [SerializeField, Tooltip("Liste des véhicules participants")]
@@ -78,6 +81,12 @@ namespace ArcadeRacer.RaceSystem
             {
                 StartCountdown();
             }
+            // Charger le circuit
+            CircuitManager.Instance.LoadCircuit(circuitToLoad);
+
+            // Spawn le véhicule
+            var vehicle = FindFirstObjectByType<VehicleController>();
+            CircuitManager.Instance.SpawnVehicle(vehicle.transform);
         }
 
         private void Update()

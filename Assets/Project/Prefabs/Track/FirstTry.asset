@@ -1,0 +1,122 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78611dd453cc5684395f0b325eb891bb, type: 3}
+  m_Name: FirstTry
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.CircuitData
+  circuitName: "Amincha\xEAl"
+  thumbnail: {fileID: 0}
+  description: A challenging racing circuit.
+  splinePoints:
+  - position: {x: -31, y: 0, z: -38}
+    tangentIn: {x: 0, y: 0, z: -90.587585}
+    tangentOut: {x: 0, y: 0, z: 154.51375}
+  - position: {x: -31.249878, y: 0.000003998426, z: -666.2482}
+    tangentIn: {x: 0, y: 0, z: -122.32355}
+    tangentOut: {x: 0, y: 0, z: 50.482723}
+  - position: {x: -36.178223, y: 0.000016015736, z: -773.1379}
+    tangentIn: {x: 0, y: 0, z: -12.401459}
+    tangentOut: {x: 0, y: 0, z: 16.722368}
+  - position: {x: -141.02463, y: -0.000030893178, z: -609.2488}
+    tangentIn: {x: 0, y: 0, z: -51.06371}
+    tangentOut: {x: 0, y: 0, z: 41.32851}
+  - position: {x: -89.03113, y: -0.00003851632, z: -492.8924}
+    tangentIn: {x: 0, y: 0, z: -32.42753}
+    tangentOut: {x: 0, y: 0, z: 37.70928}
+  - position: {x: -245.82208, y: 0.000023592038, z: -421.3504}
+    tangentIn: {x: 0, y: 0, z: -33.502266}
+    tangentOut: {x: 0, y: 0, z: 40.591217}
+  - position: {x: -240.71417, y: -0.00002900399, z: -674.29047}
+    tangentIn: {x: 0, y: 0, z: -76.89905}
+    tangentOut: {x: 0, y: 0, z: 71.99337}
+  - position: {x: -98.024414, y: -0.000026593043, z: -844.0239}
+    tangentIn: {x: 0, y: 0, z: -66.274155}
+    tangentOut: {x: 0, y: 0, z: 83.32197}
+  - position: {x: -287.6029, y: 0.000011538668, z: -1138.8217}
+    tangentIn: {x: 0, y: 0, z: -86.297676}
+    tangentOut: {x: 0, y: 0, z: 59.976913}
+  - position: {x: -456.04407, y: -0.0000138588075, z: -1155.8257}
+    tangentIn: {x: 0, y: 0, z: -25.972786}
+    tangentOut: {x: 0, y: 0, z: 25.972786}
+  - position: {x: -604.5516, y: -0.000053028067, z: -909.2948}
+    tangentIn: {x: 0, y: 0, z: -86.32737}
+    tangentOut: {x: 0, y: 0, z: 78.75043}
+  - position: {x: -572.1969, y: -0.000009120056, z: -671.989}
+    tangentIn: {x: 0, y: 0, z: -31.74549}
+    tangentOut: {x: 0, y: 0, z: 24.379269}
+  - position: {x: -469.3725, y: -0.000038541388, z: -768.8312}
+    tangentIn: {x: 0, y: 0, z: -23.784975}
+    tangentOut: {x: 0, y: 0, z: 24.263142}
+  - position: {x: -435.5349, y: -0.00005133252, z: -625.7938}
+    tangentIn: {x: 0, y: 0, z: -28.385838}
+    tangentOut: {x: 0, y: 0, z: 24.398315}
+  - position: {x: -337.68253, y: -0.0000020901607, z: -672.8758}
+    tangentIn: {x: 0, y: 0, z: -21.828968}
+    tangentOut: {x: 0, y: 0, z: 35.5385}
+  - position: {x: -368.02603, y: -0.0000082035185, z: -386.6592}
+    tangentIn: {x: 0, y: 0, z: -78.77064}
+    tangentOut: {x: 0, y: 0, z: 90.78301}
+  - position: {x: -749.36066, y: 0.0000019075233, z: -359.53397}
+    tangentIn: {x: 0, y: 0, z: -103.74699}
+    tangentOut: {x: 0, y: 0, z: 82.08399}
+  - position: {x: -903.9619, y: -0.0000314333, z: -176.86032}
+    tangentIn: {x: 0, y: 0, z: -76.46945}
+    tangentOut: {x: 0, y: 0, z: 118.85231}
+  - position: {x: -565.6466, y: 0.00004924256, z: 291.91403}
+    tangentIn: {x: 0, y: 0, z: -124.22193}
+    tangentOut: {x: 0, y: 0, z: 59.326935}
+  - position: {x: -473.3933, y: 0.000022174485, z: 386.12936}
+    tangentIn: {x: 0, y: 0, z: -18.821302}
+    tangentOut: {x: 0, y: 0, z: 24.697956}
+  - position: {x: -473.66437, y: -0.00004407661, z: 159.07114}
+    tangentIn: {x: 0, y: 0, z: -48.09256}
+    tangentOut: {x: 0, y: 0, z: 37.911034}
+  - position: {x: -614.6592, y: -0.000011683398, z: 153.74362}
+    tangentIn: {x: 0, y: 0, z: -43.139557}
+    tangentOut: {x: 0, y: 0, z: 68.78575}
+  - position: {x: -641.987, y: 0.000012202407, z: -203.93651}
+    tangentIn: {x: 0, y: 0, z: -43.448143}
+    tangentOut: {x: 0, y: 0, z: 50.417248}
+  - position: {x: -306.99857, y: -0.000022249915, z: 144.05948}
+    tangentIn: {x: 0, y: 0, z: -125.67803}
+    tangentOut: {x: 0, y: 0, z: 84.97379}
+  - position: {x: -251.26581, y: 0.000038306825, z: 357.7239}
+    tangentIn: {x: 0, y: 0, z: -47.86544}
+    tangentOut: {x: 0, y: 0, z: 44.882313}
+  - position: {x: -69.04675, y: 0.000012971985, z: 290.72006}
+    tangentIn: {x: 0, y: 0, z: -7.012672}
+    tangentOut: {x: 0, y: 0, z: 7.012672}
+  - position: {x: 160.58942, y: -0.000024287936, z: 350.05222}
+    tangentIn: {x: 0, y: 0, z: -59.57124}
+    tangentOut: {x: 0, y: 0, z: 74.51635}
+  - position: {x: 224.09308, y: 0.000016332619, z: -15.584412}
+    tangentIn: {x: 0, y: 0, z: -40.181164}
+    tangentOut: {x: 0, y: 0, z: 36.051395}
+  - position: {x: -4.8397827, y: -0.000006397837, z: 176.35019}
+    tangentIn: {x: 0, y: 0, z: -43.65649}
+    tangentOut: {x: 0, y: 0, z: 37.11632}
+  trackWidth: 10
+  closedLoop: 1
+  spawnPosition: {x: 278.54, y: 1.35, z: -240.94}
+  spawnRotation: {x: -0, y: -0, z: -0, w: 1}
+  autoCheckpointCount: 10
+  checkpointWidth: 15
+  checkpointHeight: 5
+  roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
+  wallMaterial: {fileID: 2100000, guid: f96e581884ccaaf4baa9a237b21b7388, type: 2}
+  wallHeight: 2
+  generateWalls: 1
+  targetLapCount: 3
+  goldTime: 60
+  silverTime: 75
+  bronzeTime: 90
+  minimapTexture: {fileID: 0}
+  _totalLength: 7515.492

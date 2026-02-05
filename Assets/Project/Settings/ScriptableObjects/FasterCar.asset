@@ -13,26 +13,49 @@ MonoBehaviour:
   m_Name: FasterCar
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.VehicleStats
   maxSpeed: 300
-  accelerationForce: 2996
-  naturalDecelerationInverted: 1
-  brakeForce: 2569
+  accelerationForce: 1901
+  naturalDecelerationInverted: 17.2
+  brakeForce: 2042
   reverseSpeedMultiplier: 0.5
-  steeringSpeed: 167.1
-  highSpeedSteeringReduction: 0.755
-  steeringReductionStartSpeed: 80
-  gripStrength: 4.35
-  steeringReturnSpeed: 3.46
+  torqueCurve:
+  - speedRatio: 0.15
+    torque: 0.82
+  - speedRatio: 0.35
+    torque: 0.48
+  - speedRatio: 0.6
+    torque: 0.4
+  - speedRatio: 0.8
+    torque: 0.6
+  - speedRatio: 0.9
+    torque: 0.335
+  - speedRatio: 1
+    torque: 0.134
+  staticFrictionThreshold: 0.05
+  staticFrictionFactor: 0.8
+  steeringSpeed: 141
+  lowSpeedSteeringMultiplier: 1.784
+  highSpeedSteeringMultiplier: 0.385
+  gripStrength: 1.23
+  steeringReturnSpeed: 4.35
+  turningSpeedLoss: 0.22
+  speedDragMultiplier: 1.46
   allowDrift: 0
   driftGripReduction: 0.32
   driftSteeringMultiplier: 1.5
   driftForce: 25
   minDriftSpeed: 15.000001
-  mass: 297
-  centerOfMassY: -0.655
-  drag: 0.264
+  brakeMinSpeedThreshold: 10
+  brakeMaxSpeedThreshold: 100
+  brakeLowSpeedEfficiency: 1.5
+  brakeHighSpeedEfficiency: 0.8
+  mass: 100
+  centerOfMassY: 0.59
+  drag: 0.465
   angularDrag: 3.74
   groundCheckDistance: 0.5
   downForce: 50
+  wallBounceMultiplier: 0.5
+  vehicleBounceFactor: 0.7
   autoFlip: 1
   autoFlipSpeed: 3
-  rotationSmoothing: 18
+  rotationSmoothing: 9.75
