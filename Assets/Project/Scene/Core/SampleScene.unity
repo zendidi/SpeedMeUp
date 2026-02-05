@@ -1963,25 +1963,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Vehicle.VehiclePhysics
   stats: {fileID: 11400000, guid: cddb58e090f5fa14fb699f097a215a8d, type: 2}
-  frontTransform: {fileID: 1972847210}
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  vehicleLayer:
+    serializedVersion: 2
+    m_Bits: 0
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
-  massImpactMultiplier: 0.3
-  torqueCurve:
-  - speedRatio: 0.15
-    torque: 0.65
-  - speedRatio: 0.25
-    torque: 0.85
-  - speedRatio: 0.4
-    torque: 1.05
-  - speedRatio: 0.6
-    torque: 1.35
-  - speedRatio: 0.8
-    torque: 1.5
-  - speedRatio: 1
-    torque: 1.75
-  showDebugGizmos: 1
+  groundCheckPoints: []
+  physicsCore:
+    rollingResistanceCoefficient: 0.015
+    dragCoefficient: 0.39
+    frontalArea: 1.82
+    angularDampingCoefficient: 9.69
+    steeringReturnStrength: 13
+    vehicleLength: 4.5
+    centerOfGravityHeight: 0.68
+    wheelbase: 2.94
+    weightTransferInfluence: 0.679
+  _showDebug: 0
 --- !u!114 &618931062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3542,6 +3544,7 @@ MonoBehaviour:
   countdownDuration: 3
   autoStart: 1
   checkpointManager: {fileID: 1975976137}
+  circuitToLoad: {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
   racingVehicles:
   - {fileID: 618931062}
   showDebugInfo: 1

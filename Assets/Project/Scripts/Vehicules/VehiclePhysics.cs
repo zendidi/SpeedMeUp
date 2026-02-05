@@ -1,162 +1,65 @@
 using UnityEngine;
 using ArcadeRacer.Settings;
+using ArcadeRacer.Physics; // ← AJOUTER
 
 namespace ArcadeRacer.Vehicle
 {
-    /// <summary>
-    /// Gère toute la physique arcade du véhicule :  accélération, freinage, direction, drift. 
-    /// Style Mario Kart avec un feeling fun et responsive. 
-    /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class VehiclePhysics : MonoBehaviour
     {
-        [Header("=== REFERENCES ===")]
-        [SerializeField, Tooltip("Statistiques du véhicule")]
-        private VehicleStats stats;
+        #region References
 
-        [SerializeField, Tooltip("Transform représentant l'avant du véhicule")]
-        private Transform frontTransform;
+        [Header("=== REFERENCES ===")]
+        [SerializeField] private VehicleStats stats;
+
+        private Rigidbody _rigidbody;
+        private Transform _transform;
+        private VehicleController _controller;
+
+        #endregion
+
+        #region Scene Configuration
+
+        [Header("=== COLLISION LAYERS ===")]
+        [SerializeField] private LayerMask wallLayer;
+        [SerializeField] private LayerMask vehicleLayer;
 
         [Header("=== GROUND CHECK ===")]
-        [SerializeField, Tooltip("Layers considérés comme du sol")]
-        private LayerMask groundLayer = 1; // Default layer
+        [SerializeField] private LayerMask groundLayer;
+        [SerializeField] private Transform[] groundCheckPoints;
 
-        private VehicleController VehicleController => GetComponent<VehicleController>();
-        private float baseAccelerationForce;
-
-        [SerializeField, Tooltip("Multiplicateur de l'impact de la masse sur l'accélération")]
-        private float massImpactMultiplier = 0.5f;
-
-        [System.Serializable]
-        public struct TorquePoint
-        {
-            public float speedRatio; // 0-1
-            public float torque;
-        }
-
-        [Header("=== TORQUE CURVE ===")]
-        [SerializeField]
-        private TorquePoint[] torqueCurve = new TorquePoint[]
-        {
-            //new TorquePoint { speedRatio = 0.0f, torque = 0.6f },
-            //new TorquePoint { speedRatio = 0.2f, torque = 0.9f },
-            //new TorquePoint { speedRatio = 0.4f, torque = 1.2f },
-            //new TorquePoint { speedRatio = 0.6f, torque = 0.8f },
-            //new TorquePoint { speedRatio = 0.8f, torque = 0.5f },
-            //new TorquePoint { speedRatio = 1.0f, torque = 0.3f },
-        };
-
-        [Header("=== DECELERATION MOMENTUM ===")]
-        [SerializeField, Tooltip("Force de momentum résiduel après relâchement de l'accélérateur")]
-        private float residualMomentumForce = 15f;
-
-        [SerializeField, Tooltip("Vitesse de décroissance du momentum (plus élevé = décélération plus rapide)")]
-        [Range(0.1f, 10f)]
-        private float momentumDecayRate = 1.5f;
-
-        [SerializeField, Tooltip("Résistance au roulement (friction constante à basse vitesse)")]
-        private float rollingResistance = 0.8f;
-
-        [SerializeField, Tooltip("Coefficient de résistance aérodynamique (proportionnel à v²)")]
-        private float airDragCoefficient = 0.012f;
-
-        [SerializeField, Tooltip("Vitesse (m/s) à partir de laquelle la résistance aérodynamique domine")]
-        private float airDragThresholdMS = 15f;
-
-        [SerializeField, Tooltip("Vitesse minimale (m/s) en dessous de laquelle on arrête complètement")]
-        private float minStopSpeedMS = 0.5f;
-
-        [Header("=== SPEED-BASED DECELERATION SCALING ===")]
-        [SerializeField, Tooltip("Pourcentage de vitesse max où le scaling commence (0-1)")]
-        [Range(0f, 1f)]
-        private float decelerationScalingStartRatio = 0.5f;
-
-        [SerializeField, Tooltip("Pourcentage de vitesse max où le scaling atteint son minimum (0-1)")]
-        [Range(0f, 1f)]
-        private float decelerationScalingMaxRatio = 0.9f;
-
-        [SerializeField, Tooltip("Efficacité minimale de la décélération à haute vitesse (0-1)")]
-        [Range(0f, 1f)]
-        private float minDecelerationEfficiency = 0.1f;
-
-        [SerializeField, Tooltip("Exposant de la courbe de scaling (1 = linéaire, 2 = quadratique, 3 = cubique)")]
-        [Range(1f, 4f)]
-        private float decelerationScalingPower = 2f;
-
-        [Header("=== STEERING ===")]
-        public float baseSteeringSpeed => stats.steeringSpeed;
-
-        [SerializeField, Tooltip("Vitesse min (km/h) où le modificateur commence")]
-        private float minSpeedThreshold = 60f;
-
-        [SerializeField, Tooltip("Ratio de vitesse max où le modificateur est au max (0-1)")]
-        [Range(0f, 1f)]
-        private float maxSpeedThresholdRatio = 0.9f; // 90% de la vitesse max
-
-        [SerializeField, Tooltip("Modificateur de steering à basse vitesse")]
-        private float minSteeringModifier = 1f;
-
-        [SerializeField, Tooltip("Modificateur de steering à haute vitesse")]
-        private float maxSteeringModifier = 0.25f;
-
-        [SerializeField, Tooltip("Type de courbe d'interpolation")]
-        private AnimationCurve steeringCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+        [Header("=== ADVANCED PHYSICS ===")]
+        [SerializeField] private VehiclePhysicsCore physicsCore = new VehiclePhysicsCore(); // ← NOUVEAU
 
         [Header("=== DEBUG ===")]
-        [SerializeField] private bool showDebugGizmos = true;
-        [SerializeField] private bool showDecelerationDebug = false;
+        [SerializeField] private bool _showDebug = false;
 
-        // Components
-        private Rigidbody _rb;
+        #endregion
 
-        // État du véhicule
-        private bool _isGrounded;
-        private float _currentSpeed;
-        private float _currentSteeringAngle;
-        private bool _isDrifting;
+        #region State Variables
 
-        // Momentum system
-        private Vector3 _lastAccelerationForce = Vector3.zero;
-        private float _momentumTimer = 0f;
-        private bool _wasAccelerating = false;
-
-        // Input (fourni de l'extérieur)
         private float _throttleInput;
         private float _brakeInput;
         private float _steeringInput;
         private bool _driftInput;
 
+        private Vector3 _velocity;
+        private bool _isGrounded;
+        private Vector3 _groundNormal;
+        private float _currentSpeed;
+        private float _currentSteeringAngle;
+
+        #endregion
+
         #region Properties
 
-        /// <summary>
-        /// Vitesse actuelle en km/h
-        /// </summary>
         public float CurrentSpeedKMH => _currentSpeed * 3.6f;
-
-        /// <summary>
-        /// Vitesse actuelle en m/s
-        /// </summary>
-        public float CurrentSpeedMS => _currentSpeed;
-
-        /// <summary>
-        /// Le véhicule est au sol
-        /// </summary>
-        public bool IsGrounded => _isGrounded;
-
-        /// <summary>
-        /// Le véhicule est en train de drifter
-        /// </summary>
-        public bool IsDrifting => _isDrifting;
-
-        /// <summary>
-        /// Angle de direction actuel
-        /// </summary>
-        public float CurrentSteeringAngle => _currentSteeringAngle;
-
-        /// <summary>
-        /// Pourcentage de vitesse (0-1)
-        /// </summary>
         public float SpeedPercentage => Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
+        public bool IsGrounded => _isGrounded;
+        public bool IsDrifting => _driftInput && _isGrounded && _currentSpeed > stats.MinDriftSpeedMS;
+        public float CurrentSteeringAngle => _currentSteeringAngle;
+        public VehicleStats Stats => stats;
+        public float baseSteeringSpeed => stats.steeringSpeed;
 
         #endregion
 
@@ -164,478 +67,487 @@ namespace ArcadeRacer.Vehicle
 
         private void Awake()
         {
-            InitializeComponents();
-            ConfigureRigidbody();
+            _rigidbody = GetComponent<Rigidbody>();
+            _transform = transform;
+            _controller = GetComponent<VehicleController>();
+
+            _rigidbody.isKinematic = true;
+            _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+            _rigidbody.mass = stats.mass;
+
+            _velocity = Vector3.zero;
+
+            // ← NOUVEAU : Initialiser le physics core
+            physicsCore.Initialize(stats.mass);
         }
 
         private void FixedUpdate()
         {
-            // FixedUpdate = physique
-            CheckGroundStatus();
+            // Sauvegarder la vélocité avant calculs
+            Vector3 oldVelocity = _velocity;
 
-            if (_isGrounded)
-            {
-                ApplyAcceleration();
-                ApplyBraking();
-                ApplySteering();
-                ApplyGrip();
-                ApplyDownForce();
-            }
-            else
-            {
-                ApplyAirControl();
-            }
+            CheckGround();
+            ApplyGravity();
+            ApplyAcceleration();
+            ApplySteering();
+            ApplyBraking();
+            ApplyDrag();
 
-            UpdateCurrentSpeed();
+            // ← NOUVEAU : Calculer accélération pour transfert de charge
+            Vector3 deltaV = _velocity - oldVelocity;
+            float longitudinalAccel = Vector3.Dot(deltaV, _transform.forward) / Time.fixedDeltaTime;
+            physicsCore.UpdateWeightTransfer(longitudinalAccel, stats.mass);
+
+            MoveVehicle();
+            UpdateState();
         }
 
         #endregion
 
-        #region Initialization
+        #region Input
 
-        private void InitializeComponents()
-        {
-            _rb = GetComponent<Rigidbody>();
-            baseAccelerationForce = stats.accelerationForce;
-            if (stats == null)
-            {
-                Debug.LogError($"[VehiclePhysics] VehicleStats manquant sur {gameObject.name}!");
-            }
-
-            // Si pas de frontTransform, créer un point par défaut
-            if (frontTransform == null)
-            {
-                GameObject frontPoint = new GameObject("FrontPoint");
-                frontPoint.transform.parent = transform;
-                frontPoint.transform.localPosition = Vector3.forward * 2f;
-                frontTransform = frontPoint.transform;
-                Debug.LogWarning($"[VehiclePhysics] Pas de FrontTransform assigné, création automatique.");
-            }
-        }
-
-        private void ConfigureRigidbody()
-        {
-            _rb.mass = stats.mass;
-            // On met le drag à 0 pour gérer nous-mêmes la décélération
-            _rb.linearDamping = 0f;
-            _rb.angularDamping = stats.angularDrag;
-            _rb.interpolation = RigidbodyInterpolation.Interpolate;
-            _rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-
-            // Centre de masse bas pour plus de stabilité
-            _rb.centerOfMass = new Vector3(0, stats.centerOfMassY, 0);
-        }
-
-        #endregion
-
-        #region Input (appelé depuis VehicleController)
-
-        /// <summary>
-        /// Définir les inputs du véhicule (appelé par VehicleController)
-        /// </summary>
         public void SetInputs(float throttle, float brake, float steering, bool drift)
         {
-            _throttleInput = Mathf.Clamp01(throttle);
-            _brakeInput = Mathf.Clamp01(brake);
-            _steeringInput = Mathf.Clamp(steering, -1f, 1f);
-            _driftInput = drift && stats.allowDrift;
-
-            // Logique de drift
-            _isDrifting = _driftInput && _currentSpeed >= stats.MinDriftSpeedMS && _isGrounded;
+            _throttleInput = throttle;
+            _brakeInput = brake;
+            _steeringInput = steering;
+            _driftInput = drift;
         }
 
         #endregion
 
-        #region Ground Check
+        #region Ground Detection
 
-        private void CheckGroundStatus()
+        private void CheckGround()
         {
-            // Raycast vers le bas depuis le centre du véhicule
-            Ray ray = new Ray(transform.position, -transform.up);
-            _isGrounded = Physics.Raycast(ray, stats.groundCheckDistance, groundLayer);
+            _isGrounded = false;
+            _groundNormal = Vector3.up;
 
-            // Debug
-            if (showDebugGizmos)
+            float checkDistance = stats.groundCheckDistance;
+
+            if (groundCheckPoints == null || groundCheckPoints.Length == 0)
             {
-                Debug.DrawRay(transform.position, -transform.up * stats.groundCheckDistance,
-                    _isGrounded ? Color.green : Color.red);
+                _isGrounded = UnityEngine.Physics.Raycast(_transform.position, Vector3.down, checkDistance, groundLayer);
+                return;
+            }
+
+            int groundedCount = 0;
+            Vector3 averageNormal = Vector3.zero;
+
+            foreach (Transform point in groundCheckPoints)
+            {
+                if (point == null) continue;
+
+                if (UnityEngine.Physics.Raycast(point.position, Vector3.down, out RaycastHit hit, checkDistance, groundLayer))
+                {
+                    groundedCount++;
+                    averageNormal += hit.normal;
+
+                    if (_showDebug)
+                    {
+                        Debug.DrawRay(point.position, Vector3.down * checkDistance, Color.green);
+                    }
+                }
+                else if (_showDebug)
+                {
+                    Debug.DrawRay(point.position, Vector3.down * checkDistance, Color.red);
+                }
+            }
+
+            if (groundedCount > 0)
+            {
+                _isGrounded = true;
+                _groundNormal = (averageNormal / groundedCount).normalized;
             }
         }
 
         #endregion
 
-        #region Acceleration & Braking
+        #region Physics - Acceleration
 
         private void ApplyAcceleration()
         {
-            if (_throttleInput > 0.1f)
+            if (_throttleInput <= 0f || !_isGrounded) return;
+
+            float speedRatio = Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
+            float torque = CalculateTorque(speedRatio);
+
+            float staticResistance = 1.0f;
+            if (speedRatio < stats.staticFrictionThreshold)
             {
-                // === MODE ACCÉLÉRATION ===
-                _wasAccelerating = true;
-                _momentumTimer = 0f;
-
-                // Calculer le pourcentage de vitesse actuelle
-                float speedPercentage = VehicleController.Physics.CurrentSpeedKMH / stats.maxSpeed;
-                float torque = CalculateTorque(speedPercentage);
-
-                // === RÉSISTANCE STATIQUE (inertie au démarrage) ===
-                float staticFriction = speedPercentage < 0.1f ? 0.5f : 1f;
-
-                // Impact de la masse
-                float massRatio = 1500f / _rb.mass;
-                float massFactor = Mathf.Lerp(1f, massRatio, massImpactMultiplier);
-
-                // Force finale
-                float finalForce = baseAccelerationForce * _throttleInput * torque * staticFriction;
-                Vector3 accelerationForce = transform.forward * finalForce;
-
-                // Stocker la dernière force d'accélération
-                _lastAccelerationForce = accelerationForce;
-
-                // Appliquer
-                if (_currentSpeed < stats.MaxSpeedMS)
-                {
-                    _rb.AddForce(accelerationForce * Time.fixedDeltaTime, ForceMode.Acceleration);
-                }
+                staticResistance = stats.staticFrictionFactor;
             }
-            else
+
+            float force = stats.accelerationForce * _throttleInput * torque * staticResistance;
+
+            // ← NOUVEAU : Appliquer grip multiplier
+            float gripMultiplier = physicsCore.GetGripMultiplier();
+            force *= gripMultiplier;
+
+            float acceleration = force / stats.mass;
+            _velocity += _transform.forward * acceleration * Time.fixedDeltaTime;
+
+            float forwardSpeed = Vector3.Dot(_velocity, _transform.forward);
+            if (forwardSpeed > stats.MaxSpeedMS)
             {
-                // === MODE DÉCÉLÉRATION NATURELLE ===
-                ApplyNaturalDeceleration();
+                Vector3 lateralVelocity = Vector3.Project(_velocity, _transform.right);
+                _velocity = _transform.forward * stats.MaxSpeedMS + lateralVelocity;
+            }
+
+            if (_showDebug && Time.frameCount % 30 == 0)
+            {
+                Debug.Log($"[Accel] Speed: {speedRatio:P0} ({CurrentSpeedKMH:F0} km/h) | Torque: {torque:F2} | Grip: {gripMultiplier:F2}");
             }
         }
 
         private float CalculateTorque(float speedRatio)
         {
-            // Cas limites
-            if (speedRatio <= 0.15) return 1.0f;
-            if (torqueCurve.Length == 0) return 1.0f;
-            if (speedRatio <= torqueCurve[0].speedRatio) return torqueCurve[0].torque;
-            if (speedRatio >= torqueCurve[torqueCurve.Length - 1].speedRatio)
-                return torqueCurve[torqueCurve.Length - 1].torque;
-
-            // Trouver l'intervalle
-            for (int i = 0; i < torqueCurve.Length - 1; i++)
+            if (speedRatio <= stats.staticFrictionThreshold)
             {
-                if (speedRatio >= torqueCurve[i].speedRatio && speedRatio <= torqueCurve[i + 1].speedRatio)
-                {
-                    float t = (speedRatio - torqueCurve[i].speedRatio) /
-                              (torqueCurve[i + 1].speedRatio - torqueCurve[i].speedRatio);
-
-                    return Mathf.Lerp(torqueCurve[i].torque, torqueCurve[i + 1].torque, t);
-                }
+                return stats.torqueCurve.Length > 0 ? stats.torqueCurve[0].torque : 1.0f;
             }
 
-            return 1.0f; // Fallback
-        }
-
-        private void ApplyBraking()
-        {
-            if (_brakeInput > 0.1f)
-            {
-                // Freinage = force opposée à la vélocité
-                Vector3 brakeForce = -_rb.linearVelocity.normalized * stats.brakeForce * _brakeInput;
-                _rb.AddForce(brakeForce * Time.fixedDeltaTime, ForceMode.Acceleration);
-            }
-        }
-
-        private void ApplyNaturalDeceleration()
-        {
-            // === CALCULER LE SCALING BASÉ SUR LA VITESSE ===
-            float speedPercentage = SpeedPercentage;
-            float decelerationScaling = CalculateDecelerationScaling(speedPercentage);
-
-            // === PHASE 1 : MOMENTUM RÉSIDUEL ===
-            if (_wasAccelerating && _lastAccelerationForce.magnitude > 0.01f)
-            {
-                _momentumTimer += Time.fixedDeltaTime;
-
-                // Calculer le facteur de décroissance
-                float decayFactor = _momentumTimer;
-
-                // Force de momentum qui diminue progressivement
-                Vector3 momentumForce = _lastAccelerationForce * decayFactor * (residualMomentumForce / baseAccelerationForce);
-
-                _rb.AddForce(momentumForce * Time.fixedDeltaTime * Time.fixedDeltaTime, ForceMode.Acceleration);
-
-                if (showDecelerationDebug)
-                {
-                    Debug.Log($"[Momentum] Decay: {decayFactor:F3} | Force: {momentumForce.magnitude:F2}");
-                }
-
-         
-            }
-
-            //// === PHASE 2 : RÉSISTANCES COMBINÉES (SCALÉES) ===
-            //// Friction au roulement
-            //float rollingForce = rollingResistance;
-
-            //// Résistance aérodynamique
-            //float airResistance = 0f;
-            //if (_currentSpeed > airDragThresholdMS)
-            //{
-            //    float speedOverThreshold = _currentSpeed - airDragThresholdMS;
-            //    airResistance = airDragCoefficient * speedOverThreshold * speedOverThreshold;
-            //}
-            //else
-            //{
-            //    float speedRatio = _currentSpeed / airDragThresholdMS;
-            //    airResistance = airDragCoefficient * speedRatio * _currentSpeed;
-            //}
-
-            //// Force totale de décélération AVANT scaling
-            //float totalDecelerationForce = rollingForce + airResistance;
-
-            //// === APPLIQUER LE SCALING BASÉ SUR LA VITESSE ===
-            //totalDecelerationForce *= decelerationScaling;
-
-            //// Appliquer la force opposée à la vélocité
-            //if (_rb.linearVelocity.magnitude > 0.01f)
-            //{
-            //    Vector3 decelerationForce = -_rb.linearVelocity.normalized * totalDecelerationForce;
-            //    _rb.AddForce(decelerationForce * Time.fixedDeltaTime, ForceMode.Acceleration);
-
-            //    if (showDecelerationDebug)
-            //    {
-            //        Debug.Log($"[Deceleration] Speed: {CurrentSpeedKMH:F1} km/h ({speedPercentage:P0}) | Scaling: {decelerationScaling:P0} | Rolling: {rollingForce:F2} | Air: {airResistance:F2} | Total: {totalDecelerationForce:F2}");
-            //    }
-            //}
-
-            // === ARRÊT COMPLET ===
-            if (_currentSpeed < minStopSpeedMS)
-            {
-                _rb.linearVelocity = new Vector3(0f, _rb.linearVelocity.y, 0f);
-                _lastAccelerationForce = Vector3.zero;
-                _momentumTimer = 0f;
-            }
-        }
-
-        /// <summary>
-        /// Calcule le facteur de scaling de la décélération basé sur la vitesse.
-        /// Retourne 1.0 à basse vitesse, et minDecelerationEfficiency à haute vitesse.
-        /// </summary>
-        private float CalculateDecelerationScaling(float speedPercentage)
-        {
-            // En dessous du seuil de départ : décélération normale (100%)
-            if (speedPercentage <= decelerationScalingStartRatio)
+            if (stats.torqueCurve == null || stats.torqueCurve.Length == 0)
             {
                 return 1.0f;
             }
 
-            // Au-dessus du seuil max : décélération minimale
-            if (speedPercentage >= decelerationScalingMaxRatio)
+            if (speedRatio <= stats.torqueCurve[0].speedRatio)
             {
-                return minDecelerationEfficiency;
+                return stats.torqueCurve[0].torque;
             }
 
-            // === INTERPOLATION ENTRE LES DEUX SEUILS ===
-            // Normaliser entre 0 et 1
-            float t = (speedPercentage - decelerationScalingStartRatio) /
-                      (decelerationScalingMaxRatio - decelerationScalingStartRatio);
+            if (speedRatio >= stats.torqueCurve[stats.torqueCurve.Length - 1].speedRatio)
+            {
+                return stats.torqueCurve[stats.torqueCurve.Length - 1].torque;
+            }
 
-            // Appliquer une courbe (linéaire, quadratique, cubique, etc.)
-            float curvedT = Mathf.Pow(t, decelerationScalingPower);
+            for (int i = 0; i < stats.torqueCurve.Length - 1; i++)
+            {
+                if (speedRatio >= stats.torqueCurve[i].speedRatio && speedRatio <= stats.torqueCurve[i + 1].speedRatio)
+                {
+                    float t = (speedRatio - stats.torqueCurve[i].speedRatio) /
+                              (stats.torqueCurve[i + 1].speedRatio - stats.torqueCurve[i].speedRatio);
 
-            // Interpoler entre 100% (basse vitesse) et minEfficiency (haute vitesse)
-            return Mathf.Lerp(1.0f, minDecelerationEfficiency, curvedT);
+                    return Mathf.Lerp(stats.torqueCurve[i].torque, stats.torqueCurve[i + 1].torque, t);
+                }
+            }
+
+            return 1.0f;
         }
 
         #endregion
 
-        #region Steering
+        #region Physics - Steering
 
         private void ApplySteering()
         {
+            if (!_isGrounded) return;
+
+            // ← NOUVEAU : Système d'inertie angulaire
+            float steeringModifier = CalculateSteeringModifier();
+            physicsCore.UpdateAngularVelocity(_steeringInput, stats.steeringSpeed * steeringModifier, Time.fixedDeltaTime);
+            physicsCore.ApplyAngularInertia(_transform, Time.fixedDeltaTime);
+
+            // Angle pour visuel/audio
             if (Mathf.Abs(_steeringInput) > 0.01f)
             {
-                // === CALCULER LE MODIFICATEUR DE STEERING ===
-                float steeringModifier = CalculateSteeringModifier();
-
-                // === APPLIQUER LA ROTATION ===
-                float finalSteeringSpeed = baseSteeringSpeed * steeringModifier * Time.fixedDeltaTime;
-                float rotationAmount = _steeringInput * finalSteeringSpeed;
-
-                Quaternion deltaRotation = Quaternion.Euler(0f, rotationAmount, 0f);
-                _rb.MoveRotation(_rb.rotation * deltaRotation);
+                _currentSteeringAngle = physicsCore.AngularVelocity * Mathf.Rad2Deg;
             }
             else
             {
-                // Retour au centre du volant
-                _currentSteeringAngle = Mathf.Lerp(_currentSteeringAngle, 0f,
-                    Time.fixedDeltaTime * stats.steeringReturnSpeed);
+                _currentSteeringAngle = Mathf.Lerp(_currentSteeringAngle, 0f, Time.fixedDeltaTime * stats.steeringReturnSpeed);
             }
+
+            ApplyGripOrDrift();
+            ApplyTurningSpeedLoss();
         }
 
         private float CalculateSteeringModifier()
         {
-            // Vitesse actuelle en km/h
+            float speedRatio = Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
+            return Mathf.Lerp(stats.lowSpeedSteeringMultiplier, stats.highSpeedSteeringMultiplier, speedRatio);
+        }
+
+        private void ApplyTurningSpeedLoss()
+        {
+            if (Mathf.Abs(_steeringInput) < 0.01f) return;
+
+            float steeringIntensity = Mathf.Abs(_steeringInput);
+            float speedRatio = Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
+            float dragFromSpeed = speedRatio * stats.speedDragMultiplier;
+            float totalDrag = stats.turningSpeedLoss * steeringIntensity * dragFromSpeed;
+
+            Vector3 forwardVelocity = _transform.forward * Vector3.Dot(_velocity, _transform.forward);
+            Vector3 sidewaysVelocity = _transform.right * Vector3.Dot(_velocity, _transform.right);
+
+            forwardVelocity *= (1f - totalDrag * Time.fixedDeltaTime);
+            _velocity = forwardVelocity + sidewaysVelocity;
+
+            if (_showDebug && Time.frameCount % 30 == 0 && totalDrag > 0.01f)
+            {
+                Debug.Log($"[Turning Loss] Drag: {totalDrag:F3}");
+            }
+        }
+
+        private void ApplyGripOrDrift()
+        {
+            Vector3 forwardVelocity = _transform.forward * Vector3.Dot(_velocity, _transform.forward);
+            Vector3 sidewaysVelocity = _transform.right * Vector3.Dot(_velocity, _transform.right);
+
+            if (_driftInput && stats.allowDrift && _currentSpeed > stats.MinDriftSpeedMS)
+            {
+                _velocity = forwardVelocity + sidewaysVelocity * stats.driftGripReduction;
+
+                if (_steeringInput != 0f)
+                {
+                    _velocity += _transform.right * _steeringInput * stats.driftForce * Time.fixedDeltaTime;
+                }
+            }
+            else
+            {
+                float gripFactor = Mathf.Clamp01(stats.gripStrength * 0.15f);
+                _velocity = forwardVelocity + sidewaysVelocity * (1f - gripFactor);
+            }
+        }
+
+        #endregion
+
+        #region Physics - Braking & Drag
+
+        private void ApplyBraking()
+        {
+            if (_brakeInput <= 0f || !_isGrounded) return;
+
+            float brakeEfficiency = CalculateBrakeEfficiency();
+            float brakeForce = stats.brakeForce * _brakeInput * brakeEfficiency;
+            float brakeDeceleration = brakeForce / stats.mass;
+
+            Vector3 forwardVelocity = _transform.forward * Vector3.Dot(_velocity, _transform.forward);
+            Vector3 sidewaysVelocity = _transform.right * Vector3.Dot(_velocity, _transform.right);
+
+            float currentForwardSpeed = forwardVelocity.magnitude;
+            float newForwardSpeed = Mathf.Max(0f, currentForwardSpeed - brakeDeceleration * Time.fixedDeltaTime);
+
+            Vector3 forwardDirection = forwardVelocity.normalized;
+            if (currentForwardSpeed > 0.01f)
+            {
+                _velocity = forwardDirection * newForwardSpeed + sidewaysVelocity;
+            }
+            else
+            {
+                _velocity = sidewaysVelocity;
+            }
+
+            if (_showDebug && Time.frameCount % 30 == 0)
+            {
+                Debug.Log($"[Brake] Force: {brakeForce:F0}N | Decel: {brakeDeceleration:F1}m/s²");
+            }
+        }
+
+        private float CalculateBrakeEfficiency()
+        {
             float currentSpeedKMH = _currentSpeed * 3.6f;
 
-            // Vitesse max du véhicule (depuis stats)
-            float maxSpeedKMH = stats.maxSpeed;
-
-            // Calculer le seuil max basé sur le ratio
-            float maxSpeedThreshold = maxSpeedKMH * maxSpeedThresholdRatio;
-
-            // === CAS LIMITES ===
-            if (currentSpeedKMH <= minSpeedThreshold)
+            if (currentSpeedKMH <= stats.brakeMinSpeedThreshold)
             {
-                return minSteeringModifier;
+                return stats.brakeLowSpeedEfficiency;
             }
 
-            if (currentSpeedKMH >= maxSpeedThreshold)
+            if (currentSpeedKMH >= stats.brakeMaxSpeedThreshold)
             {
-                return maxSteeringModifier;
+                return stats.brakeHighSpeedEfficiency;
             }
 
-            // === INTERPOLATION LINÉAIRE ===
-            float t = (currentSpeedKMH - minSpeedThreshold) / (maxSpeedThreshold - minSpeedThreshold);
+            float t = (currentSpeedKMH - stats.brakeMinSpeedThreshold) /
+                      (stats.brakeMaxSpeedThreshold - stats.brakeMinSpeedThreshold);
 
-            // Évaluer la courbe
-            float curveValue = steeringCurve.Evaluate(t);
-
-            return Mathf.Lerp(minSteeringModifier, maxSteeringModifier, curveValue);
+            return Mathf.Lerp(stats.brakeLowSpeedEfficiency, stats.brakeHighSpeedEfficiency, t);
         }
 
-        private float CalculateSteeringSpeed()
+        private void ApplyDrag()
         {
-            float baseSteeringSpeed = stats.steeringSpeed;
-
-            // Réduction de steering à haute vitesse
-            if (_currentSpeed > stats.SteeringReductionStartSpeedMS)
+            if (!_isGrounded)
             {
-                float speedFactor = (_currentSpeed - stats.SteeringReductionStartSpeedMS) /
-                                   (stats.MaxSpeedMS - stats.SteeringReductionStartSpeedMS);
-                speedFactor = Mathf.Clamp01(speedFactor);
-
-                baseSteeringSpeed *= (1f - speedFactor * stats.highSpeedSteeringReduction);
+                float airDrag = stats.drag * 0.5f;
+                _velocity *= (1f - airDrag * Time.fixedDeltaTime);
             }
-
-            // Boost de steering pendant le drift
-            if (_isDrifting)
+            else
             {
-                baseSteeringSpeed *= stats.driftSteeringMultiplier;
+                // ← NOUVEAU : Coast down physique quand aucun input
+                if (_throttleInput < 0.1f && _brakeInput < 0.1f)
+                {
+                    _velocity = physicsCore.ApplyCoastDown(_velocity, _transform, stats.mass, Time.fixedDeltaTime);
+                }
+                else
+                {
+                    // Drag normal pendant accélération
+                    float groundDragCoefficient = stats.naturalDecelerationInverted;
+                    float speedRatio = Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
+                    float dragMultiplier = Mathf.Lerp(0.1f, 0.5f, speedRatio);
+                    float dragFactor = (1f / (groundDragCoefficient * 5f)) * dragMultiplier;
+                    _velocity *= (1f - dragFactor * Time.fixedDeltaTime);
+                }
             }
-
-            return baseSteeringSpeed;
         }
 
-        #endregion
-
-        #region Grip & Drift
-
-        private void ApplyGrip()
+        private void ApplyGravity()
         {
-            // Calculer la vélocité latérale (perpendiculaire à la direction)
-            Vector3 forwardVelocity = transform.forward * Vector3.Dot(_rb.linearVelocity, transform.forward);
-            Vector3 rightVelocity = transform.right * Vector3.Dot(_rb.linearVelocity, transform.right);
-
-            // Force de grip (réduit le glissement latéral)
-            float gripStrength = _isDrifting
-                ? stats.gripStrength * stats.driftGripReduction
-                : stats.gripStrength;
-
-            // Appliquer une force opposée au glissement latéral
-            Vector3 gripForce = -rightVelocity * gripStrength;
-            _rb.AddForce(gripForce, ForceMode.Acceleration);
-
-            // Pendant le drift, ajouter une force latérale
-            if (_isDrifting && Mathf.Abs(_steeringInput) > 0.1f)
+            if (!_isGrounded)
             {
-                Vector3 driftForce = transform.right * _steeringInput * stats.driftForce;
-                _rb.AddForce(driftForce, ForceMode.Acceleration);
+                _velocity += UnityEngine.Physics.gravity * Time.fixedDeltaTime;
+            }
+            else
+            {
+                Vector3 groundPlaneVelocity = Vector3.ProjectOnPlane(_velocity, _groundNormal);
+                _velocity = groundPlaneVelocity;
+
+                if (_currentSpeed > 5f)
+                {
+                    _velocity += -_groundNormal * stats.downForce * 0.01f * Time.fixedDeltaTime;
+                }
             }
         }
 
         #endregion
 
-        #region Down Force
+        #region Movement
 
-        private void ApplyDownForce()
+        private void MoveVehicle()
         {
-            // Force vers le bas pour maintenir le véhicule au sol
-            if (_currentSpeed > 5f)
+            Vector3 movement = _velocity * Time.fixedDeltaTime;
+            _transform.position += movement;
+
+            DetectCollisions(movement);
+        }
+
+        private void DetectCollisions(Vector3 movement)
+        {
+            float radius = 0.5f;
+            float distance = movement.magnitude + 0.1f;
+
+            if (distance < 0.01f) return;
+
+            if (UnityEngine.Physics.SphereCast(_transform.position, radius, movement.normalized, out RaycastHit hit, distance))
             {
-                Vector3 downForce = -transform.up * stats.downForce * SpeedPercentage;
-                _rb.AddForce(downForce, ForceMode.Acceleration);
+                if (IsInLayerMask(hit.collider.gameObject.layer, wallLayer))
+                {
+                    HandleWallCollision(hit);
+                }
+                else if (IsInLayerMask(hit.collider.gameObject.layer, vehicleLayer))
+                {
+                    HandleVehicleCollision(hit);
+                }
+            }
+        }
+
+        private bool IsInLayerMask(int layer, LayerMask layerMask)
+        {
+            return layerMask == (layerMask | (1 << layer));
+        }
+
+        #endregion
+
+        #region Collision Handling
+
+        private void HandleWallCollision(RaycastHit hit)
+        {
+            Vector3 normal = hit.normal;
+            Vector3 reflection = Vector3.Reflect(_velocity, normal);
+
+            _velocity = reflection * stats.wallBounceMultiplier;
+            _transform.position = hit.point + normal * 0.1f;
+
+            if (_showDebug)
+            {
+                Debug.Log($"[Wall Collision] Bounce! Speed: {_currentSpeed:F1} m/s");
+                Debug.DrawRay(hit.point, normal, Color.red, 0.5f);
+            }
+        }
+
+        private void HandleVehicleCollision(RaycastHit hit)
+        {
+            VehiclePhysics otherVehicle = hit.collider.GetComponentInParent<VehiclePhysics>();
+            if (otherVehicle == null) return;
+
+            float m1 = stats.mass;
+            float m2 = otherVehicle.stats.mass;
+
+            Vector3 v1 = _velocity;
+            Vector3 v2 = otherVehicle._velocity;
+
+            Vector3 v1New = ((m1 - m2) * v1 + 2 * m2 * v2) / (m1 + m2);
+            Vector3 v2New = ((m2 - m1) * v2 + 2 * m1 * v1) / (m1 + m2);
+
+            _velocity = v1New * stats.vehicleBounceFactor;
+            otherVehicle._velocity = v2New * stats.vehicleBounceFactor;
+
+            Vector3 separationDir = (_transform.position - otherVehicle._transform.position).normalized;
+            _transform.position += separationDir * 0.2f;
+
+            if (_showDebug)
+            {
+                Debug.Log($"[Vehicle Collision] Hit {otherVehicle.name}");
             }
         }
 
         #endregion
 
-        #region Air Control
+        #region Collision Events
 
-        private void ApplyAirControl()
+        private void OnCollisionEnter(Collision collision)
         {
-            // Auto-flip :  rotation automatique pour remettre la voiture à plat
-            if (stats.autoFlip)
+            float impactForce = collision.relativeVelocity.magnitude;
+
+            if (_showDebug)
             {
-                Vector3 targetUp = Vector3.up;
-                Vector3 currentUp = transform.up;
-
-                Quaternion targetRotation = Quaternion.FromToRotation(currentUp, targetUp) * _rb.rotation;
-
-                _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, targetRotation,
-                    Time.fixedDeltaTime * stats.autoFlipSpeed));
+                Debug.Log($"[Collision Event] Impact: {impactForce:F1}");
             }
         }
 
         #endregion
 
-        #region Utility
+        #region State
 
-        private void UpdateCurrentSpeed()
+        private void UpdateState()
         {
-            // Calculer la vitesse sur le plan horizontal (ignorer Y)
-            Vector3 horizontalVelocity = new Vector3(_rb.linearVelocity.x, 0f, _rb.linearVelocity.z);
-            _currentSpeed = horizontalVelocity.magnitude;
+            _currentSpeed = _velocity.magnitude;
         }
 
-        /// <summary>
-        /// Réinitialiser la position et rotation du véhicule
-        /// </summary>
         public void ResetVehicle(Vector3 position, Quaternion rotation)
         {
-            _rb.linearVelocity = Vector3.zero;
-            _rb.angularVelocity = Vector3.zero;
-            transform.position = position;
-            transform.rotation = rotation;
-            _currentSteeringAngle = 0f;
-            _lastAccelerationForce = Vector3.zero;
-            _momentumTimer = 0f;
-            _wasAccelerating = false;
+            _transform.position = position;
+            _transform.rotation = rotation;
+            _velocity = Vector3.zero;
+            _currentSpeed = 0f;
+            physicsCore.ResetAngularVelocity(); // ← NOUVEAU
         }
 
         #endregion
 
-        #region Debug Gizmos
+        #region Debug
 
+#if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (!showDebugGizmos || !Application.isPlaying) return;
+            if (!_showDebug || !Application.isPlaying) return;
 
-            // Afficher le centre de masse
-            if (_rb != null)
-            {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawSphere(transform.TransformPoint(_rb.centerOfMass), 0.2f);
-            }
-
-            // Afficher la direction de vélocité
             Gizmos.color = Color.blue;
-            Gizmos.DrawRay(transform.position, _rb.linearVelocity);
+            Gizmos.DrawRay(transform.position, _velocity);
 
-            // Afficher la direction forward
-            Gizmos.color = Color.green;
-            Gizmos.DrawRay(transform.position, transform.forward * 3f);
-
-            // Afficher le vecteur de momentum
-            if (_wasAccelerating)
+            if (_isGrounded)
             {
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawRay(transform.position, _lastAccelerationForce.normalized * 5f);
+                Gizmos.color = Color.green;
+                Gizmos.DrawRay(transform.position, _groundNormal * 2f);
             }
+
+            // Visualiser transfert de charge
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(transform.position + transform.forward * 1.2f, 0.1f * physicsCore.FrontAxleLoad);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawSphere(transform.position - transform.forward * 1.2f, 0.1f * physicsCore.RearAxleLoad);
         }
+#endif
 
         #endregion
     }
