@@ -322,22 +322,50 @@ namespace ArcadeRacer.Editor
                 // Position en world space
                 Vector3 worldPosition = container.transform.TransformPoint(knot.Position);
 
-                // CORRECTION: Les tangentes doivent être relatives à la position du knot
-                // TangentIn et TangentOut sont déjà en espace local du knot
-                Vector3 worldTangentIn = container.transform.TransformVector(knot.TangentIn);
-                Vector3 worldTangentOut = container.transform.TransformVector(knot.TangentOut);
+                // Rotation en world space
+                Quaternion worldRotation = container.transform.rotation * knot.Rotation;
+
+                // Les tangentes sont des OFFSETS en espace local du knot
+                // On doit les transformer en world space
+                Vector3 worldTangentIn = container.transform.TransformPoint(knot.Position + knot.TangentIn) - worldPosition;
+                Vector3 worldTangentOut = container.transform.TransformPoint(knot.Position + knot.TangentOut) - worldPosition;
 
                 points[i] = new SplinePoint
                 {
                     position = worldPosition,
                     tangentIn = worldTangentIn,
-                    tangentOut = worldTangentOut
+                    tangentOut = worldTangentOut,
+                    rotation = worldRotation  // ← NOUVEAU
                 };
             }
 
             return points;
         }
 
+        [ContextMenu("Debug Spline Data")]
+        public void DebugSplineData()
+        {
+            if (splineContainer == null || splineContainer.Spline == null) return;
+
+            var spline = splineContainer.Spline;
+
+            Debug.Log("=== SPLINE DEBUG ===");
+            for (int i = 0; i < Mathf.Min(3, spline.Count); i++)
+            {
+                var knot = spline[i];
+
+                Debug.Log($"Knot {i}:");
+                Debug.Log($"  Position: {knot.Position}");
+                Debug.Log($"  TangentIn: {knot.TangentIn}");
+                Debug.Log($"  TangentOut: {knot.TangentOut}");
+                //Debug.Log($"  TangentMode: {knot.Mode}");
+
+                // Test d'évaluation Unity
+                float t = i / (float)spline.Count;
+                splineContainer.Evaluate(spline, t, out float3 pos, out float3 tangent, out float3 up);
+                Debug.Log($"  Unity Evaluate at t={t}: {pos}");
+            }
+        }
         #endregion
 
         #region Gizmos

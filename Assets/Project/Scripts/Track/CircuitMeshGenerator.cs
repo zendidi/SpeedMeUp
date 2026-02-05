@@ -1,6 +1,7 @@
-using UnityEngine;
-using System.Collections.Generic;
 using ArcadeRacer.Settings;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Splines;
 
 namespace ArcadeRacer.Utilities
 {
@@ -152,36 +153,37 @@ namespace ArcadeRacer.Utilities
         }
 
         /// <summary>
-        /// Interpole les points de spline pour créer une courbe lisse.
+        /// Interpole les points de spline en utilisant l'évaluation native d'Unity Splines.
         /// </summary>
         private static List<Vector3> InterpolateSpline(SplinePoint[] splinePoints, int segmentsPerPoint, bool closedLoop)
         {
             var interpolatedPoints = new List<Vector3>();
-            int pointCount = closedLoop ? splinePoints.Length : splinePoints.Length - 1;
 
-            for (int i = 0; i < pointCount; i++)
+            // Créer une Spline Unity temporaire avec les données complètes
+            var tempSpline = new UnityEngine.Splines.Spline();
+
+            foreach (var point in splinePoints)
             {
-                int nextIndex = (i + 1) % splinePoints.Length;
-
-                SplinePoint p0 = splinePoints[i];
-                SplinePoint p1 = splinePoints[nextIndex];
-
-                for (int j = 0; j < segmentsPerPoint; j++)
-                {
-                    float t = j / (float)segmentsPerPoint;
-                    Vector3 point = EvaluateBezier(p0, p1, t);
-                    interpolatedPoints.Add(point);
-                }
+                // Reconvertir en espace local (la spline est à l'origine)
+                var knot = new BezierKnot(
+                    point.position,
+                    point.tangentIn,
+                    point.tangentOut,
+                    point.rotation
+                );
+                tempSpline.Add(knot);
             }
 
-            // Ajouter le dernier point si boucle fermée
-            if (closedLoop)
+            tempSpline.Closed = closedLoop;
+
+            // Évaluer avec la méthode native d'Unity
+            int totalSegments = splinePoints.Length * segmentsPerPoint;
+
+            for (int i = 0; i <= totalSegments; i++)
             {
-                interpolatedPoints.Add(interpolatedPoints[0]);
-            }
-            else
-            {
-                interpolatedPoints.Add(splinePoints[splinePoints.Length - 1].position);
+                float t = i / (float)totalSegments;
+                Vector3 position = tempSpline.EvaluatePosition(t);
+                interpolatedPoints.Add(position);
             }
 
             return interpolatedPoints;
@@ -192,12 +194,19 @@ namespace ArcadeRacer.Utilities
         /// </summary>
         private static Vector3 EvaluateBezier(SplinePoint p0, SplinePoint p1, float t)
         {
-            // Points de contrôle pour Bézier cubique
-            // p0 et p1 sont les positions des knots
-            // Les tangentes sont RELATIVES à ces positions
+            // ATTENTION : Unity Splines utilise des tangentes SORTANTES et ENTRANTES
+            // p0.tangentOut = direction de la courbe qui SORT de p0
+            // p1.tangentIn = direction de la courbe qui ENTRE dans p1
+
+            // Points de contrôle pour Bézier cubique :
+            // P0 = position de départ
+            // P1 = position de départ + tangente sortante
+            // P2 = position d'arrivée + tangente entrante (ATTENTION: c'est déjà un offset !)
+            // P3 = position d'arrivée
+
             Vector3 P0 = p0.position;
-            Vector3 P1 = p0.position + p0.tangentOut;  // Point de contrôle sortant de p0
-            Vector3 P2 = p1.position + p1.tangentIn;   // Point de contrôle entrant vers p1
+            Vector3 P1 = p0.position + p0.tangentOut;  // Sortie de p0
+            Vector3 P2 = p1.position + p1.tangentIn;   // Entrée vers p1 (déjà un offset !)
             Vector3 P3 = p1.position;
 
             // Formule de Bézier cubique : B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
@@ -207,10 +216,10 @@ namespace ArcadeRacer.Utilities
             float uuu = uu * u;
             float ttt = tt * t;
 
-            Vector3 point = uuu * P0;           // (1-t)³ * P0
-            point += 3f * uu * t * P1;          // 3(1-t)²t * P1
-            point += 3f * u * tt * P2;          // 3(1-t)t² * P2
-            point += ttt * P3;                  // t³ * P3
+            Vector3 point = uuu * P0;              // (1-t)³ * P0
+            point += 3f * uu * t * P1;             // 3(1-t)²t * P1
+            point += 3f * u * tt * P2;             // 3(1-t)t² * P2
+            point += ttt * P3;                     // t³ * P3
 
             return point;
         }

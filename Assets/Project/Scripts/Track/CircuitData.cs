@@ -156,14 +156,16 @@ namespace ArcadeRacer.Settings
         public Vector3 position;
         public Vector3 tangentIn;
         public Vector3 tangentOut;
-        
+        public Quaternion rotation;
+
         public static SplinePoint Create(Vector3 position)
         {
             return new SplinePoint
             {
                 position = position,
                 tangentIn = Vector3.back,
-                tangentOut = Vector3.forward
+                tangentOut = Vector3.forward,
+                rotation = Quaternion.identity
             };
         }
     }
