@@ -972,7 +972,7 @@ MonoBehaviour:
   showSplinePoints: 1
   showCheckpoints: 1
   showSpawnPoint: 1
-  previewSegmentsPerPoint: 25
+  previewSegmentsPerPoint: 50
   previewRoadObject: {fileID: 0}
   previewWallsObject: {fileID: 0}
 --- !u!114 &1752388924

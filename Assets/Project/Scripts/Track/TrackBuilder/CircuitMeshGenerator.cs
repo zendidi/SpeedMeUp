@@ -12,6 +12,9 @@ namespace ArcadeRacer.Utilities
     /// </summary>
     public static class CircuitMeshGenerator
     {
+
+        public const int DEFAULT_SEGMENTS = 25;
+        public const float DEFAULT_CURVE_QUALITY = 5f;
         /// <summary>
         /// Résultat de la génération de mesh.
         /// </summary>
@@ -103,7 +106,7 @@ namespace ArcadeRacer.Utilities
                     config.uvTilingY
                 );
                 result.roadMesh.name = $"{circuitData.circuitName}_Road";
-
+                //Debug.Log($"[CircuitMeshGenerator] Mesh créé: {result.roadMesh.name} - Appelé par: {new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name}");
                 // Générer les murs si demandé
                 if (circuitData.generateWalls)
                 {

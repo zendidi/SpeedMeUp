@@ -94,15 +94,15 @@ MonoBehaviour:
     rotation: {x: -0.0062081767, y: -0.0013560103, z: 0.003457782, w: 0.9999739}
   trackWidth: 10
   closedLoop: 1
-  spawnPosition: {x: 86, y: 0, z: -38.6}
+  spawnPosition: {x: 86, y: 1.33, z: -38.6}
   spawnRotation: {x: -0, y: -0, z: -0, w: 1}
   autoCheckpointCount: 10
   checkpointWidth: 15
   checkpointHeight: 5
-  roadMaterial: {fileID: 0}
+  roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
   wallMaterial: {fileID: 0}
   wallHeight: 2
-  generateWalls: 1
+  generateWalls: 0
   targetLapCount: 3
   goldTime: 60
   silverTime: 75

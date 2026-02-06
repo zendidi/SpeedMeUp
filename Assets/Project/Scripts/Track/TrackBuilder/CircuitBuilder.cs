@@ -52,8 +52,8 @@ namespace ArcadeRacer.Editor
         
         [SerializeField]
         [Range(5, 50)]
-        private int previewSegmentsPerPoint = 10;
-        
+        private int previewSegmentsPerPoint = CircuitMeshGenerator.DEFAULT_SEGMENTS;
+
         [Header("=== PREVIEW OBJECTS ===")]
         [SerializeField]
         private GameObject previewRoadObject;

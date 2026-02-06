@@ -33,12 +33,8 @@ namespace ArcadeRacer.Track
 
         [Header("=== QUALITY SETTINGS ===")]
         [SerializeField]
-        [Tooltip("Segments de base par point de spline")]
-        private int meshQuality = 15;
-
-        [SerializeField]
-        [Tooltip("Multiplicateur pour les virages (2 = doublement dans les courbes)")]
-        private float curveQuality = 2f;
+        private int meshQuality = CircuitMeshGenerator.DEFAULT_SEGMENTS;  // ← Auto-sync
+        private float curveQuality = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY;
 
         private void Awake()
         {
