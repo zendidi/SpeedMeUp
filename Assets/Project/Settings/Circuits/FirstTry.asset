@@ -132,18 +132,18 @@ MonoBehaviour:
     tangentIn: {x: 0, y: 0, z: -43.656494}
     tangentOut: {x: 0, y: 0, z: 37.116318}
     rotation: {x: -0.00000004134057, y: 0.82675105, z: -0.0000000013200079, w: -0.56256783}
-  trackWidth: 10
+  trackWidth: 20
   closedLoop: 1
-  spawnPosition: {x: -31, y: -0.52, z: -29.6}
+  spawnPosition: {x: -31, y: 1.45, z: -29.6}
   spawnRotation: {x: -0, y: -0, z: -0, w: 1}
   autoCheckpointCount: 10
-  checkpointWidth: 15
+  checkpointWidth: 22
   checkpointHeight: 5
   roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
   wallMaterial: {fileID: 2100000, guid: f96e581884ccaaf4baa9a237b21b7388, type: 2}
   wallHeight: 0.5
   generateWalls: 0
-  targetLapCount: 3
+  targetLapCount: 1
   goldTime: 60
   silverTime: 75
   bronzeTime: 90

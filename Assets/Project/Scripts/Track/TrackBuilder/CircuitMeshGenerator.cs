@@ -2,6 +2,7 @@ using ArcadeRacer.Settings;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Splines;
+using static UnityEngine.Rendering.STP;
 
 namespace ArcadeRacer.Utilities
 {
@@ -35,6 +36,7 @@ namespace ArcadeRacer.Utilities
             public float uvTilingY;
             public bool generateCollider;
             public bool optimizeMesh;
+            public float curveQualityMultiplier;
 
             public static GenerationConfig Default => new GenerationConfig
             {
@@ -42,7 +44,8 @@ namespace ArcadeRacer.Utilities
                 uvTilingX = 1f,
                 uvTilingY = 0.5f,
                 generateCollider = true,
-                optimizeMesh = true
+                optimizeMesh = true,
+                curveQualityMultiplier = 2f
             };
         }
 
@@ -60,10 +63,8 @@ namespace ArcadeRacer.Utilities
         /// <summary>
         /// Génère les meshes de route et murs à partir des données de circuit.
         /// </summary>
-        public static GenerationResult Generate(CircuitData circuitData, GenerationConfig config = default)
+        public static GenerationResult Generate(CircuitData circuitData, GenerationConfig config)
         {
-            if (config.segmentsPerSplinePoint == 0)
-                config = GenerationConfig.Default;
 
             var result = new GenerationResult();
 
@@ -81,7 +82,8 @@ namespace ArcadeRacer.Utilities
                 var interpolatedPoints = InterpolateSpline(
                     circuitData.splinePoints,
                     config.segmentsPerSplinePoint,
-                    circuitData.closedLoop
+                    circuitData.closedLoop,
+                    config.curveQualityMultiplier
                 );
 
                 // Calculer les edges gauche/droite
@@ -153,18 +155,18 @@ namespace ArcadeRacer.Utilities
         }
 
         /// <summary>
-        /// Interpole les points de spline en utilisant l'évaluation native d'Unity Splines.
+        /// Interpole les points de spline avec subdivision adaptative.
+        /// Plus de segments dans les virages serrés, moins dans les lignes droites.
         /// </summary>
-        private static List<Vector3> InterpolateSpline(SplinePoint[] splinePoints, int segmentsPerPoint, bool closedLoop)
+        private static List<Vector3> InterpolateSpline(SplinePoint[] splinePoints, int segmentsPerPoint, bool closedLoop, float curveQualityMultiplier)
         {
             var interpolatedPoints = new List<Vector3>();
 
-            // Créer une Spline Unity temporaire avec les données complètes
+            // Créer une Spline Unity temporaire
             var tempSpline = new UnityEngine.Splines.Spline();
 
             foreach (var point in splinePoints)
             {
-                // Reconvertir en espace local (la spline est à l'origine)
                 var knot = new BezierKnot(
                     point.position,
                     point.tangentIn,
@@ -176,17 +178,58 @@ namespace ArcadeRacer.Utilities
 
             tempSpline.Closed = closedLoop;
 
-            // Évaluer avec la méthode native d'Unity
-            int totalSegments = splinePoints.Length * segmentsPerPoint;
+            // Subdivision adaptative : Plus de segments dans les courbes
+            int totalPoints = 0;
 
-            for (int i = 0; i <= totalSegments; i++)
+            for (int i = 0; i < splinePoints.Length; i++)
             {
-                float t = i / (float)totalSegments;
+                int nextIndex = (i + 1) % splinePoints.Length;
+                if (!closedLoop && nextIndex == 0) break;
+
+                // Calculer la courbure entre deux points
+                float curvature = CalculateCurvature(splinePoints[i], splinePoints[nextIndex]);
+
+                // Adapter le nombre de segments selon la courbure
+                // Virage serré (curvature élevée) → Plus de segments
+                int adaptiveSegments = Mathf.CeilToInt(segmentsPerPoint * (1f + curvature * curveQualityMultiplier));
+                adaptiveSegments = Mathf.Clamp(adaptiveSegments, segmentsPerPoint, segmentsPerPoint * 4);
+
+                totalPoints += adaptiveSegments;
+            }
+
+            // Évaluer la spline avec la méthode native d'Unity
+            float totalLength = tempSpline.GetLength();
+            float step = totalLength / totalPoints;
+
+            for (int i = 0; i <= totalPoints; i++)
+            {
+                float t = i / (float)totalPoints;
                 Vector3 position = tempSpline.EvaluatePosition(t);
                 interpolatedPoints.Add(position);
             }
 
             return interpolatedPoints;
+        }
+
+        /// <summary>
+        /// Calcule la courbure approximative entre deux points de spline.
+        /// Retourne 0 pour ligne droite, >0 pour virage (plus c'est élevé, plus c'est serré).
+        /// </summary>
+        private static float CalculateCurvature(SplinePoint p0, SplinePoint p1)
+        {
+            // Vecteur direct entre les deux points
+            Vector3 direct = (p1.position - p0.position).normalized;
+
+            // Direction des tangentes
+            Vector3 tangent0 = p0.tangentOut.normalized;
+            Vector3 tangent1 = p1.tangentIn.normalized;
+
+            // Calculer l'angle de déviation (0 = ligne droite, 1 = virage à 90°)
+            float deviation0 = 1f - Mathf.Max(0f, Vector3.Dot(direct, tangent0));
+            float deviation1 = 1f - Mathf.Max(0f, Vector3.Dot(direct, tangent1));
+
+            // Retourner la courbure moyenne
+            return (deviation0 + deviation1) * 0.5f;
         }
 
         /// <summary>
@@ -457,9 +500,9 @@ namespace ArcadeRacer.Utilities
                 return new CheckpointInfo[0];
 
             var checkpoints = new CheckpointInfo[checkpointCount];
-
+           var config = GenerationConfig.Default;
             // Interpoler la spline
-            var points = InterpolateSpline(circuitData.splinePoints, 10, circuitData.closedLoop);
+            var points = InterpolateSpline(circuitData.splinePoints, 10, circuitData.closedLoop, config.curveQualityMultiplier);
 
             // Distribuer uniformément
             float step = (points.Count - 1) / (float)checkpointCount;

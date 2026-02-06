@@ -17,10 +17,16 @@ namespace ArcadeRacer.Editor
         #region Serialized Fields
         
         [Header("=== CIRCUIT DATA ===")]
+
         [SerializeField]
         [Tooltip("CircuitData asset à remplir avec les données de la spline")]
         private CircuitData circuitData;
-        
+
+        // ⬇️ NOUVEAU : Pour créer un nouveau CircuitData
+        [SerializeField]
+        [Tooltip("Nom pour un NOUVEAU circuit (si circuitData est vide)")]
+        private string newCircuitName = "";
+
         [Header("=== SPLINE SOURCE ===")]
         [SerializeField]
         [Tooltip("SplineContainer contenant la trajectoire du circuit")]
@@ -45,7 +51,7 @@ namespace ArcadeRacer.Editor
         private bool showSpawnPoint = true;
         
         [SerializeField]
-        [Range(5, 20)]
+        [Range(5, 50)]
         private int previewSegmentsPerPoint = 10;
         
         [Header("=== PREVIEW OBJECTS ===")]
@@ -281,11 +287,71 @@ namespace ArcadeRacer.Editor
             
             Debug.Log("[CircuitBuilder] SpawnPoint créé au début de la spline.");
         }
-        
+
+        /// <summary>
+        /// Crée un nouveau CircuitData asset et l'assigne automatiquement.
+        /// </summary>
+        public void CreateNewCircuitData()
+        {
+            if (string.IsNullOrWhiteSpace(newCircuitName))
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Veuillez entrer un nom pour le nouveau circuit !",
+                    "OK");
+                return;
+            }
+
+            // Vérifier les doublons
+            string assetPath = $"Assets/Project/Settings/Circuits/{newCircuitName}.asset";
+
+            if (AssetDatabase.LoadAssetAtPath<CircuitData>(assetPath) != null)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    $"Un circuit nommé '{newCircuitName}' existe déjà !\n\n" +
+                    "Choisissez un autre nom ou chargez le circuit existant.",
+                    "OK");
+                return;
+            }
+
+            // Créer les dossiers si nécessaire
+            if (!AssetDatabase.IsValidFolder("Assets/Project/Settings/Circuits"))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Project/Settings"))
+                {
+                    AssetDatabase.CreateFolder("Assets/Project", "Settings");
+                }
+                AssetDatabase.CreateFolder("Assets/Project/Settings", "Circuits");
+            }
+
+            // Créer le CircuitData
+            var newData = ScriptableObject.CreateInstance<CircuitData>();
+            newData.circuitName = newCircuitName;
+            newData.trackWidth = 10f;
+            newData.closedLoop = true;
+            newData.autoCheckpointCount = 10;
+            newData.targetLapCount = 3;
+
+            AssetDatabase.CreateAsset(newData, assetPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            // Assigner automatiquement
+            circuitData = newData;
+
+            // Nettoyer le champ de nom
+            newCircuitName = "";
+
+            Debug.Log($"[CircuitBuilder] CircuitData créé : {assetPath}");
+            EditorUtility.DisplayDialog("Succès",
+                $"Circuit '{newData.circuitName}' créé et assigné !\n\n" +
+                "Vous pouvez maintenant éditer votre spline et exporter.",
+                "OK");
+        }
+
         #endregion
-        
+
         #region Private Methods
-        
+
         private bool ValidateBeforeExport(out string errorMessage)
         {
             if (circuitData == null)
