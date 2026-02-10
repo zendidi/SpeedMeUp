@@ -204,13 +204,17 @@ namespace ArcadeRacer.Utilities
             float totalLength = tempSpline.GetLength();
             float step = totalLength / totalPoints;
 
+
             for (int i = 0; i <= totalPoints; i++)
             {
                 float t = i / (float)totalPoints;
                 Vector3 position = tempSpline.EvaluatePosition(t);
+
+                // ✅ FORCER Y = 0 pour un circuit 100% plat
+                position.y = 0f;
+
                 interpolatedPoints.Add(position);
             }
-
             return interpolatedPoints;
         }
 

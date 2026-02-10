@@ -17,7 +17,7 @@ MonoBehaviour:
   description: A challenging racing circuit.
   splinePoints:
   - position: {x: 86, y: 0, z: -47}
-    tangentIn: {x: -22.177994, y: -0.48001057, z: -147.98688}
+    tangentIn: {x: -22.177994, y: 0, z: -147.98688}
     tangentOut: {x: 0, y: 0, z: 32.014317}
     rotation: {x: 0.00000002306334, y: -0.3170826, z: 0.000000028536851, w: 0.9483979}
   - position: {x: 33.98751, y: 0, z: -11.514496}
@@ -92,9 +92,9 @@ MonoBehaviour:
     tangentIn: {x: 0, y: 0, z: -33.889893}
     tangentOut: {x: 0, y: 0, z: 364.32123}
     rotation: {x: -0.0062081767, y: -0.0013560103, z: 0.003457782, w: 0.9999739}
-  trackWidth: 10
+  trackWidth: 14.21
   closedLoop: 1
-  spawnPosition: {x: 86, y: 1.33, z: -38.6}
+  spawnPosition: {x: 86, y: 1.5, z: -38.6}
   spawnRotation: {x: -0, y: -0, z: -0, w: 1}
   autoCheckpointCount: 10
   checkpointWidth: 15

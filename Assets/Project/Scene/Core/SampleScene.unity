@@ -3545,7 +3545,7 @@ MonoBehaviour:
   countdownDuration: 3
   autoStart: 1
   checkpointManager: {fileID: 1975976137}
-  circuitToLoad: {fileID: 11400000, guid: 6e807519ee113814b8a71b185f6fcb8d, type: 2}
+  circuitToLoad: {fileID: 0}
   racingVehicles:
   - {fileID: 618931062}
   showDebugInfo: 1
@@ -3582,14 +3582,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d59111b989ed58c4d94d84155bd26f3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Track.CircuitLoader
-  circuitToLoad: {fileID: 11400000, guid: 6e807519ee113814b8a71b185f6fcb8d, type: 2}
+  circuitToLoad: {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
   roadMeshObject: {fileID: 0}
   wallsObject: {fileID: 0}
   checkpointsParent: {fileID: 0}
   checkpointPrefab: {fileID: 0}
   checkpointManager: {fileID: 0}
   raceManager: {fileID: 0}
-  circuitHeight: 1.69
+  circuitHeight: 0.35
   meshQuality: 30
 --- !u!1 &1145517942
 GameObject:

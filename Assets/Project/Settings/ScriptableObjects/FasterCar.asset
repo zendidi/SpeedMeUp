@@ -32,12 +32,12 @@ MonoBehaviour:
     torque: 0.134
   staticFrictionThreshold: 0.05
   staticFrictionFactor: 0.8
-  steeringSpeed: 141
+  steeringSpeed: 300
   lowSpeedSteeringMultiplier: 1.784
   highSpeedSteeringMultiplier: 0.385
   gripStrength: 1.23
   steeringReturnSpeed: 4.35
-  turningSpeedLoss: 0.22
+  turningSpeedLoss: 0.076
   speedDragMultiplier: 1.46
   allowDrift: 0
   driftGripReduction: 0.32

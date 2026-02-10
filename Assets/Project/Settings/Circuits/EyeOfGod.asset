@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78611dd453cc5684395f0b325eb891bb, type: 3}
+  m_Name: EyeOfGod
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.CircuitData
+  circuitName: EyeOfGod
+  thumbnail: {fileID: 0}
+  description: A challenging racing circuit.
+  splinePoints:
+  - position: {x: -17.228203, y: 0, z: -206.74484}
+    tangentIn: {x: 0, y: 0, z: -121.50119}
+    tangentOut: {x: 0, y: 0, z: 136.83522}
+    rotation: {x: 0.00000001854327, y: 0.90477145, z: 0.00000004696992, w: -0.42589733}
+  - position: {x: -379.39673, y: 0, z: -453.58722}
+    tangentIn: {x: 0, y: 0, z: -150.44275}
+    tangentOut: {x: 0, y: 0, z: 166.26367}
+    rotation: {x: 4.6876718e-11, y: 0.83397645, z: -3.1015954e-11, w: -0.5518001}
+  - position: {x: -903.47864, y: 0, z: -562.69684}
+    tangentIn: {x: 0, y: 0, z: -126.19397}
+    tangentOut: {x: 0, y: 0, z: 138.9578}
+    rotation: {x: 0.0000000035331675, y: -0.4554946, z: -0.0000000069053767, w: 0.8902385}
+  - position: {x: -978.3812, y: 0, z: 82.05194}
+    tangentIn: {x: 0, y: 0, z: -170.86336}
+    tangentOut: {x: 0, y: 0, z: 115.128494}
+    rotation: {x: 1.6536732e-10, y: 0.040130705, z: 0.000000004117397, w: 0.99919444}
+  - position: {x: -898.01215, y: 0, z: 365.57364}
+    tangentIn: {x: 0, y: 0, z: -33.861145}
+    tangentOut: {x: 0, y: 0, z: 36.71805}
+    rotation: {x: -0.0000000056442357, y: 0.68504685, z: -0.000000006002244, w: 0.728499}
+  - position: {x: -721.4, y: 0, z: 75.8}
+    tangentIn: {x: 0, y: 0, z: -102.96898}
+    tangentOut: {x: 0, y: 0, z: 88.23808}
+    rotation: {x: 0.000000001561095, y: 0.9976499, z: 1.0721388e-10, w: 0.06851717}
+  - position: {x: -795.0353, y: 0, z: -206.18774}
+    tangentIn: {x: 0, y: 0, z: -66.5462}
+    tangentOut: {x: 0, y: 0, z: 51.573822}
+    rotation: {x: -0.00000006421836, y: 0.8634824, z: -0.000000037511345, w: 0.50437886}
+  - position: {x: -413.1853, y: 0, z: 95.81595}
+    tangentIn: {x: 0, y: 0, z: -140.21294}
+    tangentOut: {x: 0, y: 0, z: 124.21777}
+    rotation: {x: 9.544364e-10, y: 0.24643677, z: 0.0000000037535006, w: 0.9691589}
+  - position: {x: -377.1773, y: 0, z: 476.21802}
+    tangentIn: {x: 0, y: 0, z: -93.284}
+    tangentOut: {x: 0, y: 0, z: 104.23755}
+    rotation: {x: -0.000000004731936, y: 0.4341798, z: -0.000000009817708, w: 0.90082616}
+  - position: {x: 95.81849, y: 0, z: 413.7363}
+    tangentIn: {x: 0, y: 0, z: -129.40811}
+    tangentOut: {x: 0, y: 0, z: 118.33853}
+    rotation: {x: 0.0000000024591322, y: 0.9030384, z: 0.000000001169767, w: 0.4295599}
+  - position: {x: 227.57683, y: 0, z: 37.147675}
+    tangentIn: {x: 0, y: 0, z: -108.49991}
+    tangentOut: {x: 0, y: 0, z: 100.97659}
+    rotation: {x: -0.000000054176375, y: 0.9936588, z: 0.000000006130335, w: -0.11243757}
+  trackWidth: 20
+  closedLoop: 1
+  spawnPosition: {x: 86, y: 0.56, z: -38.6}
+  spawnRotation: {x: -0, y: -0, z: -0, w: 1}
+  autoCheckpointCount: 10
+  checkpointWidth: 15
+  checkpointHeight: 5
+  roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
+  wallMaterial: {fileID: 0}
+  wallHeight: 2
+  generateWalls: 0
+  targetLapCount: 3
+  goldTime: 60
+  silverTime: 75
+  bronzeTime: 90
+  minimapTexture: {fileID: 0}
+  _totalLength: 4638.767
