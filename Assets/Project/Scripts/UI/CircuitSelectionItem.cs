@@ -60,12 +60,10 @@ namespace ArcadeRacer.UI
                 if (circuitNameText != null)
                 {
                     circuitNameText.text = circuitData.circuitName;
+                    circuitNameText.raycastTarget = false; // Ne doit pas bloquer les clics du bouton
                 }
 
-                if (backgroundImage != null)
-                {
-                    backgroundImage.raycastTarget = false; // Ne doit pas bloquer les clics du bouton
-                }
+                // La backgroundImage doit avoir raycastTarget = true pour que le bouton fonctionne
             }
 
             // Configurer le bouton
