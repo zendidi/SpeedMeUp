@@ -41,7 +41,7 @@ namespace ArcadeRacer.UI
 
         private void Start()
         {
-           // GenerateCircuitItems();
+            GenerateCircuitItems();
         }
 
         private void OnDestroy()

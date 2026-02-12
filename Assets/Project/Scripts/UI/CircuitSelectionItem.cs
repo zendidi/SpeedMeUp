@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using ArcadeRacer.Settings;
+using Unity.VisualScripting;
 
 namespace ArcadeRacer.UI
 {
@@ -51,6 +52,8 @@ namespace ArcadeRacer.UI
                     {
                         thumbnailImage.enabled = false;
                     }
+
+                    thumbnailImage.raycastTarget = false;
                 }
 
                 // Configurer le nom
@@ -58,13 +61,24 @@ namespace ArcadeRacer.UI
                 {
                     circuitNameText.text = circuitData.circuitName;
                 }
+
+                if (backgroundImage != null)
+                {
+                    backgroundImage.raycastTarget = false; // Ne doit pas bloquer les clics du bouton
+                }
             }
 
             // Configurer le bouton
             if (selectButton != null)
             {
+                Debug.Log($"[CircuitSelectionItem] Configuration du bouton pour le circuit: {circuitData?.circuitName}");
+                Debug.Log($"[CircuitSelectionItem] Button interactable: {selectButton.interactable}"); // 🔧 NOUVEAU
                 selectButton.onClick.RemoveAllListeners();
                 selectButton.onClick.AddListener(OnClicked);
+            }
+            else
+            {
+                Debug.LogError("[CircuitSelectionItem] selectButton est NULL !"); // 🔧 NOUVEAU
             }
 
             SetSelected(false);
@@ -74,8 +88,10 @@ namespace ArcadeRacer.UI
 
         #region Events
 
-        private void OnClicked()
+        public void OnClicked()
         {
+            Debug.Log($"[CircuitSelectionItem] CLICK");
+
             if (_circuitData != null)
             {
                 _onSelected?.Invoke(_circuitData);
