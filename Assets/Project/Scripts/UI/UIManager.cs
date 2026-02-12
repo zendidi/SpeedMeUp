@@ -5,7 +5,7 @@ namespace ArcadeRacer.UI
 {
     /// <summary>
     /// Gestionnaire central de l'UI.   
-    /// Coordonne le HUD, le countdown, et l'écran de fin. 
+    /// Coordonne le HUD, le countdown, l'écran de fin et la sélection de circuits. 
     /// </summary>
     public class UIManager : MonoBehaviour
     {
@@ -13,6 +13,7 @@ namespace ArcadeRacer.UI
         [SerializeField] private RaceHUD raceHUD;
         [SerializeField] private CountdownUI countdownUI;
         [SerializeField] private FinishScreenUI finishScreenUI;
+        [SerializeField] private CircuitSelectionUI circuitSelectionUI;
 
         [Header("=== REFERENCES ===")]
         [SerializeField] private RaceManager raceManager;
@@ -65,6 +66,11 @@ namespace ArcadeRacer.UI
             {
                 finishScreenUI = FindFirstObjectByType<FinishScreenUI>();
             }
+
+            if (circuitSelectionUI == null)
+            {
+                circuitSelectionUI = FindFirstObjectByType<CircuitSelectionUI>();
+            }
         }
 
         private void InitializeUI()
@@ -83,6 +89,11 @@ namespace ArcadeRacer.UI
             if (finishScreenUI != null)
             {
                 finishScreenUI.gameObject.SetActive(false);
+            }
+
+            if (circuitSelectionUI != null)
+            {
+                circuitSelectionUI.Hide();
             }
         }
 
@@ -188,6 +199,28 @@ namespace ArcadeRacer.UI
             countdownUI?.Reset();
             raceHUD?.SetVisible(false);
             finishScreenUI?.gameObject.SetActive(false);
+            circuitSelectionUI?.Hide();
+        }
+
+        /// <summary>
+        /// Afficher l'UI de sélection de circuits
+        /// </summary>
+        public void ShowCircuitSelection()
+        {
+            if (circuitSelectionUI != null)
+            {
+                circuitSelectionUI.Show();
+                HideRaceHUD();
+                Debug.Log("[UIManager] Circuit Selection UI activé");
+            }
+        }
+
+        /// <summary>
+        /// Cacher l'UI de sélection de circuits
+        /// </summary>
+        public void HideCircuitSelection()
+        {
+            circuitSelectionUI?.Hide();
         }
 
         #endregion
