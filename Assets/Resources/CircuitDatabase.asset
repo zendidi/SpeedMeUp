@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac983d9a7873482a8fb8cf75c5990bbf, type: 3}
+  m_Name: CircuitDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.CircuitDatabase
+  availableCircuits:
+  - {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
+  - {fileID: 11400000, guid: 6e807519ee113814b8a71b185f6fcb8d, type: 2}

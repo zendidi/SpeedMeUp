@@ -203,7 +203,7 @@ namespace ArcadeRacer.Managers
             Rigidbody vehicleRigidbody = vehicleController.GetComponent<Rigidbody>();
             if (vehicleRigidbody != null)
             {
-                vehicleRigidbody.velocity = Vector3.zero;
+                vehicleRigidbody.linearVelocity = Vector3.zero;
                 vehicleRigidbody.angularVelocity = Vector3.zero;
             }
 

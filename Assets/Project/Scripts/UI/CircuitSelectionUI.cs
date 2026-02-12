@@ -41,7 +41,12 @@ namespace ArcadeRacer.UI
 
         private void Start()
         {
-            GenerateCircuitItems();
+           // GenerateCircuitItems();
+        }
+
+        private void OnDestroy()
+        {
+            ClearItems();
         }
 
         private void OnValidate()
@@ -125,6 +130,12 @@ namespace ArcadeRacer.UI
                     Destroy(item.gameObject);
                 }
             }
+
+            List<GameObject> th_track = new List<GameObject>();
+            for (int i = 0; i < gridContainer.transform.childCount; i++)
+                DestroyImmediate(gridContainer.GetChild(i).gameObject);
+
+
             _spawnedItems.Clear();
             _selectedItem = null;
             _selectedCircuit = null;
@@ -136,6 +147,7 @@ namespace ArcadeRacer.UI
         [ContextMenu("Reload Circuit Items")]
         public void ReloadItems()
         {
+            ClearItems();
             GenerateCircuitItems();
         }
 
