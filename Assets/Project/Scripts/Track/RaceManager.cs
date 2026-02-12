@@ -81,8 +81,7 @@ namespace ArcadeRacer.RaceSystem
             {
                 StartCountdown();
             }
-            // Charger le circuit
-            CircuitManager.Instance.LoadCircuit(circuitToLoad);
+            
 
             // Spawn le véhicule
             var vehicle = FindFirstObjectByType<VehicleController>();

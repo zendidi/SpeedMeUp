@@ -1033,7 +1033,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: 0, w: -0.37792158}
-  m_LocalPosition: {x: 285.53787, y: 5.16, z: -233.79651}
+  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.79651}
   m_LocalScale: {x: 20, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2147,7 +2147,7 @@ Transform:
   m_GameObject: {fileID: 618931060}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: -0, w: -0.37792158}
-  m_LocalPosition: {x: 278.54, y: 1.35, z: -240.94}
+  m_LocalPosition: {x: 278.54, y: 6.84, z: -240.94}
   m_LocalScale: {x: 2, y: 1, z: 4}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -3521,6 +3521,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1071328595}
   - component: {fileID: 1071328594}
+  - component: {fileID: 1071328596}
   m_Layer: 0
   m_Name: RaceManager
   m_TagString: Untagged
@@ -3544,7 +3545,7 @@ MonoBehaviour:
   countdownDuration: 3
   autoStart: 1
   checkpointManager: {fileID: 1975976137}
-  circuitToLoad: {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
+  circuitToLoad: {fileID: 0}
   racingVehicles:
   - {fileID: 618931062}
   showDebugInfo: 1
@@ -3569,6 +3570,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1071328596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1071328593}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d59111b989ed58c4d94d84155bd26f3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Track.CircuitLoader
+  circuitToLoad: {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
+  roadMeshObject: {fileID: 0}
+  wallsObject: {fileID: 0}
+  checkpointsParent: {fileID: 0}
+  checkpointPrefab: {fileID: 0}
+  checkpointManager: {fileID: 0}
+  raceManager: {fileID: 0}
+  circuitHeight: 0.35
+  meshQuality: 30
 --- !u!1 &1145517942
 GameObject:
   m_ObjectHideFlags: 0
@@ -4091,7 +4113,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1408734709
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4174,12 +4196,12 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1408734711
 MeshFilter:
-  m_ObjectHideFlags: 8
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1408734708}
-  m_Mesh: {fileID: 4300000, guid: 1e9323016ef2a2e47bcdad131253b3c9, type: 2}
+  m_Mesh: {fileID: 0}
 --- !u!114 &1408734712
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4691,7 +4713,7 @@ Transform:
   m_GameObject: {fileID: 1437274621}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: -0, w: -0.37792158}
-  m_LocalPosition: {x: 285.53787, y: 5.16, z: -233.79651}
+  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.79651}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
