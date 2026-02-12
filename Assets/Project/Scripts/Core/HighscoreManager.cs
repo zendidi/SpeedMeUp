@@ -70,6 +70,7 @@ namespace ArcadeRacer.Core
         private const int MAX_HIGHSCORES_PER_CIRCUIT = 10;
         private const string HIGHSCORE_KEY_PREFIX = "Highscore_";
         private const string HIGHSCORE_SEPARATOR = "|";
+        private const float FLOAT_COMPARISON_EPSILON = 0.001f; // Tolérance pour comparaison de floats
 
         #region Singleton
 
@@ -137,7 +138,8 @@ namespace ArcadeRacer.Core
             scores = scores.OrderBy(s => s.timeInSeconds).Take(MAX_HIGHSCORES_PER_CIRCUIT).ToList();
 
             // Vérifier si le nouveau score est dans le top 10
-            bool isTopScore = scores.Any(s => s.timeInSeconds == timeInSeconds && s.playerName == playerName);
+            // Utiliser une comparaison epsilon pour éviter les problèmes de précision float
+            bool isTopScore = scores.Any(s => Mathf.Abs(s.timeInSeconds - timeInSeconds) < FLOAT_COMPARISON_EPSILON && s.playerName == playerName);
 
             if (isTopScore)
             {
@@ -152,7 +154,11 @@ namespace ArcadeRacer.Core
                 // Sauvegarder
                 SaveHighscores(circuitName, scores);
 
-                Debug.Log($"[HighscoreManager] Nouveau highscore pour {circuitName}: {newEntry.FormattedTime} - {playerName} (Rang: {scores.FindIndex(s => s.timeInSeconds == timeInSeconds && s.playerName == playerName) + 1})");
+                // Trouver le rang avec comparaison epsilon
+                int entryIndex = scores.FindIndex(s => Mathf.Abs(s.timeInSeconds - timeInSeconds) < FLOAT_COMPARISON_EPSILON && s.playerName == playerName);
+                int entryRank = entryIndex >= 0 ? entryIndex + 1 : 0;
+
+                Debug.Log($"[HighscoreManager] Nouveau highscore pour {circuitName}: {newEntry.FormattedTime} - {playerName} (Rang: {entryRank})");
                 return true;
             }
 

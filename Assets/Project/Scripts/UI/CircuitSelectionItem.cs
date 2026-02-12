@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using ArcadeRacer.Settings;
 
@@ -9,7 +10,7 @@ namespace ArcadeRacer.UI
     /// Composant d'un item de sélection de circuit dans l'UI.
     /// Affiche le thumbnail et le nom du circuit.
     /// </summary>
-    public class CircuitSelectionItem : MonoBehaviour
+    public class CircuitSelectionItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("=== UI REFERENCES ===")]
         [SerializeField] private Image thumbnailImage;
@@ -105,9 +106,9 @@ namespace ArcadeRacer.UI
 
         #endregion
 
-        #region Hover Effect (optionnel)
+        #region Hover Effect (IPointerHandler)
 
-        public void OnPointerEnter()
+        public void OnPointerEnter(PointerEventData eventData)
         {
             if (!_isSelected && backgroundImage != null)
             {
@@ -115,7 +116,7 @@ namespace ArcadeRacer.UI
             }
         }
 
-        public void OnPointerExit()
+        public void OnPointerExit(PointerEventData eventData)
         {
             if (!_isSelected && backgroundImage != null)
             {
