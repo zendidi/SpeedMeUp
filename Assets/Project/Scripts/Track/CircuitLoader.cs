@@ -31,6 +31,7 @@ namespace ArcadeRacer.Track
         [SerializeField] private RaceManager raceManager;
         [SerializeField] private float circuitHeight=.55f;
 
+
         [Header("=== QUALITY SETTINGS ===")]
         [SerializeField]
         private int meshQuality = CircuitMeshGenerator.DEFAULT_SEGMENTS;  // ← Auto-sync
@@ -54,7 +55,7 @@ namespace ArcadeRacer.Track
                 return;
             }
             
-            LoadCircuit();
+           // LoadCircuit();
         }
         
         /// <summary>
@@ -126,7 +127,7 @@ namespace ArcadeRacer.Track
             // === ROAD ===
             roadMeshObject = new GameObject($"{circuitToLoad.circuitName}_Road");
             roadMeshObject.transform.SetParent(transform);
-            roadMeshObject.transform.localPosition = new Vector3(0, circuitHeight, 0);
+            roadMeshObject.transform.position = new Vector3(0,0.1f, 0);
 
             var roadFilter = roadMeshObject.AddComponent<MeshFilter>();
             roadFilter.sharedMesh = result.roadMesh;

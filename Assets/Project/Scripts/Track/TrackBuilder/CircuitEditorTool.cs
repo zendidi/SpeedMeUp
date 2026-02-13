@@ -143,7 +143,9 @@ namespace ArcadeRacer.Editor
                 uvTilingX = 1f,
                 uvTilingY = 0.5f,
                 generateCollider = false,
-                optimizeMesh = true
+                optimizeMesh = true,
+                curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY
+
             };
             
             var result = CircuitMeshGenerator.Generate(tempData, config);
@@ -353,7 +355,8 @@ namespace ArcadeRacer.Editor
                 uvTilingX = 1f,
                 uvTilingY = 0.5f,
                 generateCollider = true,
-                optimizeMesh = true
+                optimizeMesh = true,
+                curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY
             };
             
             var result = CircuitMeshGenerator.Generate(data, config);

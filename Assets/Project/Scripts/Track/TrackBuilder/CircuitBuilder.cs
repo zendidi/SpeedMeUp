@@ -172,7 +172,7 @@ namespace ArcadeRacer.Editor
             tempCircuitData.generateWalls = circuitData.generateWalls;
             tempCircuitData.closedLoop = circuitData.closedLoop;
             tempCircuitData.circuitName = "Preview";
-            
+
             // Générer le mesh
             var config = new CircuitMeshGenerator.GenerationConfig
             {
@@ -180,8 +180,9 @@ namespace ArcadeRacer.Editor
                 uvTilingX = 1f,
                 uvTilingY = 0.5f,
                 generateCollider = false, // Pas besoin de collider pour preview
-                optimizeMesh = false
-            };
+                optimizeMesh = true,
+                curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY
+            }; 
             
             var result = CircuitMeshGenerator.Generate(tempCircuitData, config);
             

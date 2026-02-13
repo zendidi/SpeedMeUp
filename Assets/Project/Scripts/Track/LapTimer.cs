@@ -16,6 +16,8 @@ namespace ArcadeRacer.RaceSystem
         private float _raceStartTime;
         private float _currentLapStartTime;
         private List<float> _lapTimes = new List<float>();
+        private List<float> _currentLapCheckpointTimes = new List<float>(); // ← NOUVEAU: temps intermédiaires du tour actuel
+        private List<List<float>> _allLapsCheckpointTimes = new List<List<float>>(); // ← NOUVEAU: tous les tours
         private bool _isRacing = false;
 
         #region Properties
@@ -61,6 +63,16 @@ namespace ArcadeRacer.RaceSystem
         /// Liste de tous les temps
         /// </summary>
         public List<float> LapTimes => new List<float>(_lapTimes);
+        
+        /// <summary>
+        /// Temps intermédiaires du tour actuel
+        /// </summary>
+        public List<float> CurrentLapCheckpointTimes => new List<float>(_currentLapCheckpointTimes);
+        
+        /// <summary>
+        /// Temps intermédiaires de tous les tours complétés
+        /// </summary>
+        public List<List<float>> AllLapsCheckpointTimes => new List<List<float>>(_allLapsCheckpointTimes);
 
         #endregion
 
@@ -74,9 +86,27 @@ namespace ArcadeRacer.RaceSystem
             _raceStartTime = Time.time;
             _currentLapStartTime = Time.time;
             _lapTimes.Clear();
+            _currentLapCheckpointTimes.Clear();
+            _allLapsCheckpointTimes.Clear();
             _isRacing = true;
 
             Debug.Log($"[LapTimer] {gameObject.name} - Race started!");
+        }
+        
+        /// <summary>
+        /// Enregistrer le passage d'un checkpoint intermédiaire
+        /// </summary>
+        public void RecordCheckpoint()
+        {
+            if (!_isRacing) return;
+            
+            float checkpointTime = Time.time - _currentLapStartTime;
+            _currentLapCheckpointTimes.Add(checkpointTime);
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"[LapTimer] Checkpoint {_currentLapCheckpointTimes.Count}: {FormatTime(checkpointTime)}");
+            }
         }
 
         /// <summary>
@@ -88,11 +118,15 @@ namespace ArcadeRacer.RaceSystem
 
             float lapTime = Time.time - _currentLapStartTime;
             _lapTimes.Add(lapTime);
+            
+            // Sauvegarder les temps intermédiaires de ce tour
+            _allLapsCheckpointTimes.Add(new List<float>(_currentLapCheckpointTimes));
 
             Debug.Log($"🏁 [LapTimer] {gameObject.name} - Lap {_lapTimes.Count} completed in {FormatTime(lapTime)}");
 
             // Démarrer le nouveau tour
-            _currentLapStartTime = Time. time;
+            _currentLapStartTime = Time.time;
+            _currentLapCheckpointTimes.Clear(); // Réinitialiser pour le prochain tour
         }
 
         /// <summary>
@@ -110,6 +144,8 @@ namespace ArcadeRacer.RaceSystem
         public void Reset()
         {
             _lapTimes.Clear();
+            _currentLapCheckpointTimes.Clear();
+            _allLapsCheckpointTimes.Clear();
             _isRacing = false;
             _raceStartTime = 0f;
             _currentLapStartTime = 0f;

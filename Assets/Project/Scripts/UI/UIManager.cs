@@ -40,6 +40,7 @@ namespace ArcadeRacer.UI
         private void OnDisable()
         {
             UnsubscribeFromRaceEvents();
+            UnsubscribeFromInputEvents();
         }
 
         #endregion
@@ -219,7 +220,17 @@ namespace ArcadeRacer.UI
             // Actions continues (Value)
             Debug.Log("[UIManager] Abonnement à l'input MenuTrigger");
             _carActions.Driving.MenuTrigger.performed += SelectionCircuitTrigger;
-
+            
+            // Activer l'action map pour que les inputs fonctionnent
+            _carActions.Driving.Enable();
+        }
+        
+        private void UnsubscribeFromInputEvents()
+        {
+            if (_carActions == null) return;
+            
+            _carActions.Driving.MenuTrigger.performed -= SelectionCircuitTrigger;
+            _carActions.Driving.Disable();
         }
         public void SelectionCircuitTrigger(InputAction.CallbackContext context)
         {
@@ -256,5 +267,13 @@ namespace ArcadeRacer.UI
         }
 
         #endregion
+        
+        private void OnDestroy()
+        {
+            if (_carActions != null)
+            {
+                _carActions.Dispose();
+            }
+        }
     }
 }

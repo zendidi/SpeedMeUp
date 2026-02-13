@@ -14,7 +14,7 @@ namespace ArcadeRacer.Utilities
     {
 
         public const int DEFAULT_SEGMENTS = 25;
-        public const float DEFAULT_CURVE_QUALITY = 5f;
+        public const float DEFAULT_CURVE_QUALITY = 10f;
         /// <summary>
         /// Résultat de la génération de mesh.
         /// </summary>
@@ -48,7 +48,7 @@ namespace ArcadeRacer.Utilities
                 uvTilingY = 0.5f,
                 generateCollider = true,
                 optimizeMesh = true,
-                curveQualityMultiplier = 2f
+                curveQualityMultiplier = DEFAULT_CURVE_QUALITY
             };
         }
 
