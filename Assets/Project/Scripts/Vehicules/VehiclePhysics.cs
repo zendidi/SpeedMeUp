@@ -15,6 +15,7 @@ namespace ArcadeRacer.Vehicle
         private Rigidbody _rigidbody;
         private Transform _transform;
         private VehicleController _controller;
+        private OffroadDetector _offroadDetector; // ← NOUVEAU
 
         #endregion
 
@@ -70,6 +71,7 @@ namespace ArcadeRacer.Vehicle
             _rigidbody = GetComponent<Rigidbody>();
             _transform = transform;
             _controller = GetComponent<VehicleController>();
+            _offroadDetector = GetComponent<OffroadDetector>(); // ← NOUVEAU
 
             _rigidbody.isKinematic = true;
             _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
@@ -183,6 +185,12 @@ namespace ArcadeRacer.Vehicle
             // ← NOUVEAU : Appliquer grip multiplier
             float gripMultiplier = physicsCore.GetGripMultiplier();
             force *= gripMultiplier;
+            
+            // ← NOUVEAU : Appliquer pénalité offroad
+            if (_offroadDetector != null)
+            {
+                force *= _offroadDetector.AccelerationMultiplier;
+            }
 
             float acceleration = force / stats.mass;
             _velocity += _transform.forward * acceleration * Time.fixedDeltaTime;
@@ -196,7 +204,8 @@ namespace ArcadeRacer.Vehicle
 
             if (_showDebug && Time.frameCount % 30 == 0)
             {
-                Debug.Log($"[Accel] Speed: {speedRatio:P0} ({CurrentSpeedKMH:F0} km/h) | Torque: {torque:F2} | Grip: {gripMultiplier:F2}");
+                float offroadMult = _offroadDetector != null ? _offroadDetector.AccelerationMultiplier : 1f;
+                Debug.Log($"[Accel] Speed: {speedRatio:P0} ({CurrentSpeedKMH:F0} km/h) | Torque: {torque:F2} | Grip: {gripMultiplier:F2} | Offroad: {offroadMult:F2}");
             }
         }
 
@@ -367,9 +376,18 @@ namespace ArcadeRacer.Vehicle
 
         private void ApplyDrag()
         {
+            // Calculate base drag
+            float baseDrag = stats.drag;
+            
+            // Add offroad drag if applicable
+            if (_offroadDetector != null)
+            {
+                baseDrag += _offroadDetector.AdditionalDrag;
+            }
+            
             if (!_isGrounded)
             {
-                float airDrag = stats.drag * 0.5f;
+                float airDrag = baseDrag * 0.5f;
                 _velocity *= (1f - airDrag * Time.fixedDeltaTime);
             }
             else
@@ -386,6 +404,10 @@ namespace ArcadeRacer.Vehicle
                     float speedRatio = Mathf.Clamp01(_currentSpeed / stats.MaxSpeedMS);
                     float dragMultiplier = Mathf.Lerp(0.1f, 0.5f, speedRatio);
                     float dragFactor = (1f / (groundDragCoefficient * 5f)) * dragMultiplier;
+                    
+                    // Apply additional offroad drag
+                    dragFactor += baseDrag * 0.1f;
+                    
                     _velocity *= (1f - dragFactor * Time.fixedDeltaTime);
                 }
             }

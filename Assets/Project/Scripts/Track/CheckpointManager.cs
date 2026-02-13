@@ -62,12 +62,19 @@ namespace ArcadeRacer. RaceSystem
 
         private void InitializeCheckpoints()
         {
-            // Mode automatique :  générer depuis la spline
+            // Priority 1: Use saved checkpoint data from CircuitData if available
+            if (TryLoadCheckpointsFromCircuitData())
+            {
+                Debug.Log($"[CheckpointManager] {_checkpoints.Count} checkpoints loaded from CircuitData.");
+                return;
+            }
+            
+            // Priority 2: Generate from spline
             if (splineContainer != null && checkpointCount > 0)
             {
                 GenerateCheckpointsFromSpline();
             }
-            // Mode manuel : utiliser les checkpoints assignés
+            // Priority 3: Use manual checkpoints
             else if (manualCheckpoints.Count > 0)
             {
                 _checkpoints = new List<Checkpoint>(manualCheckpoints);
@@ -84,6 +91,49 @@ namespace ArcadeRacer. RaceSystem
             }
 
             Debug.Log($"[CheckpointManager] {_checkpoints.Count} checkpoints initialisés.");
+        }
+        
+        /// <summary>
+        /// Try to load checkpoints from CircuitData (saved relative positions)
+        /// </summary>
+        private bool TryLoadCheckpointsFromCircuitData()
+        {
+            // Find CircuitManager to get current circuit data
+            var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
+            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+                return false;
+            
+            var circuitData = circuitManager.CurrentCircuit;
+            
+            // Check if we have saved checkpoint data
+            if (circuitData.checkpointData == null || circuitData.checkpointData.Length == 0)
+                return false;
+            
+            // Clear existing checkpoints
+            ClearGeneratedCheckpoints();
+            
+            // Create parent for organization
+            GameObject checkpointsParent = new GameObject("Generated_Checkpoints");
+            checkpointsParent.transform.parent = transform;
+            
+            // Recreate checkpoints from saved data
+            foreach (var cpData in circuitData.checkpointData)
+            {
+                cpData.GetWorldTransform(circuitData.spawnPosition, circuitData.spawnRotation, out Vector3 worldPos, out Quaternion worldRot);
+                
+                GameObject checkpointGO = CreateCheckpointGameObject(cpData.index, checkpointsParent.transform);
+                checkpointGO.transform.position = worldPos;
+                checkpointGO.transform.rotation = worldRot;
+                
+                Checkpoint checkpoint = checkpointGO.GetComponent<Checkpoint>();
+                if (checkpoint != null)
+                {
+                    checkpoint.Setup(cpData.index, cpData.isStartFinishLine);
+                    _checkpoints.Add(checkpoint);
+                }
+            }
+            
+            return true;
         }
 
         private void GenerateCheckpointsFromSpline()
@@ -188,6 +238,16 @@ namespace ArcadeRacer. RaceSystem
             {
                 // Checkpoint valide ! 
                 _vehicleNextCheckpoint[vehicle] = (expectedCheckpoint + 1) % _checkpoints.Count;
+                
+                // Enregistrer le temps intermédiaire (sauf pour la ligne d'arrivée)
+                if (!checkpoint.IsStartFinishLine || expectedCheckpoint != 0)
+                {
+                    LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
+                    if (lapTimer != null)
+                    {
+                        lapTimer.RecordCheckpoint();
+                    }
+                }
 
                 // Si c'est la ligne d'arrivée, notifier le RaceManager
                 if (checkpoint. IsStartFinishLine && expectedCheckpoint == 0)
@@ -255,6 +315,54 @@ namespace ArcadeRacer. RaceSystem
         {
             ClearGeneratedCheckpoints();
         }
+        
+#if UNITY_EDITOR
+        /// <summary>
+        /// Save current checkpoint positions to CircuitData (relative to spawn point)
+        /// </summary>
+        [ContextMenu("Save Checkpoints to CircuitData")]
+        public void SaveCheckpointsToCircuitData()
+        {
+            var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
+            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+            {
+                Debug.LogError("[CheckpointManager] No CircuitManager or CurrentCircuit found!");
+                return;
+            }
+            
+            var circuitData = circuitManager.CurrentCircuit;
+            
+            if (_checkpoints.Count == 0)
+            {
+                Debug.LogWarning("[CheckpointManager] No checkpoints to save!");
+                return;
+            }
+            
+            // Convert checkpoints to relative data
+            var checkpointDataList = new List<ArcadeRacer.Settings.CheckpointData>();
+            
+            foreach (var checkpoint in _checkpoints)
+            {
+                var cpData = ArcadeRacer.Settings.CheckpointData.CreateRelativeToSpawn(
+                    checkpoint.transform.position,
+                    checkpoint.transform.rotation,
+                    circuitData.spawnPosition,
+                    circuitData.spawnRotation,
+                    checkpoint.Index,
+                    checkpoint.IsStartFinishLine
+                );
+                checkpointDataList.Add(cpData);
+            }
+            
+            circuitData.checkpointData = checkpointDataList.ToArray();
+            
+            // Mark asset as dirty to save changes
+            UnityEditor.EditorUtility.SetDirty(circuitData);
+            UnityEditor.AssetDatabase.SaveAssets();
+            
+            Debug.Log($"[CheckpointManager] Saved {checkpointDataList.Count} checkpoints to {circuitData.name}");
+        }
+#endif
 
         #endregion
     }
