@@ -40,6 +40,7 @@ namespace ArcadeRacer.UI
         private CircuitData _selectedCircuit;
         private CircuitSelectionItem _selectedItem;
         [SerializeField] private RaceManager raceManager;
+        private ArcadeRacer.Vehicle.VehicleController _cachedVehicleController;
 
         #region Unity Lifecycle
 
@@ -49,7 +50,13 @@ namespace ArcadeRacer.UI
             // Écouter la sélection de circuit
 
             OnCircuitSelected.AddListener(LoadAndStartCircuit);
-
+            
+            // Cache vehicle controller reference
+            _cachedVehicleController = FindFirstObjectByType<ArcadeRacer.Vehicle.VehicleController>();
+            if (_cachedVehicleController == null)
+            {
+                Debug.LogWarning("[CircuitSelectionUI] No VehicleController found in scene!");
+            }
 
         }
 
@@ -226,13 +233,12 @@ namespace ArcadeRacer.UI
             DisplayBestTime(circuit.circuitName);
             
             // Spawn the vehicle at the circuit's spawn point
-            var vehicleController = FindFirstObjectByType<ArcadeRacer.Vehicle.VehicleController>();
-            if (vehicleController != null)
+            if (_cachedVehicleController != null)
             {
-                CircuitManager.Instance.SpawnVehicle(vehicleController.transform);
+                CircuitManager.Instance.SpawnVehicle(_cachedVehicleController.transform);
                 
                 // Reset vehicle velocity
-                Rigidbody vehicleRb = vehicleController.GetComponent<Rigidbody>();
+                Rigidbody vehicleRb = _cachedVehicleController.GetComponent<Rigidbody>();
                 if (vehicleRb != null)
                 {
                     vehicleRb.linearVelocity = Vector3.zero;
@@ -243,7 +249,7 @@ namespace ArcadeRacer.UI
             }
             else
             {
-                Debug.LogWarning("[CircuitSelectionUI] No VehicleController found in scene!");
+                Debug.LogWarning("[CircuitSelectionUI] No VehicleController cached!");
             }
 
             if (raceManager != null)
