@@ -224,11 +224,36 @@ namespace ArcadeRacer.UI
         {
             CircuitManager.Instance.LoadCircuit(circuit);
             DisplayBestTime(circuit.circuitName);
+            
+            // Spawn the vehicle at the circuit's spawn point
+            var vehicleController = FindFirstObjectByType<ArcadeRacer.Vehicle.VehicleController>();
+            if (vehicleController != null)
+            {
+                CircuitManager.Instance.SpawnVehicle(vehicleController.transform);
+                
+                // Reset vehicle velocity
+                Rigidbody vehicleRb = vehicleController.GetComponent<Rigidbody>();
+                if (vehicleRb != null)
+                {
+                    vehicleRb.linearVelocity = Vector3.zero;
+                    vehicleRb.angularVelocity = Vector3.zero;
+                }
+                
+                Debug.Log($"[CircuitSelectionUI] Vehicle spawned at circuit spawn point");
+            }
+            else
+            {
+                Debug.LogWarning("[CircuitSelectionUI] No VehicleController found in scene!");
+            }
 
             if (raceManager != null)
             {
                 raceManager.RestartRace();
             }
+            
+            // Auto-hide the circuit selection panel after selecting a circuit
+            Hide();
+            Debug.Log("[CircuitSelectionUI] Circuit selection panel hidden after selection");
         }
 
         private void DisplayBestTime(string circuitName)
