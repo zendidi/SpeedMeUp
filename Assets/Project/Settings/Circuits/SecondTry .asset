@@ -92,7 +92,7 @@ MonoBehaviour:
     tangentIn: {x: 0, y: 0, z: -33.889893}
     tangentOut: {x: 0, y: 0, z: 364.32123}
     rotation: {x: -0.0062081767, y: -0.0013560103, z: 0.003457782, w: 0.9999739}
-  trackWidth: 14.21
+  trackWidth: 20
   closedLoop: 1
   spawnPosition: {x: 86, y: 1.5, z: -38.6}
   spawnRotation: {x: -0, y: -0, z: -0, w: 1}

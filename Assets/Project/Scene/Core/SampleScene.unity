@@ -168,6 +168,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -345,6 +347,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -1034,7 +1038,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: 0, w: -0.37792158}
-  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.79651}
+  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.0565}
   m_LocalScale: {x: 20, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1566,6 +1570,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -1826,6 +1832,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -1899,6 +1907,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -2148,7 +2158,7 @@ Transform:
   m_GameObject: {fileID: 618931060}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: -0, w: -0.37792158}
-  m_LocalPosition: {x: 278.54, y: 6.84, z: -240.94}
+  m_LocalPosition: {x: 278.54, y: 6.84, z: -240.2}
   m_LocalScale: {x: 2, y: 1, z: 4}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -3380,6 +3390,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -3807,6 +3819,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -3880,6 +3894,8 @@ MonoBehaviour:
   isStartFinishLine: 1
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 1, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -4745,6 +4761,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
@@ -4880,7 +4898,7 @@ Transform:
   m_GameObject: {fileID: 1437274621}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.92583764, z: -0, w: -0.37792158}
-  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.79651}
+  m_LocalPosition: {x: 285.53787, y: 10.65, z: -233.0565}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5902,7 +5920,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.RaceSystem.CheckpointManager
   splineContainer: {fileID: 1408734712}
   checkpointCount: 10
-  checkpointPrefab: {fileID: 0}
+  checkpointPrefab: {fileID: 9135537505080911157, guid: 91ff3f4b80153c749b02ba5a90d51dc8, type: 3}
   manualCheckpoints: []
   checkpointWidth: 15
   checkpointHeight: 5
@@ -6013,6 +6031,8 @@ MonoBehaviour:
   isStartFinishLine: 0
   showGizmo: 1
   gizmoColor: {r: 0, g: 1, b: 0, a: 1}
+  checkpointMaterial: {fileID: 0}
+  showMeshInGame: 1
   OnVehiclePassed:
     m_PersistentCalls:
       m_Calls: []
