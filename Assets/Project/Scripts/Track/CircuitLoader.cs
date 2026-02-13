@@ -127,7 +127,7 @@ namespace ArcadeRacer.Track
             // === ROAD ===
             roadMeshObject = new GameObject($"{circuitToLoad.circuitName}_Road");
             roadMeshObject.transform.SetParent(transform);
-            roadMeshObject.transform.localPosition = new Vector3(0, circuitHeight, 0);
+            roadMeshObject.transform.position = new Vector3(0,0.1f, 0);
 
             var roadFilter = roadMeshObject.AddComponent<MeshFilter>();
             roadFilter.sharedMesh = result.roadMesh;

@@ -2664,6 +2664,7 @@ MonoBehaviour:
   OnCircuitSelected:
     m_PersistentCalls:
       m_Calls: []
+  raceManager: {fileID: 1071328594}
 --- !u!1 &718883104
 GameObject:
   m_ObjectHideFlags: 0
@@ -3708,7 +3709,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.RaceSystem.RaceManager
   totalLaps: 3
-  countdownDuration: 3
+  countdownDuration: 1
   autoStart: 1
   checkpointManager: {fileID: 1975976137}
   circuitToLoad: {fileID: 0}

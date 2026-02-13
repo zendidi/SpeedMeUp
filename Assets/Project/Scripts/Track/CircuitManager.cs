@@ -134,7 +134,7 @@ namespace ArcadeRacer.Managers
             {
                 // 1. Créer le root
                 _circuitRoot = new GameObject($"Circuit_{circuitData.circuitName}");
-                
+
                 // 2. Générer le mesh de route
                 var config = new CircuitMeshGenerator.GenerationConfig
                 {
@@ -143,7 +143,7 @@ namespace ArcadeRacer.Managers
                     uvTilingY = 0.5f,
                     generateCollider = true,
                     optimizeMesh = true,
-                    curveQualityMultiplier = 2f  // Higher value = smoother curves
+                    curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY  // Higher value = smoother curves
                 };
                 
                 var result = CircuitMeshGenerator.Generate(circuitData, config);
@@ -187,8 +187,11 @@ namespace ArcadeRacer.Managers
                 if (_circuitRoot != null) Destroy(_circuitRoot);
                 Debug.LogException(e);
             }
+
+            _circuitRoot.transform.position += new Vector3(0, 0.05f, 0);
+
         }
-        
+
         public void UnloadCurrentCircuit()
         {
             if (!_isLoaded) return;
