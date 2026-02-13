@@ -1,7 +1,10 @@
+using ArcadeRacer.Core;
+using ArcadeRacer.Managers;
+using ArcadeRacer.RaceSystem;
+using ArcadeRacer.Settings;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using ArcadeRacer.Settings;
 
 namespace ArcadeRacer.UI
 {
@@ -36,17 +39,25 @@ namespace ArcadeRacer.UI
         private List<CircuitSelectionItem> _spawnedItems = new List<CircuitSelectionItem>();
         private CircuitData _selectedCircuit;
         private CircuitSelectionItem _selectedItem;
+        [SerializeField] private RaceManager raceManager;
 
         #region Unity Lifecycle
 
         private void Start()
         {
             GenerateCircuitItems();
+            // Écouter la sélection de circuit
+
+            OnCircuitSelected.AddListener(LoadAndStartCircuit);
+
+
         }
 
         private void OnDestroy()
         {
             ClearItems();
+            OnCircuitSelected.RemoveListener(LoadAndStartCircuit);
+
         }
 
         private void OnValidate()
@@ -207,9 +218,28 @@ namespace ArcadeRacer.UI
             // Déclencher l'événement
             OnCircuitSelected?.Invoke(circuit);
 
-            Debug.Log($"[CircuitSelectionUI] Circuit sélectionné: {circuit.circuitName}");
         }
 
+        private void LoadAndStartCircuit(CircuitData circuit)
+        {
+            CircuitManager.Instance.LoadCircuit(circuit);
+            DisplayBestTime(circuit.circuitName);
+
+            if (raceManager != null)
+            {
+                raceManager.RestartRace();
+            }
+        }
+
+        private void DisplayBestTime(string circuitName)
+        {
+            HighscoreEntry? bestTime = HighscoreManager.Instance.GetBestTime(circuitName);
+
+            if (bestTime.HasValue)
+            {
+                Debug.Log($"[CircuitSystemExample] Record: {bestTime.Value.FormattedTime} par {bestTime.Value.playerName}");
+            }
+        }
         /// <summary>
         /// Sélectionne un circuit par programmation
         /// </summary>

@@ -130,6 +130,13 @@ namespace ArcadeRacer.UI
             }
         }
 
+        //public void OnPointerClick(PointerEventData eventData)
+        //{
+        //    Debug.Log($"[CircuitSelectionItem] CLICK MY POINTER");
+
+        //    OnClicked();
+        //}
+
         public void OnPointerExit(PointerEventData eventData)
         {
             if (!_isSelected && backgroundImage != null)

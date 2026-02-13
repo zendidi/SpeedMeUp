@@ -2543,7 +2543,7 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 626289288}
-  m_CullTransparentMesh: 1
+  m_CullTransparentMesh: 0
 --- !u!114 &626289292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5486,9 +5486,9 @@ RectTransform:
   m_Children:
   - {fileID: 170474202}
   - {fileID: 1512547420}
+  - {fileID: 709700059}
   - {fileID: 51188399}
   - {fileID: 235622500}
-  - {fileID: 709700059}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

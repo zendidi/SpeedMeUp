@@ -31,6 +31,7 @@ namespace ArcadeRacer.Track
         [SerializeField] private RaceManager raceManager;
         [SerializeField] private float circuitHeight=.55f;
 
+
         [Header("=== QUALITY SETTINGS ===")]
         [SerializeField]
         private int meshQuality = CircuitMeshGenerator.DEFAULT_SEGMENTS;  // ← Auto-sync
@@ -54,7 +55,7 @@ namespace ArcadeRacer.Track
                 return;
             }
             
-            LoadCircuit();
+           // LoadCircuit();
         }
         
         /// <summary>
