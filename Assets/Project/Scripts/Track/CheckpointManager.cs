@@ -239,7 +239,8 @@ namespace ArcadeRacer. RaceSystem
                 // Checkpoint valide ! 
                 _vehicleNextCheckpoint[vehicle] = (expectedCheckpoint + 1) % _checkpoints.Count;
                 
-                // Enregistrer le temps intermédiaire (sauf pour la ligne d'arrivée)
+                // Enregistrer le temps intermédiaire (sauf pour le passage de la ligne d'arrivée qui complète le tour)
+                // On skip si c'est la ligne start/finish ET que c'est le checkpoint 0 (= fin de tour, pas intermédiaire)
                 if (!checkpoint.IsStartFinishLine || expectedCheckpoint != 0)
                 {
                     LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
@@ -250,7 +251,7 @@ namespace ArcadeRacer. RaceSystem
                 }
 
                 // Si c'est la ligne d'arrivée, notifier le RaceManager
-                if (checkpoint. IsStartFinishLine && expectedCheckpoint == 0)
+                if (checkpoint.IsStartFinishLine && expectedCheckpoint == 0)
                 {
                     OnLapCompleted(vehicle);
                 }

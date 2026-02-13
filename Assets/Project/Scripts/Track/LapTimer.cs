@@ -125,7 +125,7 @@ namespace ArcadeRacer.RaceSystem
             Debug.Log($"🏁 [LapTimer] {gameObject.name} - Lap {_lapTimes.Count} completed in {FormatTime(lapTime)}");
 
             // Démarrer le nouveau tour
-            _currentLapStartTime = Time. time;
+            _currentLapStartTime = Time.time;
             _currentLapCheckpointTimes.Clear(); // Réinitialiser pour le prochain tour
         }
 
