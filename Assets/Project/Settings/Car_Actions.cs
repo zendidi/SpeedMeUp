@@ -25,54 +25,54 @@ using UnityEngine.InputSystem.Utilities;
 /// <code>
 /// using namespace UnityEngine;
 /// using UnityEngine.InputSystem;
-///
+/// 
 /// // Example of using an InputActionMap named "Player" from a UnityEngine.MonoBehaviour implementing callback interface.
 /// public class Example : MonoBehaviour, MyActions.IPlayerActions
 /// {
 ///     private MyActions_Actions m_Actions;                  // Source code representation of asset.
 ///     private MyActions_Actions.PlayerActions m_Player;     // Source code representation of action map.
-///
+/// 
 ///     void Awake()
 ///     {
 ///         m_Actions = new MyActions_Actions();              // Create asset object.
 ///         m_Player = m_Actions.Player;                      // Extract action map object.
 ///         m_Player.AddCallbacks(this);                      // Register callback interface IPlayerActions.
 ///     }
-///
+/// 
 ///     void OnDestroy()
 ///     {
 ///         m_Actions.Dispose();                              // Destroy asset object.
 ///     }
-///
+/// 
 ///     void OnEnable()
 ///     {
 ///         m_Player.Enable();                                // Enable all actions within map.
 ///     }
-///
+/// 
 ///     void OnDisable()
 ///     {
 ///         m_Player.Disable();                               // Disable all actions within map.
 ///     }
-///
+/// 
 ///     #region Interface implementation of MyActions.IPlayerActions
-///
+/// 
 ///     // Invoked when "Move" action is either started, performed or canceled.
 ///     public void OnMove(InputAction.CallbackContext context)
 ///     {
 ///         Debug.Log($"OnMove: {context.ReadValue&lt;Vector2&gt;()}");
 ///     }
-///
+/// 
 ///     // Invoked when "Attack" action is either started, performed or canceled.
 ///     public void OnAttack(InputAction.CallbackContext context)
 ///     {
 ///         Debug.Log($"OnAttack: {context.ReadValue&lt;float&gt;()}");
 ///     }
-///
+/// 
 ///     #endregion
 /// }
 /// </code>
 /// </example>
-public partial class @Car_Actions : IInputActionCollection2, IDisposable
+public partial class @Car_Actions: IInputActionCollection2, IDisposable
 {
     /// <summary>
     /// Provides access to the underlying asset instance.
@@ -85,6 +85,7 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
     public @Car_Actions()
     {
         asset = InputActionAsset.FromJson(@"{
+    ""version"": 1,
     ""name"": ""Car_Actions"",
     ""maps"": [
         {
@@ -93,54 +94,45 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
             ""actions"": [
                 {
                     ""name"": ""Accelerate"",
-                    ""type"": ""Value"",
+                    ""type"": ""Button"",
                     ""id"": ""3f0e54b7-968b-437a-b989-a2f0ba4be4dd"",
-                    ""expectedControlType"": ""Axis"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": true
+                    ""initialStateCheck"": false
                 },
                 {
                     ""name"": ""Brake"",
-                    ""type"": ""Value"",
+                    ""type"": ""Button"",
                     ""id"": ""82edf94c-6ef6-4605-9bce-c9f2aebff038"",
-                    ""expectedControlType"": ""Axis"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": true
+                    ""initialStateCheck"": false
                 },
                 {
-                    ""name"":  ""Steering"",
+                    ""name"": ""Steering"",
                     ""type"": ""Value"",
                     ""id"": ""4d7a959d-1e8c-48e9-b5f3-3145c1944d81"",
-                    ""expectedControlType"": ""Axis"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"":  ""Drift"",
+                    ""name"": ""Drift"",
                     ""type"": ""Button"",
                     ""id"": ""d7e91330-626b-4780-ac89-d765763eb213"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Reset"",
+                    ""name"": ""MenuTrigger"",
                     ""type"": ""Button"",
-                    ""id"":  ""a8f3c2e1-5d9b-4f21-9c8a-1e2d3f4a5b6c"",
-                    ""expectedControlType"": ""Button"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""Pause"",
-                    ""type"": ""Button"",
-                    ""id"": ""b9e4d3f2-6e0c-4a32-8d9b-2f3e4a5b6c7d"",
-                    ""expectedControlType"": ""Button"",
+                    ""id"": ""464e020c-331c-4da3-b81b-544cad95eef7"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -148,96 +140,52 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
             ],
             ""bindings"": [
                 {
-                    ""name"": ""Keyboard"",
-                    ""id"": ""keyboard-composite-accel"",
-                    ""path"":  ""1DAxis"",
-                    ""interactions"": """",
-                    ""processors"":  """",
-                    ""groups"": """",
-                    ""action"": ""Accelerate"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""kbd-accel-pos"",
+                    ""name"": """",
+                    ""id"": ""0c7683ed-5087-420a-81cc-1540cf332918"",
                     ""path"": ""<Keyboard>/w"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"":  ""Accelerate"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""kbd-accel-pos-arrow"",
-                    ""path"": ""<Keyboard>/upArrow"",
-                    ""interactions"": """",
-                    ""processors"":  """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Accelerate"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""gamepad-accel"",
-                    ""path"": ""<Gamepad>/rightTrigger"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"":  ""Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Accelerate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""Keyboard"",
-                    ""id"":  ""keyboard-composite-brake"",
-                    ""path"": ""1DAxis"",
+                    ""name"": """",
+                    ""id"": ""66dec55f-6dd5-4238-add1-bc5f513024c3"",
+                    ""path"": ""<XInputController>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Accelerate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4f4df057-2b3f-4b91-8d7e-1f53292d0897"",
+                    ""path"": ""<Keyboard>/s"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Brake"",
-                    ""isComposite"":  true,
+                    ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""positive"",
-                    ""id"": ""kbd-brake-pos"",
-                    ""path"": ""<Keyboard>/s"",
-                    ""interactions"":  """",
-                    ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Brake"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""kbd-brake-pos-arrow"",
-                    ""path"": ""<Keyboard>/downArrow"",
-                    ""interactions"": """",
-                    ""processors"":  """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Brake"",
-                    ""isComposite"":  false,
-                    ""isPartOfComposite"": true
-                },
-                {
                     ""name"": """",
-                    ""id"": ""gamepad-brake"",
-                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""id"": ""00dcc423-a647-446e-b97b-05b39bf3be73"",
+                    ""path"": ""<WebGLGamepad>/leftTrigger"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Brake"",
                     ""isComposite"": false,
-                    ""isPartOfComposite"":  false
+                    ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""Keyboard"",
-                    ""id"": ""keyboard-composite-steering"",
+                    ""name"": ""AZERTY"",
+                    ""id"": ""a08e7bf4-a0e6-4200-836e-80396f56cb38"",
                     ""path"": ""1DAxis"",
                     ""interactions"": """",
                     ""processors"": """",
@@ -248,168 +196,85 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": ""negative"",
-                    ""id"": ""kbd-steer-neg"",
+                    ""id"": ""30c84148-a568-47d0-97a1-43e24b8f774f"",
                     ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"":  ""Steering"",
+                    ""groups"": """",
+                    ""action"": ""Steering"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
                 },
                 {
                     ""name"": ""positive"",
-                    ""id"": ""kbd-steer-pos"",
+                    ""id"": ""e5a9c2f1-7b3d-4e8a-9f1c-5d6e8a7b9c4d"",
                     ""path"": ""<Keyboard>/d"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Steering"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
                 },
                 {
-                    ""name"":  ""negative"",
-                    ""id"":  ""kbd-steer-neg-arrow"",
-                    ""path"":  ""<Keyboard>/leftArrow"",
+                    ""name"": """",
+                    ""id"": ""c74b4d48-5b55-44bd-9c8b-3a0686f3cb25"",
+                    ""path"": ""<XInputController>/leftStick"",
                     ""interactions"": """",
-                    ""processors"":  """",
-                    ""groups"": ""Keyboard&Mouse"",
+                    ""processors"": """",
+                    ""groups"": """",
                     ""action"": ""Steering"",
-                    ""isComposite"":  false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"":  ""kbd-steer-pos-arrow"",
-                    ""path"":  ""<Keyboard>/rightArrow"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"":  ""Steering"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""gamepad-steering"",
-                    ""path"": ""<Gamepad>/leftStick/x"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": ""Gamepad"",
-                    ""action"":  ""Steering"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""kbd-drift"",
-                    ""path"": ""<Keyboard>/leftShift"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Drift"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"":  """",
-                    ""id"": ""kbd-drift-space"",
+                    ""id"": ""d0072009-d638-4782-9241-11f4ad1f1aaa"",
                     ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Drift"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""gamepad-drift"",
-                    ""path"": ""<Gamepad>/buttonEast"",
-                    ""interactions"":  """",
-                    ""processors"": """",
-                    ""groups"": ""Gamepad"",
-                    ""action"": ""Drift"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"":  """",
-                    ""id"": ""kbd-reset"",
-                    ""path"": ""<Keyboard>/r"",
+                    ""id"": ""19db0509-887a-4582-9f7c-8e71b6db7f63"",
+                    ""path"": ""<XInputController>/buttonEast"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"":  ""Reset"",
+                    ""groups"": """",
+                    ""action"": ""Drift"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""gamepad-reset"",
-                    ""path"": ""<Gamepad>/buttonNorth"",
-                    ""interactions"":  """",
-                    ""processors"": """",
-                    ""groups"": ""Gamepad"",
-                    ""action"": ""Reset"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""kbd-pause"",
+                    ""id"": ""70ef9cc3-395f-4d42-9561-dba77a89d645"",
                     ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Pause"",
+                    ""groups"": """",
+                    ""action"": ""MenuTrigger"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""gamepad-pause"",
-                    ""path"": ""<Gamepad>/start"",
+                    ""id"": ""19fb17cb-61c0-4a6a-9329-8ae0ba2e1ddf"",
+                    ""path"": ""<XInputController>/start"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": ""Gamepad"",
-                    ""action"": ""Pause"",
+                    ""groups"": """",
+                    ""action"": ""MenuTrigger"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
             ]
         }
     ],
-    ""controlSchemes"": [
-        {
-            ""name"": ""Keyboard&Mouse"",
-            ""bindingGroup"": ""Keyboard&Mouse"",
-            ""devices"": [
-                {
-                    ""devicePath"": ""<Keyboard>"",
-                    ""isOptional"": false,
-                    ""isOR"": false
-                },
-                {
-                    ""devicePath"": ""<Mouse>"",
-                    ""isOptional"": true,
-                    ""isOR"": false
-                }
-            ]
-        },
-        {
-            ""name"": ""Gamepad"",
-            ""bindingGroup"":  ""Gamepad"",
-            ""devices"": [
-                {
-                    ""devicePath"": ""<Gamepad>"",
-                    ""isOptional"": false,
-                    ""isOR"": false
-                }
-            ]
-        }
-    ]
+    ""controlSchemes"": []
 }");
         // Driving
         m_Driving = asset.FindActionMap("Driving", throwIfNotFound: true);
@@ -417,6 +282,7 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
         m_Driving_Brake = m_Driving.FindAction("Brake", throwIfNotFound: true);
         m_Driving_Steering = m_Driving.FindAction("Steering", throwIfNotFound: true);
         m_Driving_Drift = m_Driving.FindAction("Drift", throwIfNotFound: true);
+        m_Driving_MenuTrigger = m_Driving.FindAction("MenuTrigger", throwIfNotFound: true);
     }
 
     ~@Car_Actions()
@@ -501,6 +367,7 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
     private readonly InputAction m_Driving_Brake;
     private readonly InputAction m_Driving_Steering;
     private readonly InputAction m_Driving_Drift;
+    private readonly InputAction m_Driving_MenuTrigger;
     /// <summary>
     /// Provides access to input actions defined in input action map "Driving".
     /// </summary>
@@ -528,6 +395,10 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Driving/Drift".
         /// </summary>
         public InputAction @Drift => m_Wrapper.m_Driving_Drift;
+        /// <summary>
+        /// Provides access to the underlying input action "Driving/MenuTrigger".
+        /// </summary>
+        public InputAction @MenuTrigger => m_Wrapper.m_Driving_MenuTrigger;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -566,6 +437,9 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
             @Drift.started += instance.OnDrift;
             @Drift.performed += instance.OnDrift;
             @Drift.canceled += instance.OnDrift;
+            @MenuTrigger.started += instance.OnMenuTrigger;
+            @MenuTrigger.performed += instance.OnMenuTrigger;
+            @MenuTrigger.canceled += instance.OnMenuTrigger;
         }
 
         /// <summary>
@@ -589,6 +463,9 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
             @Drift.started -= instance.OnDrift;
             @Drift.performed -= instance.OnDrift;
             @Drift.canceled -= instance.OnDrift;
+            @MenuTrigger.started -= instance.OnMenuTrigger;
+            @MenuTrigger.performed -= instance.OnMenuTrigger;
+            @MenuTrigger.canceled -= instance.OnMenuTrigger;
         }
 
         /// <summary>
@@ -657,5 +534,12 @@ public partial class @Car_Actions : IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnDrift(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "MenuTrigger" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMenuTrigger(InputAction.CallbackContext context);
     }
 }

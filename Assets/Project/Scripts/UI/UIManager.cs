@@ -1,5 +1,6 @@
-using UnityEngine;
 using ArcadeRacer.RaceSystem;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ArcadeRacer.UI
 {
@@ -28,6 +29,7 @@ namespace ArcadeRacer.UI
         private void Start()
         {
             InitializeUI();
+            InitializeInput();
         }
 
         private void OnEnable()
@@ -38,6 +40,7 @@ namespace ArcadeRacer.UI
         private void OnDisable()
         {
             UnsubscribeFromRaceEvents();
+            UnsubscribeFromInputEvents();
         }
 
         #endregion
@@ -201,6 +204,46 @@ namespace ArcadeRacer.UI
             finishScreenUI?.gameObject.SetActive(false);
             circuitSelectionUI?.Hide();
         }
+        private Car_Actions _carActions;
+
+        private void InitializeInput()
+        {
+            // Créer l'instance du Input Actions
+            _carActions = new Car_Actions();
+
+            // S'abonner aux événements
+            SubscribeToInputEvents();
+        }
+
+        private void SubscribeToInputEvents()
+        {
+            // Actions continues (Value)
+            Debug.Log("[UIManager] Abonnement à l'input MenuTrigger");
+            _carActions.Driving.MenuTrigger.performed += SelectionCircuitTrigger;
+            
+            // Activer l'action map pour que les inputs fonctionnent
+            _carActions.Driving.Enable();
+        }
+        
+        private void UnsubscribeFromInputEvents()
+        {
+            if (_carActions == null) return;
+            
+            _carActions.Driving.MenuTrigger.performed -= SelectionCircuitTrigger;
+            _carActions.Driving.Disable();
+        }
+        public void SelectionCircuitTrigger(InputAction.CallbackContext context)
+        {
+            Debug.Log("[UIManager] Menu Trigger activé");
+            if (circuitSelectionUI.isActiveAndEnabled)
+            {
+                circuitSelectionUI.Hide();
+            }
+            else
+            {
+                circuitSelectionUI.Show();
+            }
+        }
 
         /// <summary>
         /// Afficher l'UI de sélection de circuits
@@ -224,5 +267,13 @@ namespace ArcadeRacer.UI
         }
 
         #endregion
+        
+        private void OnDestroy()
+        {
+            if (_carActions != null)
+            {
+                _carActions.Dispose();
+            }
+        }
     }
 }

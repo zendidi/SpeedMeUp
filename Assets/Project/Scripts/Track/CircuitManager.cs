@@ -134,7 +134,7 @@ namespace ArcadeRacer.Managers
             {
                 // 1. Créer le root
                 _circuitRoot = new GameObject($"Circuit_{circuitData.circuitName}");
-                
+
                 // 2. Générer le mesh de route
                 var config = new CircuitMeshGenerator.GenerationConfig
                 {
@@ -142,7 +142,8 @@ namespace ArcadeRacer.Managers
                     uvTilingX = 1f,
                     uvTilingY = 0.5f,
                     generateCollider = true,
-                    optimizeMesh = true
+                    optimizeMesh = true,
+                    curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY  // Higher value = smoother curves
                 };
                 
                 var result = CircuitMeshGenerator.Generate(circuitData, config);
@@ -186,8 +187,11 @@ namespace ArcadeRacer.Managers
                 if (_circuitRoot != null) Destroy(_circuitRoot);
                 Debug.LogException(e);
             }
+
+            _circuitRoot.transform.position += new Vector3(0, 0.05f, 0);
+
         }
-        
+
         public void UnloadCurrentCircuit()
         {
             if (!_isLoaded) return;
@@ -268,10 +272,38 @@ namespace ArcadeRacer.Managers
         {
             var spawnObj = new GameObject("SpawnPoint");
             spawnObj.transform.SetParent(_circuitRoot.transform);
-            spawnObj.transform.position = circuitData.spawnPosition;
-            spawnObj.transform.rotation = circuitData.spawnRotation;
+            
+            // If spawn position is at zero (not set), use the first spline point
+            Vector3 spawnPos = circuitData.spawnPosition;
+            Quaternion spawnRot = circuitData.spawnRotation;
+            
+            if (circuitData.spawnPosition == Vector3.zero && circuitData.splinePoints.Length > 0)
+            {
+                // Use first spline point as spawn location
+                spawnPos = circuitData.splinePoints[0].position;
+                
+                // Calculate rotation based on direction to next spline point
+                if (circuitData.splinePoints.Length > 1)
+                {
+                    Vector3 forward = (circuitData.splinePoints[1].position - circuitData.splinePoints[0].position).normalized;
+                    if (forward != Vector3.zero)
+                    {
+                        spawnRot = Quaternion.LookRotation(forward, Vector3.up);
+                    }
+                }
+                
+                Debug.Log($"[CircuitManager] Auto-calculated spawn point from first spline point: {spawnPos}");
+            }
+            
+            spawnObj.transform.position = spawnPos;
+            spawnObj.transform.rotation = spawnRot;
             
             _spawnPoint = spawnObj.transform;
+            
+            if (_showDebugInfo)
+            {
+                Debug.Log($"[CircuitManager] Spawn point created at: {spawnPos}, rotation: {spawnRot.eulerAngles}");
+            }
         }
         
         /// <summary>

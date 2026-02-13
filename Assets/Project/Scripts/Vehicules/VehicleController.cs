@@ -194,7 +194,7 @@ namespace ArcadeRacer.Vehicle
             if (spawnPoint != null)
             {
                 _physics.ResetVehicle(spawnPoint.position, spawnPoint.rotation);
-                Debug.Log($"[VehicleController] Véhicule réinitialisé au spawn point.");
+                Debug.Log($"[VehicleController] Véhicule réinitialisé au spawn point{spawnPoint.position}.");
             }
         }
 

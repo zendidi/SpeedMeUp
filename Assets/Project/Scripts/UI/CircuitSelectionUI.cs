@@ -1,7 +1,10 @@
+using ArcadeRacer.Core;
+using ArcadeRacer.Managers;
+using ArcadeRacer.RaceSystem;
+using ArcadeRacer.Settings;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using ArcadeRacer.Settings;
 
 namespace ArcadeRacer.UI
 {
@@ -36,12 +39,32 @@ namespace ArcadeRacer.UI
         private List<CircuitSelectionItem> _spawnedItems = new List<CircuitSelectionItem>();
         private CircuitData _selectedCircuit;
         private CircuitSelectionItem _selectedItem;
+        [SerializeField] private RaceManager raceManager;
+        private ArcadeRacer.Vehicle.VehicleController _cachedVehicleController;
 
         #region Unity Lifecycle
 
         private void Start()
         {
             GenerateCircuitItems();
+            // Écouter la sélection de circuit
+
+            OnCircuitSelected.AddListener(LoadAndStartCircuit);
+            
+            // Cache vehicle controller reference
+            _cachedVehicleController = FindFirstObjectByType<ArcadeRacer.Vehicle.VehicleController>();
+            if (_cachedVehicleController == null)
+            {
+                Debug.LogWarning("[CircuitSelectionUI] No VehicleController found in scene!");
+            }
+
+        }
+
+        private void OnDestroy()
+        {
+            ClearItems();
+            OnCircuitSelected.RemoveListener(LoadAndStartCircuit);
+
         }
 
         private void OnValidate()
@@ -125,6 +148,12 @@ namespace ArcadeRacer.UI
                     Destroy(item.gameObject);
                 }
             }
+
+            List<GameObject> th_track = new List<GameObject>();
+            for (int i = 0; i < gridContainer.transform.childCount; i++)
+                DestroyImmediate(gridContainer.GetChild(i).gameObject);
+
+
             _spawnedItems.Clear();
             _selectedItem = null;
             _selectedCircuit = null;
@@ -136,6 +165,7 @@ namespace ArcadeRacer.UI
         [ContextMenu("Reload Circuit Items")]
         public void ReloadItems()
         {
+            ClearItems();
             GenerateCircuitItems();
         }
 
@@ -195,9 +225,52 @@ namespace ArcadeRacer.UI
             // Déclencher l'événement
             OnCircuitSelected?.Invoke(circuit);
 
-            Debug.Log($"[CircuitSelectionUI] Circuit sélectionné: {circuit.circuitName}");
         }
 
+        private void LoadAndStartCircuit(CircuitData circuit)
+        {
+            CircuitManager.Instance.LoadCircuit(circuit);
+            DisplayBestTime(circuit.circuitName);
+            
+            // Spawn the vehicle at the circuit's spawn point
+            if (_cachedVehicleController != null)
+            {
+                CircuitManager.Instance.SpawnVehicle(_cachedVehicleController.transform);
+                
+                // Reset vehicle velocity
+                Rigidbody vehicleRb = _cachedVehicleController.GetComponent<Rigidbody>();
+                if (vehicleRb != null)
+                {
+                    vehicleRb.linearVelocity = Vector3.zero;
+                    vehicleRb.angularVelocity = Vector3.zero;
+                }
+                
+                Debug.Log($"[CircuitSelectionUI] Vehicle spawned at circuit spawn point");
+            }
+            else
+            {
+                Debug.LogWarning("[CircuitSelectionUI] No VehicleController cached!");
+            }
+
+            if (raceManager != null)
+            {
+                raceManager.RestartRace();
+            }
+            
+            // Auto-hide the circuit selection panel after selecting a circuit
+            Hide();
+            Debug.Log("[CircuitSelectionUI] Circuit selection panel hidden after selection");
+        }
+
+        private void DisplayBestTime(string circuitName)
+        {
+            HighscoreEntry? bestTime = HighscoreManager.Instance.GetBestTime(circuitName);
+
+            if (bestTime.HasValue)
+            {
+                Debug.Log($"[CircuitSystemExample] Record: {bestTime.Value.FormattedTime} par {bestTime.Value.playerName}");
+            }
+        }
         /// <summary>
         /// Sélectionne un circuit par programmation
         /// </summary>

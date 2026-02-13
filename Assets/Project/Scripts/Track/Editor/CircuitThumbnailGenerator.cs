@@ -221,7 +221,7 @@ namespace ArcadeRacer.Settings
     /// Custom Inspector pour CircuitData avec bouton de génération de thumbnail
     /// </summary>
     [CustomEditor(typeof(CircuitData))]
-    public class CircuitDataEditor : Editor
+    public class CircuitDataEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
