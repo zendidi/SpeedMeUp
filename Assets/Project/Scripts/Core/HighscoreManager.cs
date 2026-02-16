@@ -13,17 +13,19 @@ namespace ArcadeRacer.Core
         public float timeInSeconds;
         public string playerName;
         public int rank;
+        public float[] checkpointTimes; // ← NOUVEAU: temps intermédiaires aux checkpoints
 
         /// <summary>
         /// Formatte le temps en MM:SS:mmm
         /// </summary>
         public string FormattedTime => FormatTime(timeInSeconds);
 
-        public HighscoreEntry(float time, string name, int position)
+        public HighscoreEntry(float time, string name, int position, float[] cpTimes = null)
         {
             timeInSeconds = time;
             playerName = name;
             rank = position;
+            checkpointTimes = cpTimes ?? new float[0];
         }
 
         /// <summary>
@@ -119,7 +121,7 @@ namespace ArcadeRacer.Core
         /// Tente d'ajouter un score au classement.
         /// Retourne true si le score fait partie du top 10.
         /// </summary>
-        public bool TryAddScore(string circuitName, float timeInSeconds, string playerName)
+        public bool TryAddScore(string circuitName, float timeInSeconds, string playerName, float[] checkpointTimes = null)
         {
             if (string.IsNullOrEmpty(circuitName) || string.IsNullOrEmpty(playerName))
             {
@@ -131,7 +133,7 @@ namespace ArcadeRacer.Core
             List<HighscoreEntry> scores = GetHighscores(circuitName);
 
             // Créer la nouvelle entrée
-            HighscoreEntry newEntry = new HighscoreEntry(timeInSeconds, playerName, 0);
+            HighscoreEntry newEntry = new HighscoreEntry(timeInSeconds, playerName, 0, checkpointTimes);
 
             // Ajouter et trier
             scores.Add(newEntry);
@@ -304,21 +306,30 @@ namespace ArcadeRacer.Core
 
         /// <summary>
         /// Formatte une entrée de highscore en string
-        /// Format: "MM:SS:mmm|PlayerName"
+        /// Format: "MM:SS:mmm|PlayerName|CP1,CP2,CP3..."
         /// </summary>
         private string FormatHighscoreData(HighscoreEntry entry)
         {
-            return $"{entry.FormattedTime}{HIGHSCORE_SEPARATOR}{entry.playerName}";
+            string result = $"{entry.FormattedTime}{HIGHSCORE_SEPARATOR}{entry.playerName}";
+            
+            // Ajouter les temps de checkpoints si présents
+            if (entry.checkpointTimes != null && entry.checkpointTimes.Length > 0)
+            {
+                string cpTimes = string.Join(",", System.Array.ConvertAll(entry.checkpointTimes, t => t.ToString("F3")));
+                result += $"{HIGHSCORE_SEPARATOR}{cpTimes}";
+            }
+            
+            return result;
         }
 
         /// <summary>
         /// Parse une string de highscore
-        /// Format attendu: "MM:SS:mmm|PlayerName"
+        /// Format attendu: "MM:SS:mmm|PlayerName|CP1,CP2,CP3..."
         /// </summary>
         private HighscoreEntry ParseHighscoreData(string data, int rank)
         {
             if (string.IsNullOrEmpty(data))
-                return new HighscoreEntry(0f, "", rank);
+                return new HighscoreEntry(0f, "", rank, null);
 
             string[] parts = data.Split(new[] { HIGHSCORE_SEPARATOR }, System.StringSplitOptions.None);
             
@@ -326,10 +337,23 @@ namespace ArcadeRacer.Core
             {
                 float time = HighscoreEntry.ParseTime(parts[0]);
                 string playerName = parts[1];
-                return new HighscoreEntry(time, playerName, rank);
+                
+                // Parse checkpoint times if present
+                float[] checkpointTimes = null;
+                if (parts.Length >= 3 && !string.IsNullOrEmpty(parts[2]))
+                {
+                    string[] cpTimesStr = parts[2].Split(',');
+                    checkpointTimes = new float[cpTimesStr.Length];
+                    for (int i = 0; i < cpTimesStr.Length; i++)
+                    {
+                        float.TryParse(cpTimesStr[i], out checkpointTimes[i]);
+                    }
+                }
+                
+                return new HighscoreEntry(time, playerName, rank, checkpointTimes);
             }
 
-            return new HighscoreEntry(0f, "", rank);
+            return new HighscoreEntry(0f, "", rank, null);
         }
 
         #endregion

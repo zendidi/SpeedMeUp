@@ -38,7 +38,10 @@ namespace ArcadeRacer.Settings
         [Tooltip("Rotation de départ du véhicule")]
         public Quaternion spawnRotation = Quaternion.identity;
         
-        [Header("=== CHECKPOINTS (Mode existant) ===")]
+        [Header("=== CHECKPOINTS ===")]
+        [Tooltip("Données de checkpoints sauvegardées (positions relatives au spawn point)")]
+        public CheckpointData[] checkpointData = new CheckpointData[0];
+        
         [Tooltip("Nombre de checkpoints à générer automatiquement")]
         [Range(3, 50)]
         public int autoCheckpointCount = 10;
@@ -144,6 +147,54 @@ namespace ArcadeRacer.Settings
             if (bronzeTime < silverTime) bronzeTime = silverTime + 15f;
         }
 #endif
+    }
+    
+    /// <summary>
+    /// Données de checkpoint sauvegardées (position et rotation relatives au spawn point)
+    /// </summary>
+    [System.Serializable]
+    public struct CheckpointData
+    {
+        [Tooltip("Position relative au spawn point")]
+        public Vector3 relativePosition;
+        
+        [Tooltip("Rotation relative au spawn point")]
+        public Quaternion relativeRotation;
+        
+        [Tooltip("Index du checkpoint (0 = start/finish)")]
+        public int index;
+        
+        [Tooltip("Est-ce la ligne de départ/arrivée")]
+        public bool isStartFinishLine;
+        
+        /// <summary>
+        /// Convertir une position/rotation mondiale en relative au spawn
+        /// </summary>
+        public static CheckpointData CreateRelativeToSpawn(Vector3 worldPosition, Quaternion worldRotation, Vector3 spawnPosition, Quaternion spawnRotation, int index, bool isStartFinish = false)
+        {
+            // Calculer la position relative
+            Vector3 relativePos = Quaternion.Inverse(spawnRotation) * (worldPosition - spawnPosition);
+            
+            // Calculer la rotation relative
+            Quaternion relativeRot = Quaternion.Inverse(spawnRotation) * worldRotation;
+            
+            return new CheckpointData
+            {
+                relativePosition = relativePos,
+                relativeRotation = relativeRot,
+                index = index,
+                isStartFinishLine = isStartFinish
+            };
+        }
+        
+        /// <summary>
+        /// Obtenir la position/rotation mondiale à partir du spawn
+        /// </summary>
+        public void GetWorldTransform(Vector3 spawnPosition, Quaternion spawnRotation, out Vector3 worldPosition, out Quaternion worldRotation)
+        {
+            worldPosition = spawnPosition + spawnRotation * relativePosition;
+            worldRotation = spawnRotation * relativeRotation;
+        }
     }
     
     /// <summary>
