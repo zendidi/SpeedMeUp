@@ -22,7 +22,7 @@ namespace ArcadeRacer.Managers
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CircuitManager>();
+                    _instance = FindFirstObjectByType<CircuitManager>();
                     if (_instance == null)
                     {
                         var go = new GameObject("CircuitManager");

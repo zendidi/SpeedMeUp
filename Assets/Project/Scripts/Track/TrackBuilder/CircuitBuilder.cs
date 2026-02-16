@@ -442,7 +442,7 @@ namespace ArcadeRacer.Editor
                     point.rotation
                 );
                 
-                spline.Add(knot, TangentMode.Continuous);
+                spline.Add(knot, TangentMode.Mirrored);
             }
             
             spline.Closed = circuitData.closedLoop;

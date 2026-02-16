@@ -361,8 +361,18 @@ namespace ArcadeRacer. RaceSystem
             {
                 _vehicleNextCheckpoint[vehicle] = 0;
             }
+                int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
 
-            int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
+            if (checkpoint.IsStartFinishLine || expectedCheckpoint == 1)
+            {
+                LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
+                if (lapTimer != null)
+                {
+                   lapTimer.Reset();
+                    lapTimer.StartRace();
+                }
+            }
+
 
             // Vérifier si c'est le bon checkpoint
             if (checkpoint.Index == expectedCheckpoint)
@@ -447,7 +457,13 @@ namespace ArcadeRacer. RaceSystem
         {
             ClearGeneratedCheckpoints();
         }
-        
+        [ContextMenu("Generate Checkpoints from CircuitData")]
+        public void GenerateCheckpointsFromCircuitData()
+        {
+            var tryME =TryGenerateCheckpointsFromCircuitData();
+            Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData result: {tryME}");
+        }
+
 #if UNITY_EDITOR
         /// <summary>
         /// Save current checkpoint positions to CircuitData (relative to spawn point)

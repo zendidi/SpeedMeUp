@@ -121,19 +121,24 @@ namespace ArcadeRacer.Vehicle
             }
             
             int offroadCount = 0;
-            
+
             foreach (Transform wheel in wheels)
             {
                 if (wheel == null) continue;
-                
+
                 bool isOnRoad = CheckWheelOnRoad(wheel);
-                
+
                 if (!isOnRoad)
                 {
+
+                    wheel.GetComponent<Renderer>().material.color = Color.red;
                     offroadCount++;
                 }
+                else
+                {
+                    wheel.GetComponent<Renderer>().material.color = Color.green;
+                }
             }
-            
             _wheelsOffroad = offroadCount;
             _offroadRatio = (float)offroadCount / wheels.Length;
             
