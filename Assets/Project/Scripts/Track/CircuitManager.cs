@@ -352,34 +352,6 @@ namespace ArcadeRacer.Managers
                           $"CheckpointData available: {circuitData.checkpointData != null && circuitData.checkpointData.Length > 0}");
             }
         }
-            {
-                splineField.SetValue(checkpointManager, _runtimeSplineContainer);
-            }
-            
-            var countField = typeof(CheckpointManager).GetField("checkpointCount", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            if (countField != null)
-            {
-                countField.SetValue(checkpointManager, circuitData.autoCheckpointCount);
-            }
-            
-            var prefabField = typeof(CheckpointManager).GetField("checkpointPrefab", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            if (prefabField != null && _checkpointPrefab != null)
-            {
-                prefabField.SetValue(checkpointManager, _checkpointPrefab);
-            }
-            
-            // Régénérer les checkpoints
-            checkpointManager.GenerateCheckpointsEditor();
-            
-            if (_showDebugInfo)
-            {
-                Debug.Log($"[CircuitManager] CheckpointManager initialized with {circuitData.autoCheckpointCount} checkpoints.");
-            }
-        }
         
         #endregion
     }
