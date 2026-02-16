@@ -523,6 +523,7 @@ MonoBehaviour:
   previewSegmentsPerPoint: 50
   previewRoadObject: {fileID: 0}
   previewWallsObject: {fileID: 0}
+  previewCheckpointsObject: {fileID: 0}
 --- !u!114 &1752388924
 MonoBehaviour:
   m_ObjectHideFlags: 0

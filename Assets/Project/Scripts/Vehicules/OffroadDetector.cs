@@ -152,7 +152,7 @@ namespace ArcadeRacer.Vehicle
             bool hitOffroad = false;
             
             // Vérifier la route
-            if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit roadHit, raycastDistance, roadLayer))
+            if (UnityEngine.Physics.Raycast(rayOrigin, rayDirection, out RaycastHit roadHit, raycastDistance, roadLayer))
             {
                 hitRoad = true;
                 
@@ -163,7 +163,7 @@ namespace ArcadeRacer.Vehicle
             }
             
             // Vérifier l'offroad
-            if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit offroadHit, raycastDistance, offroadLayer))
+            if (UnityEngine.Physics.Raycast(rayOrigin, rayDirection, out RaycastHit offroadHit, raycastDistance, offroadLayer))
             {
                 hitOffroad = true;
                 
