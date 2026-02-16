@@ -61,6 +61,37 @@ namespace ArcadeRacer.Editor
         [SerializeField]
         private GameObject previewWallsObject;
         
+        [SerializeField]
+        private GameObject previewCheckpointsObject;
+        
+        #endregion
+        
+        #region Mode Detection
+        
+        /// <summary>
+        /// Modes de fonctionnement du CircuitBuilder.
+        /// </summary>
+        public enum CircuitBuilderMode
+        {
+            None,       // Pas de CircuitData assigné
+            Creation,   // CircuitData vide (nouveau circuit)
+            Edition     // CircuitData avec données existantes
+        }
+        
+        /// <summary>
+        /// Détecte automatiquement le mode actuel.
+        /// </summary>
+        public CircuitBuilderMode GetCurrentMode()
+        {
+            if (circuitData == null)
+                return CircuitBuilderMode.None;
+            
+            if (circuitData.splinePoints == null || circuitData.splinePoints.Length == 0)
+                return CircuitBuilderMode.Creation;
+            
+            return CircuitBuilderMode.Edition;
+        }
+        
         #endregion
         
         #region Unity Lifecycle
@@ -173,16 +204,9 @@ namespace ArcadeRacer.Editor
             tempCircuitData.closedLoop = circuitData.closedLoop;
             tempCircuitData.circuitName = "Preview";
 
-            // Générer le mesh
-            var config = new CircuitMeshGenerator.GenerationConfig
-            {
-                segmentsPerSplinePoint = previewSegmentsPerPoint,
-                uvTilingX = 1f,
-                uvTilingY = 0.5f,
-                generateCollider = false, // Pas besoin de collider pour preview
-                optimizeMesh = true,
-                curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY
-            }; 
+            // Générer le mesh avec configuration unifiée
+            // GARANTIE: Même résultat que le runtime
+            var config = CircuitGenerationConstants.EditorConfig; 
             
             var result = CircuitMeshGenerator.Generate(tempCircuitData, config);
             
@@ -250,6 +274,8 @@ namespace ArcadeRacer.Editor
                 DestroyImmediate(previewWallsObject);
                 previewWallsObject = null;
             }
+            
+            ClearCheckpointPreview();
             
             Debug.Log("[CircuitBuilder] Preview nettoyé.");
         }
@@ -347,6 +373,263 @@ namespace ArcadeRacer.Editor
                 $"Circuit '{newData.circuitName}' créé et assigné !\n\n" +
                 "Vous pouvez maintenant éditer votre spline et exporter.",
                 "OK");
+        }
+        
+        /// <summary>
+        /// Charge un CircuitData existant dans la spline pour édition.
+        /// MODE ÉDITION: Reconstruit la spline depuis CircuitData.splinePoints.
+        /// </summary>
+        public void LoadCircuitDataIntoSpline()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", 
+                    "Aucun CircuitData assigné !", 
+                    "OK");
+                return;
+            }
+            
+            if (circuitData.splinePoints == null || circuitData.splinePoints.Length == 0)
+            {
+                EditorUtility.DisplayDialog("Erreur", 
+                    "CircuitData ne contient aucun point de spline !\n\n" +
+                    "Ce circuit n'a pas encore été exporté.", 
+                    "OK");
+                return;
+            }
+            
+            // Vérifier si une spline existe déjà
+            if (splineContainer != null && splineContainer.Spline != null && splineContainer.Spline.Count > 0)
+            {
+                bool confirm = EditorUtility.DisplayDialog(
+                    "Spline existante détectée",
+                    "Une spline existe déjà. La remplacer par les données du CircuitData ?\n\n" +
+                    "Cette action ne peut pas être annulée.",
+                    "Oui, charger",
+                    "Annuler"
+                );
+                
+                if (!confirm) return;
+            }
+            
+            // S'assurer qu'on a un SplineContainer
+            if (splineContainer == null)
+            {
+                splineContainer = GetComponent<SplineContainer>();
+                if (splineContainer == null)
+                {
+                    splineContainer = gameObject.AddComponent<SplineContainer>();
+                }
+            }
+            
+            // Reconstruire la spline depuis CircuitData
+            var spline = splineContainer.Spline;
+            spline.Clear();
+            
+            foreach (var point in circuitData.splinePoints)
+            {
+                // Convertir world position → local position
+                Vector3 localPos = splineContainer.transform.InverseTransformPoint(point.position);
+                
+                // Convertir world tangents → local tangents
+                Vector3 tangentInLocal = splineContainer.transform.InverseTransformDirection(point.tangentIn);
+                Vector3 tangentOutLocal = splineContainer.transform.InverseTransformDirection(point.tangentOut);
+                
+                var knot = new BezierKnot(
+                    localPos,
+                    tangentInLocal,
+                    tangentOutLocal,
+                    point.rotation
+                );
+                
+                spline.Add(knot, TangentMode.Manual);
+            }
+            
+            spline.Closed = circuitData.closedLoop;
+            
+            // Repositionner ou créer le spawn point
+            if (spawnPoint == null)
+            {
+                GameObject spawnGO = new GameObject("SpawnPoint");
+                spawnGO.transform.SetParent(transform);
+                spawnPoint = spawnGO.transform;
+            }
+            
+            spawnPoint.position = circuitData.spawnPosition;
+            spawnPoint.rotation = circuitData.spawnRotation;
+            
+            Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' chargé dans l'éditeur !\n" +
+                      $"  - {circuitData.splinePoints.Length} points de spline\n" +
+                      $"  - Longueur: {circuitData.TotalLength:F1}m");
+            
+            EditorUtility.DisplayDialog("Succès",
+                $"Circuit '{circuitData.circuitName}' chargé !\n\n" +
+                $"Points: {circuitData.splinePoints.Length}\n" +
+                $"Longueur: {circuitData.TotalLength:F1}m\n\n" +
+                "Vous pouvez maintenant modifier la spline.",
+                "OK");
+        }
+        
+        /// <summary>
+        /// Génère un aperçu visuel des checkpoints dans l'éditeur.
+        /// </summary>
+        public void GenerateCheckpointPreview()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", 
+                    "Aucun CircuitData assigné !", 
+                    "OK");
+                return;
+            }
+            
+            // Nettoyer les anciens checkpoints preview
+            ClearCheckpointPreview();
+            
+            // Créer un CircuitData temporaire avec les points actuels
+            var tempData = ScriptableObject.CreateInstance<CircuitData>();
+            tempData.splinePoints = ConvertSplineToPoints(splineContainer);
+            tempData.trackWidth = circuitData.trackWidth;
+            tempData.closedLoop = circuitData.closedLoop;
+            tempData.autoCheckpointCount = circuitData.autoCheckpointCount;
+            
+            // Générer les checkpoints
+            var checkpoints = CircuitMeshGenerator.GenerateAutoCheckpoints(
+                tempData,
+                circuitData.autoCheckpointCount
+            );
+            
+            // Créer un parent pour organiser
+            previewCheckpointsObject = new GameObject("PREVIEW_Checkpoints");
+            previewCheckpointsObject.transform.SetParent(transform);
+            previewCheckpointsObject.hideFlags = HideFlags.DontSave;
+            
+            // Créer les GameObjects de checkpoints
+            for (int i = 0; i < checkpoints.Length; i++)
+            {
+                var cp = checkpoints[i];
+                
+                GameObject cpGO = new GameObject($"Checkpoint_{i}");
+                cpGO.transform.SetParent(previewCheckpointsObject.transform);
+                cpGO.transform.position = cp.position;
+                cpGO.transform.rotation = cp.rotation;
+                
+                // Ajouter un BoxCollider pour visualisation (pas de trigger)
+                var collider = cpGO.AddComponent<BoxCollider>();
+                collider.isTrigger = false;
+                collider.size = new Vector3(cp.width, 5f, 0.5f);
+                
+                // Tag pour identification
+                cpGO.tag = "EditorOnly";
+            }
+            
+            Debug.Log($"[CircuitBuilder] {checkpoints.Length} checkpoints preview générés !");
+            EditorUtility.DisplayDialog("Succès",
+                $"{checkpoints.Length} checkpoints générés !\n\n" +
+                "Vous pouvez les ajuster manuellement dans la scène,\n" +
+                "puis cliquer 'Save Checkpoints' pour sauvegarder.",
+                "OK");
+        }
+        
+        /// <summary>
+        /// Sauvegarde les positions des checkpoints dans CircuitData.
+        /// </summary>
+        public void SaveCheckpointsToCircuitData()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", 
+                    "Aucun CircuitData assigné !", 
+                    "OK");
+                return;
+            }
+            
+            if (spawnPoint == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", 
+                    "SpawnPoint manquant !\n\n" +
+                    "Le spawn point est nécessaire comme référence pour les positions relatives.",
+                    "OK");
+                return;
+            }
+            
+            // Trouver tous les checkpoints dans la scène
+            var checkpointObjects = new System.Collections.Generic.List<Transform>();
+            
+            if (previewCheckpointsObject != null)
+            {
+                // Chercher dans le container de preview
+                for (int i = 0; i < previewCheckpointsObject.transform.childCount; i++)
+                {
+                    checkpointObjects.Add(previewCheckpointsObject.transform.GetChild(i));
+                }
+            }
+            else
+            {
+                // Chercher manuellement les GameObjects "Checkpoint_X"
+                foreach (Transform child in transform)
+                {
+                    if (child.name.StartsWith("Checkpoint_"))
+                    {
+                        checkpointObjects.Add(child);
+                    }
+                }
+            }
+            
+            if (checkpointObjects.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Aucun checkpoint trouvé !\n\n" +
+                    "Générez d'abord les checkpoints avec 'Generate Checkpoint Preview'.",
+                    "OK");
+                return;
+            }
+            
+            // Trier par nom (Checkpoint_0, Checkpoint_1, etc.)
+            checkpointObjects.Sort((a, b) => a.name.CompareTo(b.name));
+            
+            // Convertir en CheckpointData[]
+            var checkpointDataList = new System.Collections.Generic.List<CheckpointData>();
+            
+            for (int i = 0; i < checkpointObjects.Count; i++)
+            {
+                var cpTransform = checkpointObjects[i];
+                
+                var cpData = CheckpointData.CreateRelativeToSpawn(
+                    cpTransform.position,
+                    cpTransform.rotation,
+                    spawnPoint.position,
+                    spawnPoint.rotation,
+                    i,
+                    i == 0  // Premier checkpoint = start/finish
+                );
+                
+                checkpointDataList.Add(cpData);
+            }
+            
+            // Sauvegarder dans CircuitData
+            circuitData.checkpointData = checkpointDataList.ToArray();
+            
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+            
+            Debug.Log($"[CircuitBuilder] {checkpointDataList.Count} checkpoints sauvegardés dans {circuitData.name}");
+            EditorUtility.DisplayDialog("Succès",
+                $"{checkpointDataList.Count} checkpoints sauvegardés !\n\n" +
+                $"Fichier: {AssetDatabase.GetAssetPath(circuitData)}",
+                "OK");
+        }
+        
+        /// <summary>
+        /// Nettoie le preview des checkpoints.
+        /// </summary>
+        public void ClearCheckpointPreview()
+        {
+            if (previewCheckpointsObject != null)
+            {
+                DestroyImmediate(previewCheckpointsObject);
+                previewCheckpointsObject = null;
+            }
         }
 
         #endregion

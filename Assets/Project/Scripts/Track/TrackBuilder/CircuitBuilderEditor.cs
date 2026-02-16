@@ -68,15 +68,28 @@ namespace ArcadeRacer.Editor
             }
             else
             {
-                // === CIRCUIT ASSIGNÉ - WORKFLOW NORMAL ===
+                // === CIRCUIT ASSIGNÉ - DÉTECTER LE MODE ===
+                var mode = builder.GetCurrentMode();
+                string modeText = mode == CircuitBuilder.CircuitBuilderMode.Creation ? "CRÉATION" : "ÉDITION";
+                Color modeColor = mode == CircuitBuilder.CircuitBuilderMode.Creation ? new Color(0.3f, 0.8f, 0.3f) : new Color(0.3f, 0.6f, 1f);
+                
+                // Afficher le mode
+                var originalBgColor = GUI.backgroundColor;
+                GUI.backgroundColor = modeColor;
                 EditorGUILayout.HelpBox(
-                    "✅ Circuit Assigné\n\n" +
-                    "WORKFLOW:\n" +
-                    "1. Éditez votre spline visuellement\n" +
-                    "2. Cliquez 'Generate Preview' pour tester\n" +
-                    "3. Cliquez 'Export to CircuitData' pour sauvegarder",
+                    $"MODE: {modeText}\n\n" +
+                    (mode == CircuitBuilder.CircuitBuilderMode.Creation 
+                        ? "CRÉATION - Nouveau circuit\n" +
+                          "1. Éditez votre spline visuellement\n" +
+                          "2. 'Generate Preview' pour tester\n" +
+                          "3. 'Export to CircuitData' pour sauvegarder"
+                        : "ÉDITION - Circuit existant\n" +
+                          "1. 'Load from CircuitData' pour charger\n" +
+                          "2. Modifiez la spline\n" +
+                          "3. 'Export to CircuitData' pour sauvegarder"),
                     MessageType.Info
                 );
+                GUI.backgroundColor = originalBgColor;
 
                 EditorGUILayout.Space(10);
             }
@@ -87,8 +100,22 @@ namespace ArcadeRacer.Editor
             // === BOUTONS D'ACTION (seulement si CircuitData assigné) ===
             if (circuitData != null)
             {
+                var mode = builder.GetCurrentMode();
+                
                 EditorGUILayout.Space(15);
-                EditorGUILayout.LabelField("Actions", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Actions Principales", EditorStyles.boldLabel);
+                
+                // === MODE ÉDITION: Bouton Load ===
+                if (mode == CircuitBuilder.CircuitBuilderMode.Edition)
+                {
+                    GUI.backgroundColor = new Color(0.3f, 0.6f, 1f);
+                    if (GUILayout.Button("📥 Load from CircuitData", GUILayout.Height(45)))
+                    {
+                        builder.LoadCircuitDataIntoSpline();
+                    }
+                    GUI.backgroundColor = Color.white;
+                    EditorGUILayout.Space(5);
+                }
 
                 // Preview
                 GUI.backgroundColor = Color.yellow;
@@ -108,7 +135,29 @@ namespace ArcadeRacer.Editor
                 }
                 GUI.backgroundColor = Color.white;
 
+                EditorGUILayout.Space(15);
+                EditorGUILayout.LabelField("Gestion Checkpoints", EditorStyles.boldLabel);
+                
+                // Generate Checkpoints
+                GUI.backgroundColor = new Color(1f, 0.7f, 0.3f);
+                if (GUILayout.Button("🚦 Generate Checkpoint Preview", GUILayout.Height(35)))
+                {
+                    builder.GenerateCheckpointPreview();
+                }
+                GUI.backgroundColor = Color.white;
+                
                 EditorGUILayout.Space(5);
+                
+                // Save Checkpoints
+                GUI.backgroundColor = new Color(0.5f, 0.8f, 0.3f);
+                if (GUILayout.Button("💾 Save Checkpoints to CircuitData", GUILayout.Height(35)))
+                {
+                    builder.SaveCheckpointsToCircuitData();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(15);
+                EditorGUILayout.LabelField("Utilitaires", EditorStyles.boldLabel);
 
                 // Clear Preview
                 if (GUILayout.Button("🧹 Clear Preview", GUILayout.Height(30)))

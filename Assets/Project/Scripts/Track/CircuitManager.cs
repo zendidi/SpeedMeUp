@@ -136,15 +136,8 @@ namespace ArcadeRacer.Managers
                 _circuitRoot = new GameObject($"Circuit_{circuitData.circuitName}");
 
                 // 2. Générer le mesh de route
-                var config = new CircuitMeshGenerator.GenerationConfig
-                {
-                    segmentsPerSplinePoint = _segmentsPerSplinePoint,
-                    uvTilingX = 1f,
-                    uvTilingY = 0.5f,
-                    generateCollider = true,
-                    optimizeMesh = true,
-                    curveQualityMultiplier = CircuitMeshGenerator.DEFAULT_CURVE_QUALITY  // Higher value = smoother curves
-                };
+                // Utiliser configuration unifiée pour garantir cohérence avec l'éditeur
+                var config = CircuitGenerationConstants.RuntimeConfig;
                 
                 var result = CircuitMeshGenerator.Generate(circuitData, config);
                 
