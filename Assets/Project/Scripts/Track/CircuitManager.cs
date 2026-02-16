@@ -108,76 +108,95 @@ namespace ArcadeRacer.Managers
         
         /// <summary>
         /// Charge un circuit et génère tous les éléments nécessaires.
+        /// Point d'entrée unique pour le chargement de circuits.
         /// </summary>
         public void LoadCircuit(CircuitData circuitData)
         {
             if (circuitData == null)
             {
+                Debug.LogError("[CircuitManager] LoadCircuit() - CircuitData is null!");
                 OnLoadError?.Invoke("CircuitData is null.");
                 return;
             }
             
+            Debug.Log($"[CircuitManager] LoadCircuit() - Loading circuit '{circuitData.circuitName}'...");
+            
             if (!circuitData.Validate(out string errorMessage))
             {
+                Debug.LogError($"[CircuitManager] LoadCircuit() - Validation failed: {errorMessage}");
                 OnLoadError?.Invoke(errorMessage);
                 return;
             }
             
             if (_isLoaded)
             {
+                Debug.Log($"[CircuitManager] LoadCircuit() - Unloading previous circuit '{_currentCircuit?.circuitName}'...");
                 UnloadCurrentCircuit();
             }
             
+            // SET CURRENT CIRCUIT FIRST - This is critical for CheckpointManager!
             _currentCircuit = circuitData;
+            Debug.Log($"[CircuitManager] LoadCircuit() - CurrentCircuit set to '{circuitData.circuitName}'");
             
             try
             {
                 // 1. Créer le root
                 _circuitRoot = new GameObject($"Circuit_{circuitData.circuitName}");
+                Debug.Log($"[CircuitManager] LoadCircuit() - Created circuit root GameObject");
 
                 // 2. Générer le mesh de route
                 // Utiliser configuration unifiée pour garantir cohérence avec l'éditeur
                 var config = CircuitGenerationConstants.RuntimeConfig;
+                Debug.Log($"[CircuitManager] LoadCircuit() - Generating mesh with segments={config.segmentsPerSplinePoint}, quality={config.curveQualityMultiplier}...");
                 
                 var result = CircuitMeshGenerator.Generate(circuitData, config);
                 
                 if (!result.success)
                 {
+                    Debug.LogError($"[CircuitManager] LoadCircuit() - Mesh generation failed: {result.errorMessage}");
                     OnLoadError?.Invoke(result.errorMessage);
                     Destroy(_circuitRoot);
+                    _currentCircuit = null;
                     return;
                 }
                 
+                Debug.Log($"[CircuitManager] LoadCircuit() - Mesh generated successfully");
+                
                 // 3. Créer les GameObjects de mesh
                 CreateRoadObject(result.roadMesh, circuitData);
+                Debug.Log($"[CircuitManager] LoadCircuit() - Road mesh created");
                 
                 if (circuitData.generateWalls)
                 {
                     CreateWallObjects(result.leftWallMesh, result.rightWallMesh, circuitData);
+                    Debug.Log($"[CircuitManager] LoadCircuit() - Wall meshes created");
                 }
                 
                 // 4. Créer le spawn point
                 CreateSpawnPoint(circuitData);
+                Debug.Log($"[CircuitManager] LoadCircuit() - Spawn point created at {_spawnPoint.position}");
                 
-                // 5. Créer la SplineContainer pour votre CheckpointManager
+                // 5. Créer la SplineContainer pour compatibilité
                 CreateRuntimeSpline(circuitData);
+                Debug.Log($"[CircuitManager] LoadCircuit() - Runtime spline container created");
                 
                 // 6. Initialiser votre CheckpointManager existant
                 InitializeCheckpointManager(circuitData);
                 
                 _isLoaded = true;
                 
-                if (_showDebugInfo)
-                {
-                    Debug.Log($"[CircuitManager] Circuit '{circuitData.circuitName}' loaded successfully.");
-                }
+                Debug.Log($"[CircuitManager] ✓ Circuit '{circuitData.circuitName}' loaded successfully!");
                 
+                // Fire event AFTER everything is ready - CheckpointManager listens to this!
                 OnCircuitLoaded?.Invoke(circuitData);
+                Debug.Log($"[CircuitManager] OnCircuitLoaded event fired for '{circuitData.circuitName}'");
             }
             catch (Exception e)
             {
+                Debug.LogError($"[CircuitManager] LoadCircuit() - Exception: {e.Message}");
                 OnLoadError?.Invoke($"Failed to load circuit: {e.Message}");
                 if (_circuitRoot != null) Destroy(_circuitRoot);
+                _currentCircuit = null;
                 Debug.LogException(e);
             }
 
@@ -187,7 +206,13 @@ namespace ArcadeRacer.Managers
 
         public void UnloadCurrentCircuit()
         {
-            if (!_isLoaded) return;
+            if (!_isLoaded)
+            {
+                Debug.LogWarning("[CircuitManager] UnloadCurrentCircuit() - No circuit is currently loaded.");
+                return;
+            }
+            
+            Debug.Log($"[CircuitManager] UnloadCurrentCircuit() - Unloading '{_currentCircuit?.circuitName}'...");
             
             if (_circuitRoot != null)
             {
@@ -202,7 +227,18 @@ namespace ArcadeRacer.Managers
             _runtimeSplineContainer = null;
             _isLoaded = false;
             
+            Debug.Log("[CircuitManager] UnloadCurrentCircuit() - Circuit unloaded.");
             OnCircuitUnloaded?.Invoke();
+        }
+        
+        /// <summary>
+        /// Change de circuit en déchargeant l'ancien et chargeant le nouveau.
+        /// Méthode pratique pour changer facilement de circuit en playmode.
+        /// </summary>
+        public void ChangeCircuit(CircuitData newCircuitData)
+        {
+            Debug.Log($"[CircuitManager] ChangeCircuit() - Changing to '{newCircuitData?.circuitName}'...");
+            LoadCircuit(newCircuitData); // LoadCircuit handles unloading the old circuit automatically
         }
         
         public void SpawnVehicle(Transform vehicle)

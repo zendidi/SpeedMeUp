@@ -53,6 +53,48 @@ namespace ArcadeRacer. RaceSystem
 
         private void Awake()
         {
+            // Listen to CircuitManager events
+            SubscribeToCircuitManager();
+        }
+
+        private void OnDestroy()
+        {
+            // Unsubscribe from events
+            UnsubscribeFromCircuitManager();
+        }
+
+        #endregion
+
+        #region Circuit Manager Integration
+
+        private void SubscribeToCircuitManager()
+        {
+            var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
+            if (circuitManager != null)
+            {
+                circuitManager.OnCircuitLoaded += OnCircuitLoadedHandler;
+                Debug.Log("[CheckpointManager] Subscribed to CircuitManager events.");
+            }
+            else
+            {
+                Debug.LogWarning("[CheckpointManager] CircuitManager not found! Will try to initialize checkpoints from current state.");
+                // Fallback: try to initialize with current state
+                InitializeCheckpoints();
+            }
+        }
+
+        private void UnsubscribeFromCircuitManager()
+        {
+            var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
+            if (circuitManager != null)
+            {
+                circuitManager.OnCircuitLoaded -= OnCircuitLoadedHandler;
+            }
+        }
+
+        private void OnCircuitLoadedHandler(ArcadeRacer.Settings.CircuitData circuitData)
+        {
+            Debug.Log($"[CheckpointManager] Circuit loaded event received: '{circuitData.circuitName}'. Initializing checkpoints...");
             InitializeCheckpoints();
         }
 
@@ -106,25 +148,49 @@ namespace ArcadeRacer. RaceSystem
         /// </summary>
         private bool TryGenerateCheckpointsFromCircuitData()
         {
+            Debug.Log("[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Starting...");
+            
             // Find CircuitManager to get current circuit data
             var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
-            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+            if (circuitManager == null)
+            {
+                Debug.LogWarning("[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - CircuitManager not found!");
                 return false;
+            }
+            
+            if (circuitManager.CurrentCircuit == null)
+            {
+                Debug.LogWarning("[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - CircuitManager.CurrentCircuit is null!");
+                return false;
+            }
             
             var circuitData = circuitManager.CurrentCircuit;
+            Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Found circuit: '{circuitData.circuitName}'");
             
             // Check if we have checkpoint data saved - if yes, skip auto-generation
             if (circuitData.checkpointData != null && circuitData.checkpointData.Length > 0)
+            {
+                Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Circuit has saved checkpoint data ({circuitData.checkpointData.Length} checkpoints). Skipping auto-generation.");
                 return false;
+            }
+            
+            // Determine checkpoint count
+            int cpCount = circuitData.autoCheckpointCount > 0 ? circuitData.autoCheckpointCount : checkpointCount;
+            Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Generating {cpCount} checkpoints from mesh interpolation...");
             
             // Generate checkpoints using the same method as mesh generation
             var checkpoints = ArcadeRacer.Utilities.CircuitMeshGenerator.GenerateAutoCheckpoints(
                 circuitData,
-                circuitData.autoCheckpointCount > 0 ? circuitData.autoCheckpointCount : checkpointCount
+                cpCount
             );
             
             if (checkpoints == null || checkpoints.Length == 0)
+            {
+                Debug.LogError("[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Failed to generate checkpoints! CircuitMeshGenerator returned empty array.");
                 return false;
+            }
+            
+            Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Successfully generated {checkpoints.Length} checkpoint positions.");
             
             // Clear existing checkpoints
             ClearGeneratedCheckpoints();
@@ -148,8 +214,13 @@ namespace ArcadeRacer. RaceSystem
                     checkpoint.Setup(i, i == 0);
                     _checkpoints.Add(checkpoint);
                 }
+                else
+                {
+                    Debug.LogWarning($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Checkpoint {i} missing Checkpoint component!");
+                }
             }
             
+            Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - ✓ Successfully created {_checkpoints.Count} checkpoint GameObjects.");
             return true;
         }
         

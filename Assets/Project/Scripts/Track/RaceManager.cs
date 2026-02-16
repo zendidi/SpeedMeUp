@@ -26,7 +26,10 @@ namespace ArcadeRacer.RaceSystem
 
         [Header("=== REFERENCES ===")]
         [SerializeField] private CheckpointManager checkpointManager;
-        [SerializeField] private CircuitData circuitToLoad;
+        
+        [Header("=== CIRCUIT (Optional - for auto-load) ===")]
+        [SerializeField, Tooltip("Circuit à charger automatiquement au démarrage (optionnel - peut être chargé via CircuitManager)")]
+        private CircuitData circuitToAutoLoad;
 
         [Header("=== VEHICLES ===")]
         [SerializeField, Tooltip("Liste des véhicules participants")]
@@ -77,15 +80,24 @@ namespace ArcadeRacer.RaceSystem
 
         private void Start()
         {
+            // Auto-load circuit if specified
+            if (circuitToAutoLoad != null)
+            {
+                Debug.Log($"[RaceManager] Auto-loading circuit '{circuitToAutoLoad.circuitName}'...");
+                ArcadeRacer.Managers.CircuitManager.Instance.LoadCircuit(circuitToAutoLoad);
+            }
+            
             if (autoStart)
             {
                 StartCountdown();
             }
             
-
-            // Spawn le véhicule
+            // Spawn le véhicule at circuit spawn point
             var vehicle = FindFirstObjectByType<VehicleController>();
-            CircuitManager.Instance.SpawnVehicle(vehicle.transform);
+            if (vehicle != null)
+            {
+                ArcadeRacer.Managers.CircuitManager.Instance.SpawnVehicle(vehicle.transform);
+            }
         }
 
         private void Update()
