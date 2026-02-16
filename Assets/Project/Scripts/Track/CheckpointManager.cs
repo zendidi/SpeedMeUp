@@ -69,12 +69,19 @@ namespace ArcadeRacer. RaceSystem
                 return;
             }
             
-            // Priority 2: Generate from spline
+            // Priority 2: Generate from CircuitData using mesh-based generation (more accurate)
+            if (TryGenerateCheckpointsFromCircuitData())
+            {
+                Debug.Log($"[CheckpointManager] {_checkpoints.Count} checkpoints generated from CircuitData mesh.");
+                return;
+            }
+            
+            // Priority 3: Generate from spline (fallback, less accurate)
             if (splineContainer != null && checkpointCount > 0)
             {
                 GenerateCheckpointsFromSpline();
             }
-            // Priority 3: Use manual checkpoints
+            // Priority 4: Use manual checkpoints
             else if (manualCheckpoints.Count > 0)
             {
                 _checkpoints = new List<Checkpoint>(manualCheckpoints);
@@ -91,6 +98,59 @@ namespace ArcadeRacer. RaceSystem
             }
 
             Debug.Log($"[CheckpointManager] {_checkpoints.Count} checkpoints initialisés.");
+        }
+        
+        /// <summary>
+        /// Try to generate checkpoints from CircuitData using the same mesh-based interpolation.
+        /// This ensures checkpoints align perfectly with the visible mesh.
+        /// </summary>
+        private bool TryGenerateCheckpointsFromCircuitData()
+        {
+            // Find CircuitManager to get current circuit data
+            var circuitManager = FindFirstObjectByType<ArcadeRacer.Managers.CircuitManager>();
+            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+                return false;
+            
+            var circuitData = circuitManager.CurrentCircuit;
+            
+            // Check if we have checkpoint data saved - if yes, skip auto-generation
+            if (circuitData.checkpointData != null && circuitData.checkpointData.Length > 0)
+                return false;
+            
+            // Generate checkpoints using the same method as mesh generation
+            var checkpoints = ArcadeRacer.Utilities.CircuitMeshGenerator.GenerateAutoCheckpoints(
+                circuitData,
+                circuitData.autoCheckpointCount > 0 ? circuitData.autoCheckpointCount : checkpointCount
+            );
+            
+            if (checkpoints == null || checkpoints.Length == 0)
+                return false;
+            
+            // Clear existing checkpoints
+            ClearGeneratedCheckpoints();
+            
+            // Create parent for organization
+            GameObject checkpointsParent = new GameObject("Generated_Checkpoints");
+            checkpointsParent.transform.parent = transform;
+            
+            // Create checkpoint GameObjects
+            for (int i = 0; i < checkpoints.Length; i++)
+            {
+                var cpInfo = checkpoints[i];
+                
+                GameObject checkpointGO = CreateCheckpointGameObject(i, checkpointsParent.transform);
+                checkpointGO.transform.position = cpInfo.position;
+                checkpointGO.transform.rotation = cpInfo.rotation;
+                
+                Checkpoint checkpoint = checkpointGO.GetComponent<Checkpoint>();
+                if (checkpoint != null)
+                {
+                    checkpoint.Setup(i, i == 0);
+                    _checkpoints.Add(checkpoint);
+                }
+            }
+            
+            return true;
         }
         
         /// <summary>

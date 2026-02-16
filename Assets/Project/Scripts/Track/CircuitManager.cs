@@ -340,14 +340,18 @@ namespace ArcadeRacer.Managers
                 return;
             }
             
-            // Injecter la spline et la config dans votre CheckpointManager
-            // NOTE: Cela nécessite d'exposer des setters publics dans votre CheckpointManager
+            // Si le CircuitData a des checkpoints sauvegardés, CheckpointManager les utilisera automatiquement
+            // via TryLoadCheckpointsFromCircuitData() qui se base sur les positions relatives au spawn point
             
-            // Exemple d'utilisation via reflection (si pas de setter public)
-            var splineField = typeof(CheckpointManager).GetField("splineContainer", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            // Sinon, on peut injecter la spline pour génération auto (mais cela peut causer des décalages)
+            // Préférer sauvegarder les checkpoints dans l'éditeur pour garantir précision
             
-            if (splineField != null)
+            if (_showDebugInfo)
+            {
+                Debug.Log("[CircuitManager] CheckpointManager initialized. " +
+                          $"CheckpointData available: {circuitData.checkpointData != null && circuitData.checkpointData.Length > 0}");
+            }
+        }
             {
                 splineField.SetValue(checkpointManager, _runtimeSplineContainer);
             }
