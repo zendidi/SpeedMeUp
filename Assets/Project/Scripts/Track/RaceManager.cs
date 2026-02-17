@@ -47,6 +47,7 @@ namespace ArcadeRacer.RaceSystem
         private VehicleController _pendingHighscoreVehicle;
         private float _pendingHighscoreLapTime;
         private string _pendingHighscoreCircuitName;
+        private ArcadeRacer.UI.HighscoreNameInputUI _highscoreNameInputUI;
 
         private RaceState _currentState = RaceState.NotStarted;
         private float _countdownTimer;
@@ -81,6 +82,7 @@ namespace ArcadeRacer.RaceSystem
         {
             InitializeReferences();
             SetupVehicles();
+            SetupHighscoreNameInput();
         }
 
         private void Start()
@@ -108,6 +110,16 @@ namespace ArcadeRacer.RaceSystem
         private void Update()
         {
             UpdateCountdown();
+        }
+
+        private void OnDestroy()
+        {
+            // Cleanup highscore name input events
+            if (_highscoreNameInputUI != null)
+            {
+                _highscoreNameInputUI.OnNameSubmitted -= OnPlayerNameSubmitted;
+                _highscoreNameInputUI.OnCancelled -= OnPlayerNameCancelled;
+            }
         }
 
         #endregion
@@ -153,6 +165,25 @@ namespace ArcadeRacer.RaceSystem
             }
 
             Debug.Log($"[RaceManager] {racingVehicles.Count} véhicule(s) configuré(s).");
+        }
+
+        private void SetupHighscoreNameInput()
+        {
+            // Trouver et cacher l'UI de saisie du nom
+            _highscoreNameInputUI = FindFirstObjectByType<ArcadeRacer.UI.HighscoreNameInputUI>();
+            
+            if (_highscoreNameInputUI != null)
+            {
+                // Subscribe aux événements une seule fois
+                _highscoreNameInputUI.OnNameSubmitted += OnPlayerNameSubmitted;
+                _highscoreNameInputUI.OnCancelled += OnPlayerNameCancelled;
+                
+                Debug.Log("[RaceManager] HighscoreNameInputUI initialisé et événements abonnés");
+            }
+            else
+            {
+                Debug.LogWarning("[RaceManager] HighscoreNameInputUI non trouvé - la fonctionnalité de saisie de nom ne sera pas disponible");
+            }
         }
 
         #endregion
@@ -475,26 +506,21 @@ namespace ArcadeRacer.RaceSystem
                 _pendingHighscoreLapTime = lapTime;
                 _pendingHighscoreCircuitName = circuitName;
                 
-                // Trouver l'UI de saisie du nom
-                var nameInputUI = FindFirstObjectByType<ArcadeRacer.UI.HighscoreNameInputUI>();
-                if (nameInputUI != null)
+                // Afficher le modal si disponible
+                if (_highscoreNameInputUI != null)
                 {
-                    // Unsubscribe d'éventuels anciens listeners
-                    nameInputUI.OnNameSubmitted -= OnPlayerNameSubmitted;
-                    nameInputUI.OnCancelled -= OnPlayerNameCancelled;
-
-                    // Subscribe aux événements (sans lambda pour un cleanup propre)
-                    nameInputUI.OnNameSubmitted += OnPlayerNameSubmitted;
-                    nameInputUI.OnCancelled += OnPlayerNameCancelled;
-
-                    // Afficher le modal
-                    nameInputUI.Show(lapTime, circuitName);
+                    _highscoreNameInputUI.Show(lapTime, circuitName);
                 }
                 else
                 {
-                    Debug.LogWarning("[RaceManager] HighscoreNameInputUI non trouvé! Utilise le nom par défaut.");
+                    Debug.LogWarning("[RaceManager] HighscoreNameInputUI non disponible! Utilise le nom par défaut.");
                     // Fallback: sauvegarder avec le nom du véhicule
                     SaveLapTimeToHighscores(vehicle.name, lapTime, circuitName, vehicle);
+                    
+                    // Cleanup
+                    _pendingHighscoreVehicle = null;
+                    _pendingHighscoreLapTime = 0f;
+                    _pendingHighscoreCircuitName = null;
                 }
             }
         }

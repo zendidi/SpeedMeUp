@@ -197,8 +197,8 @@ namespace ArcadeRacer.UI
 
             if (messageText != null)
             {
-                string timeFormatted = ArcadeRacer.Core.HighscoreEntry.FormatTime(lapTime);
-                messageText.text = $"{promptMessage}\n\nTemps: {timeFormatted} sur {circuitName}";
+                string formattedTime = ArcadeRacer.Core.HighscoreEntry.FormatTime(lapTime);
+                messageText.text = $"{promptMessage}\n\nTemps: {formattedTime} sur {circuitName}";
             }
 
             // Réinitialiser et focus l'input
