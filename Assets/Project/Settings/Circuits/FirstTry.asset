@@ -137,44 +137,44 @@ MonoBehaviour:
   spawnPosition: {x: -31, y: 1.45, z: -29.6}
   spawnRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   checkpointData:
-  - relativePosition: {x: 0, y: -1.9200001, z: -8.4}
-    relativeRotation: {x: 0, y: 0, z: 0, w: 1}
+  - relativePosition: {x: 0, y: 0, z: -8.400002}
+    relativeRotation: {x: 0, y: 0.9981986, z: 0, w: 0.059996422}
     index: 0
     isStartFinishLine: 1
-  - relativePosition: {x: 0.40000153, y: -1.9199857, z: -736.30005}
-    relativeRotation: {x: 0, y: 0.36893576, z: 0, w: 0.9294549}
+  - relativePosition: {x: 139.6876, y: 0, z: -20.325306}
+    relativeRotation: {x: 0, y: 0.28526202, z: 0, w: 0.9584496}
     index: 1
     isStartFinishLine: 0
-  - relativePosition: {x: -207.39998, y: -1.95, z: -652.60004}
-    relativeRotation: {x: 0, y: -0.17081133, z: 0, w: 0.98530376}
+  - relativePosition: {x: 186.0242, y: 0, z: -908.12915}
+    relativeRotation: {x: 0, y: -0.84945565, z: 0, w: 0.5276601}
     index: 2
     isStartFinishLine: 0
-  - relativePosition: {x: -374.2, y: -1.95, z: -1134.5}
-    relativeRotation: {x: 0, y: -0.68078476, z: 0, w: 0.7324835}
+  - relativePosition: {x: -329.90137, y: 0, z: -998.4529}
+    relativeRotation: {x: 0, y: 0.67954797, z: 0, w: 0.73363113}
     index: 3
     isStartFinishLine: 0
-  - relativePosition: {x: -423.6725, y: -1.9200442, z: -676.9086}
-    relativeRotation: {x: 0.000000052952895, y: 0.14057581, z: -2.3110117e-10, w: 0.9900699}
+  - relativePosition: {x: -830.55255, y: 0, z: -1186.0002}
+    relativeRotation: {x: 0, y: -0.53474545, z: 0, w: 0.8450132}
     index: 4
     isStartFinishLine: 0
-  - relativePosition: {x: -628.2, y: -1.95, z: -345.5}
-    relativeRotation: {x: 0, y: -0.70889395, z: 0, w: 0.7053151}
+  - relativePosition: {x: -1251.2404, y: 0, z: -706.4904}
+    relativeRotation: {x: 0, y: 0.64695525, z: 0, w: 0.762528}
     index: 5
     isStartFinishLine: 0
-  - relativePosition: {x: -632.7, y: -1.95, z: 213.40001}
-    relativeRotation: {x: -0.00000008202958, y: 0.3444463, z: 1.5204517e-10, w: 0.93880606}
+  - relativePosition: {x: -849.0642, y: 0, z: -317.83298}
+    relativeRotation: {x: -0, y: 0.8976157, z: 0, w: -0.44077897}
     index: 6
     isStartFinishLine: 0
-  - relativePosition: {x: -618.3, y: -1.95, z: 91.7}
-    relativeRotation: {x: 0.9994161, y: 0.0000645175, z: -0.034168094, w: -0.0000022355578}
+  - relativePosition: {x: -1075.2656, y: 0, z: -347.40088}
+    relativeRotation: {x: 0, y: 0.8302668, z: 0, w: 0.55736625}
     index: 7
     isStartFinishLine: 0
-  - relativePosition: {x: -264.7, y: -1.95, z: 203.8}
-    relativeRotation: {x: -0.000000078523826, y: 0.0721651, z: 3.0135153e-10, w: 0.9973927}
+  - relativePosition: {x: -730.658, y: 0, z: -43.270027}
+    relativeRotation: {x: 0, y: 0.8857371, z: 0, w: 0.4641872}
     index: 8
     isStartFinishLine: 0
-  - relativePosition: {x: 248.1, y: -1.95, z: 251.70001}
-    relativeRotation: {x: 0.9971491, y: -0.0000074560985, z: 0.07545658, w: -0.00000061244947}
+  - relativePosition: {x: -952.91626, y: 0, z: 466.6954}
+    relativeRotation: {x: 0, y: 0.49419624, z: 0, w: 0.86935043}
     index: 9
     isStartFinishLine: 0
   autoCheckpointCount: 10

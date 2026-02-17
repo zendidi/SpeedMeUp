@@ -168,12 +168,12 @@ namespace ArcadeRacer. RaceSystem
             var circuitData = circuitManager.CurrentCircuit;
             Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Found circuit: '{circuitData.circuitName}'");
             
-            // Check if we have checkpoint data saved - if yes, skip auto-generation
-            if (circuitData.checkpointData != null && circuitData.checkpointData.Length > 0)
-            {
-                Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Circuit has saved checkpoint data ({circuitData.checkpointData.Length} checkpoints). Skipping auto-generation.");
-                return false;
-            }
+            //// Check if we have checkpoint data saved - if yes, skip auto-generation
+            //if (circuitData.checkpointData != null && circuitData.checkpointData.Length > 0)
+            //{
+            //    Debug.Log($"[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Circuit has saved checkpoint data ({circuitData.checkpointData.Length} checkpoints). Skipping auto-generation.");
+            //    return false;
+            //}
             
             // Determine checkpoint count
             int cpCount = circuitData.autoCheckpointCount > 0 ? circuitData.autoCheckpointCount : checkpointCount;

@@ -512,7 +512,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1cebb381ce5e154196117641b1749f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Editor.CircuitBuilder
-  circuitData: {fileID: 11400000, guid: 0ef0b9463860e9140b2aea2afa23ed5e, type: 2}
+  circuitData: {fileID: 11400000, guid: 8408337c2af969d4f96060155171bf95, type: 2}
   newCircuitName: 
   splineContainer: {fileID: 1752388924}
   spawnPoint: {fileID: 585608709}
