@@ -62,7 +62,7 @@ MonoBehaviour:
     rotation: {x: -0.00000014383019, y: -0.5516941, z: -0.00000007316988, w: 0.8340466}
   trackWidth: 15
   closedLoop: 1
-  spawnPosition: {x: 90, y: 0.2, z: -56}
+  spawnPosition: {x: 90, y: 0.2, z: -46}
   spawnRotation: {x: 0, y: 0.7009093, z: 0, w: -0.7132504}
   checkpointData:
   - relativePosition: {x: 0, y: 0, z: -8.400002}
