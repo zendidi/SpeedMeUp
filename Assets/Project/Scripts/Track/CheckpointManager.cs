@@ -41,6 +41,7 @@ namespace ArcadeRacer. RaceSystem
         // Runtime
         private List<Checkpoint> _checkpoints = new List<Checkpoint>();
         private Dictionary<VehicleController, int> _vehicleNextCheckpoint = new Dictionary<VehicleController, int>();
+        private Dictionary<VehicleController, bool> _vehicleHasLeftStart = new Dictionary<VehicleController, bool>();
 
         #region Properties
 
@@ -361,7 +362,13 @@ namespace ArcadeRacer. RaceSystem
             {
                 _vehicleNextCheckpoint[vehicle] = 0;
             }
-                int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
+            
+            if (!_vehicleHasLeftStart.ContainsKey(vehicle))
+            {
+                _vehicleHasLeftStart[vehicle] = false;
+            }
+            
+            int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
 
             if (checkpoint.IsStartFinishLine || expectedCheckpoint == 1)
             {
@@ -380,6 +387,12 @@ namespace ArcadeRacer. RaceSystem
                 // Checkpoint valide ! 
                 _vehicleNextCheckpoint[vehicle] = (expectedCheckpoint + 1) % _checkpoints.Count;
                 
+                // Marquer que le véhicule a quitté la ligne de départ après avoir passé le premier checkpoint
+                if (expectedCheckpoint > 0)
+                {
+                    _vehicleHasLeftStart[vehicle] = true;
+                }
+                
                 // Enregistrer le temps intermédiaire (sauf pour le passage de la ligne d'arrivée qui complète le tour)
                 // On skip si c'est la ligne start/finish ET que c'est le checkpoint 0 (= fin de tour, pas intermédiaire)
                 if (!checkpoint.IsStartFinishLine || expectedCheckpoint != 0)
@@ -391,10 +404,12 @@ namespace ArcadeRacer. RaceSystem
                     }
                 }
 
-                // Si c'est la ligne d'arrivée, notifier le RaceManager
-                if (checkpoint.IsStartFinishLine && expectedCheckpoint == 0)
+                // Si c'est la ligne d'arrivée ET que le véhicule a fait le tour complet, notifier le RaceManager
+                if (checkpoint.IsStartFinishLine && expectedCheckpoint == 0 && _vehicleHasLeftStart[vehicle])
                 {
                     OnLapCompleted(vehicle);
+                    // Reset le flag pour le prochain tour
+                    _vehicleHasLeftStart[vehicle] = false;
                 }
 
                 Debug.Log($"[CheckpointManager] {vehicle.name} passed checkpoint {checkpoint.Index} ✅");
@@ -424,6 +439,7 @@ namespace ArcadeRacer. RaceSystem
         public void ResetVehicleProgress(VehicleController vehicle)
         {
             _vehicleNextCheckpoint[vehicle] = 0;
+            _vehicleHasLeftStart[vehicle] = false; // Le véhicule démarre à la ligne de départ
         }
 
         #endregion
