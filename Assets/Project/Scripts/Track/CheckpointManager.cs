@@ -370,17 +370,6 @@ namespace ArcadeRacer. RaceSystem
             
             int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
 
-            if (checkpoint.IsStartFinishLine || expectedCheckpoint == 1)
-            {
-                LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
-                if (lapTimer != null)
-                {
-                   lapTimer.Reset();
-                    lapTimer.StartRace();
-                }
-            }
-
-
             // Vérifier si c'est le bon checkpoint
             if (checkpoint.Index == expectedCheckpoint)
             {

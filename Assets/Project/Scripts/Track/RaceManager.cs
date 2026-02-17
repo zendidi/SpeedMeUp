@@ -332,6 +332,9 @@ namespace ArcadeRacer.RaceSystem
             if (_vehicleTimers.ContainsKey(vehicle))
             {
                 _vehicleTimers[vehicle].FinishRace();
+                
+                // Sauvegarder le meilleur temps dans le HighscoreManager
+                SaveBestLapToHighscores(vehicle);
             }
 
             Debug.Log($"🏆 [RaceManager] {vehicle.name} finished in position {position}!");
@@ -354,6 +357,81 @@ namespace ArcadeRacer.RaceSystem
                 Debug.Log($"{i + 1}. {vehicle.name} - Total: {LapTimer.FormatTime(timer.TotalRaceTime)} | Best Lap: {LapTimer.FormatTime(timer.BestLapTime)}");
             }
             Debug.Log("===========================");
+        }
+
+        /// <summary>
+        /// Sauvegarde le meilleur temps au tour dans le HighscoreManager
+        /// </summary>
+        private void SaveBestLapToHighscores(VehicleController vehicle)
+        {
+            if (!_vehicleTimers.ContainsKey(vehicle)) return;
+
+            var timer = _vehicleTimers[vehicle];
+            float bestLapTime = timer.BestLapTime;
+
+            // Vérifier qu'on a un temps valide
+            if (bestLapTime <= 0f)
+            {
+                Debug.LogWarning($"[RaceManager] No valid lap time for {vehicle.name}");
+                return;
+            }
+
+            // Obtenir le nom du circuit depuis CircuitManager
+            var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+            {
+                Debug.LogWarning("[RaceManager] CircuitManager ou CurrentCircuit introuvable - impossible de sauvegarder le highscore");
+                return;
+            }
+
+            string circuitName = circuitManager.CurrentCircuit.circuitName;
+            
+            // Obtenir le nom du joueur (pour l'instant utilise le nom du véhicule, peut être remplacé par un input UI)
+            string playerName = vehicle.name;
+
+            // Obtenir les temps de checkpoints du meilleur tour
+            // Pour l'instant, on utilise les temps du dernier tour si disponible
+            // TODO: Tracker spécifiquement les temps du meilleur tour
+            float[] checkpointTimes = null;
+            var allLapCheckpoints = timer.AllLapsCheckpointTimes;
+            if (allLapCheckpoints.Count > 0)
+            {
+                // Trouver l'index du meilleur tour
+                var lapTimes = timer.LapTimes;
+                int bestLapIndex = -1;
+                float bestTime = float.MaxValue;
+                for (int i = 0; i < lapTimes.Count; i++)
+                {
+                    if (lapTimes[i] < bestTime)
+                    {
+                        bestTime = lapTimes[i];
+                        bestLapIndex = i;
+                    }
+                }
+
+                // Récupérer les temps de checkpoints du meilleur tour
+                if (bestLapIndex >= 0 && bestLapIndex < allLapCheckpoints.Count)
+                {
+                    checkpointTimes = allLapCheckpoints[bestLapIndex].ToArray();
+                }
+            }
+
+            // Sauvegarder dans le HighscoreManager
+            bool isTopScore = ArcadeRacer.Core.HighscoreManager.Instance.TryAddScore(
+                circuitName,
+                bestLapTime,
+                playerName,
+                checkpointTimes
+            );
+
+            if (isTopScore)
+            {
+                Debug.Log($"🏆 [RaceManager] Nouveau highscore pour {circuitName}: {LapTimer.FormatTime(bestLapTime)} - {playerName}");
+            }
+            else
+            {
+                Debug.Log($"[RaceManager] Temps enregistré pour {circuitName}: {LapTimer.FormatTime(bestLapTime)} - {playerName}");
+            }
         }
 
         #endregion
