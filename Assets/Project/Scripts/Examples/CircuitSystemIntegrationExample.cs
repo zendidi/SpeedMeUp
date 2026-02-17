@@ -53,17 +53,17 @@ namespace ArcadeRacer.Examples
             // Auto-find si non assigné
             if (uiManager == null)
             {
-                uiManager = FindObjectOfType<UIManager>();
+                uiManager = FindFirstObjectByType<UIManager>();
             }
 
             if (circuitSelectionUI == null)
             {
-                circuitSelectionUI = FindObjectOfType<CircuitSelectionUI>();
+                circuitSelectionUI = FindFirstObjectByType<CircuitSelectionUI>();
             }
 
             if (raceManager == null)
             {
-                raceManager = FindObjectOfType<RaceManager>();
+                raceManager = FindFirstObjectByType<RaceManager>();
             }
         }
 

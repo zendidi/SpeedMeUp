@@ -53,7 +53,7 @@ namespace ArcadeRacer.Managers
             // Auto-détecter le VehicleController si non assigné
             if (vehicleController == null)
             {
-                vehicleController = FindObjectOfType<VehicleController>();
+                vehicleController = FindFirstObjectByType<VehicleController>();
                 
                 if (vehicleController != null)
                 {

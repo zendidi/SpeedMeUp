@@ -84,7 +84,7 @@ namespace ArcadeRacer.Core
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<HighscoreManager>();
+                    _instance = FindFirstObjectByType<HighscoreManager>();
                     
                     if (_instance == null)
                     {

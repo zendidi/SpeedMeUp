@@ -59,7 +59,7 @@ namespace ArcadeRacer.Managers
         [Header("=== GENERATION SETTINGS ===")]
         [SerializeField]
         [Range(5, 20)]
-        private int _segmentsPerSplinePoint = 10;
+        private int _segmentsPerSplinePoint = CircuitMeshGenerator.DEFAULT_SEGMENTS;
         
         [Header("=== DEBUG ===")]
         [SerializeField] 
@@ -368,7 +368,7 @@ namespace ArcadeRacer.Managers
         /// </summary>
         private void InitializeCheckpointManager(CircuitData circuitData)
         {
-            var checkpointManager = FindObjectOfType<CheckpointManager>();
+            var checkpointManager = FindFirstObjectByType<CheckpointManager>();
             
             if (checkpointManager == null)
             {

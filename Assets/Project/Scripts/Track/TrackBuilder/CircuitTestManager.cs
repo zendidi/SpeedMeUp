@@ -59,7 +59,7 @@ namespace ArcadeRacer.Managers
             // Spawner le véhicule
             if (vehicleController == null)
             {
-                vehicleController = FindObjectOfType<VehicleController>();
+                vehicleController = FindFirstObjectByType<VehicleController>();
             }
             
             if (vehicleController != null)
