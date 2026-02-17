@@ -43,6 +43,11 @@ namespace ArcadeRacer.RaceSystem
         private Dictionary<VehicleController, int> _vehicleLaps = new Dictionary<VehicleController, int>();
         private List<VehicleController> _finishedVehicles = new List<VehicleController>();
 
+        // Highscore name input context
+        private VehicleController _pendingHighscoreVehicle;
+        private float _pendingHighscoreLapTime;
+        private string _pendingHighscoreCircuitName;
+
         private RaceState _currentState = RaceState.NotStarted;
         private float _countdownTimer;
 
@@ -465,6 +470,11 @@ namespace ArcadeRacer.RaceSystem
             {
                 Debug.Log($"🏆 [RaceManager] Temps qualifiant pour le top 10: {LapTimer.FormatTime(lapTime)} sur {circuitName}");
                 
+                // Sauvegarder le contexte pour les callbacks
+                _pendingHighscoreVehicle = vehicle;
+                _pendingHighscoreLapTime = lapTime;
+                _pendingHighscoreCircuitName = circuitName;
+                
                 // Trouver l'UI de saisie du nom
                 var nameInputUI = FindFirstObjectByType<ArcadeRacer.UI.HighscoreNameInputUI>();
                 if (nameInputUI != null)
@@ -473,9 +483,9 @@ namespace ArcadeRacer.RaceSystem
                     nameInputUI.OnNameSubmitted -= OnPlayerNameSubmitted;
                     nameInputUI.OnCancelled -= OnPlayerNameCancelled;
 
-                    // Subscribe aux événements
-                    nameInputUI.OnNameSubmitted += (playerName) => OnPlayerNameSubmitted(playerName, vehicle, lapTime, circuitName);
-                    nameInputUI.OnCancelled += () => OnPlayerNameCancelled(vehicle, lapTime, circuitName);
+                    // Subscribe aux événements (sans lambda pour un cleanup propre)
+                    nameInputUI.OnNameSubmitted += OnPlayerNameSubmitted;
+                    nameInputUI.OnCancelled += OnPlayerNameCancelled;
 
                     // Afficher le modal
                     nameInputUI.Show(lapTime, circuitName);
@@ -492,19 +502,37 @@ namespace ArcadeRacer.RaceSystem
         /// <summary>
         /// Appelé quand le joueur soumet son nom
         /// </summary>
-        private void OnPlayerNameSubmitted(string playerName, VehicleController vehicle, float lapTime, string circuitName)
+        private void OnPlayerNameSubmitted(string playerName)
         {
             Debug.Log($"[RaceManager] Nom du joueur reçu: {playerName}");
-            SaveLapTimeToHighscores(playerName, lapTime, circuitName, vehicle);
+            
+            if (_pendingHighscoreVehicle != null)
+            {
+                SaveLapTimeToHighscores(playerName, _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingHighscoreVehicle);
+                
+                // Cleanup
+                _pendingHighscoreVehicle = null;
+                _pendingHighscoreLapTime = 0f;
+                _pendingHighscoreCircuitName = null;
+            }
         }
 
         /// <summary>
         /// Appelé quand le joueur annule la saisie
         /// </summary>
-        private void OnPlayerNameCancelled(VehicleController vehicle, float lapTime, string circuitName)
+        private void OnPlayerNameCancelled()
         {
             Debug.Log("[RaceManager] Saisie du nom annulée, utilise le nom par défaut");
-            SaveLapTimeToHighscores("Player", lapTime, circuitName, vehicle);
+            
+            if (_pendingHighscoreVehicle != null)
+            {
+                SaveLapTimeToHighscores("Player", _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingHighscoreVehicle);
+                
+                // Cleanup
+                _pendingHighscoreVehicle = null;
+                _pendingHighscoreLapTime = 0f;
+                _pendingHighscoreCircuitName = null;
+            }
         }
 
         /// <summary>
