@@ -201,7 +201,11 @@ namespace ArcadeRacer.Managers
             }
 
             _circuitRoot.transform.position += new Vector3(0, 0.05f, 0);
-
+            _circuitRoot.layer = LayerMask.NameToLayer("RoadRace");
+            foreach (Transform child in _circuitRoot.transform)
+            {
+                child.gameObject.layer = LayerMask.NameToLayer("RoadRace");
+            }
         }
 
         public void UnloadCurrentCircuit()
