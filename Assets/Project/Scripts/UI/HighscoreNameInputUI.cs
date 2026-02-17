@@ -190,6 +190,8 @@ namespace ArcadeRacer.UI
             }
 
             // Mettre à jour les textes
+            string formattedTime = ArcadeRacer.Core.HighscoreEntry.FormatTime(lapTime);
+            
             if (titleText != null)
             {
                 titleText.text = titleMessage;
@@ -197,7 +199,6 @@ namespace ArcadeRacer.UI
 
             if (messageText != null)
             {
-                string formattedTime = ArcadeRacer.Core.HighscoreEntry.FormatTime(lapTime);
                 messageText.text = $"{promptMessage}\n\nTemps: {formattedTime} sur {circuitName}";
             }
 
@@ -220,7 +221,7 @@ namespace ArcadeRacer.UI
                 Time.timeScale = 0f;
             }
 
-            Debug.Log($"[HighscoreNameInputUI] Modal affiché pour {circuitName} - {ArcadeRacer.Core.HighscoreEntry.FormatTime(lapTime)}");
+            Debug.Log($"[HighscoreNameInputUI] Modal affiché pour {circuitName} - {formattedTime}");
         }
 
         /// <summary>

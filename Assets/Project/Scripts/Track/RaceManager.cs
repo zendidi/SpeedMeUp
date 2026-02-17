@@ -516,11 +516,7 @@ namespace ArcadeRacer.RaceSystem
                     Debug.LogWarning("[RaceManager] HighscoreNameInputUI non disponible! Utilise le nom par défaut.");
                     // Fallback: sauvegarder avec le nom du véhicule
                     SaveLapTimeToHighscores(vehicle.name, lapTime, circuitName, vehicle);
-                    
-                    // Cleanup
-                    _pendingHighscoreVehicle = null;
-                    _pendingHighscoreLapTime = 0f;
-                    _pendingHighscoreCircuitName = null;
+                    ClearPendingHighscoreContext();
                 }
             }
         }
@@ -535,11 +531,7 @@ namespace ArcadeRacer.RaceSystem
             if (_pendingHighscoreVehicle != null)
             {
                 SaveLapTimeToHighscores(playerName, _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingHighscoreVehicle);
-                
-                // Cleanup
-                _pendingHighscoreVehicle = null;
-                _pendingHighscoreLapTime = 0f;
-                _pendingHighscoreCircuitName = null;
+                ClearPendingHighscoreContext();
             }
         }
 
@@ -553,12 +545,18 @@ namespace ArcadeRacer.RaceSystem
             if (_pendingHighscoreVehicle != null)
             {
                 SaveLapTimeToHighscores("Player", _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingHighscoreVehicle);
-                
-                // Cleanup
-                _pendingHighscoreVehicle = null;
-                _pendingHighscoreLapTime = 0f;
-                _pendingHighscoreCircuitName = null;
+                ClearPendingHighscoreContext();
             }
+        }
+
+        /// <summary>
+        /// Nettoie le contexte du highscore en attente
+        /// </summary>
+        private void ClearPendingHighscoreContext()
+        {
+            _pendingHighscoreVehicle = null;
+            _pendingHighscoreLapTime = 0f;
+            _pendingHighscoreCircuitName = null;
         }
 
         /// <summary>
