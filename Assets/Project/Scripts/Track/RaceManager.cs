@@ -255,7 +255,10 @@ namespace ArcadeRacer.RaceSystem
 
             _finishedVehicles.Clear();
             _currentState = RaceState.NotStarted;
-
+            CheckpointManager cpM= FindFirstObjectByType<CheckpointManager>();
+            if (cpM != null) 
+                cpM.TryGenerateCheckpointsFromCircuitData(); 
+            
             Debug.Log("[RaceManager] Race restarted!");
 
             if (autoStart)

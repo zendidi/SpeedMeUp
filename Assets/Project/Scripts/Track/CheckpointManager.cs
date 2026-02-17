@@ -147,7 +147,7 @@ namespace ArcadeRacer. RaceSystem
         /// Try to generate checkpoints from CircuitData using the same mesh-based interpolation.
         /// This ensures checkpoints align perfectly with the visible mesh.
         /// </summary>
-        private bool TryGenerateCheckpointsFromCircuitData()
+        public  bool TryGenerateCheckpointsFromCircuitData()
         {
             Debug.Log("[CheckpointManager] TryGenerateCheckpointsFromCircuitData() - Starting...");
             

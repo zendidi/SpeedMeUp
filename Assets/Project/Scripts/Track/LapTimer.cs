@@ -117,12 +117,14 @@ namespace ArcadeRacer.RaceSystem
             if (! _isRacing) return;
 
             float lapTime = Time.time - _currentLapStartTime;
+            string lapTimeFormatted = FormatTime(lapTime);
+            Debug.Log($"[LapTimer] {lapTime} seconds - completed in {lapTimeFormatted}");
+            Debug.Log($" [LapTimer] {gameObject.name} - Lap {_lapTimes.Count} completed in {FormatTime(lapTime)}");
             _lapTimes.Add(lapTime);
             
             // Sauvegarder les temps intermédiaires de ce tour
             _allLapsCheckpointTimes.Add(new List<float>(_currentLapCheckpointTimes));
 
-            Debug.Log($"🏁 [LapTimer] {gameObject.name} - Lap {_lapTimes.Count} completed in {FormatTime(lapTime)}");
 
             // Démarrer le nouveau tour
             _currentLapStartTime = Time.time;
@@ -164,7 +166,7 @@ namespace ArcadeRacer.RaceSystem
             int seconds = Mathf.FloorToInt(timeInSeconds % 60f);
             int milliseconds = Mathf.FloorToInt((timeInSeconds * 1000f) % 1000f);
 
-            return $"{minutes:00}:{seconds:00}. {milliseconds:000}";
+            return $"{minutes:00}:{seconds:00}.{milliseconds:000}";
         }
 
         #endregion
