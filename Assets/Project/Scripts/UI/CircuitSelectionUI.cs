@@ -41,6 +41,8 @@ namespace ArcadeRacer.UI
         private CircuitSelectionItem _selectedItem;
         [SerializeField] private RaceManager raceManager;
         private ArcadeRacer.Vehicle.VehicleController _cachedVehicleController;
+        [SerializeField] private Button restartButton;
+        [SerializeField] private Button quitButton;
 
         #region Unity Lifecycle
 
@@ -58,12 +60,48 @@ namespace ArcadeRacer.UI
                 Debug.LogWarning("[CircuitSelectionUI] No VehicleController found in scene!");
             }
 
+            // Setup buttons
+            if (restartButton != null)
+            {
+                restartButton.onClick.AddListener(OnRestartClicked);
+            }
+
+            if (quitButton != null)
+            {
+                quitButton.onClick.AddListener(OnQuitClicked);
+            }
+
         }
 
+
+        private void OnRestartClicked()
+        {
+            Hide();
+            raceManager?.RestartRace();
+        }
+
+        private void OnQuitClicked()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
         private void OnDestroy()
         {
             ClearItems();
             OnCircuitSelected.RemoveListener(LoadAndStartCircuit);
+            // Setup buttons
+            if (restartButton != null)
+            {
+                restartButton.onClick.RemoveListener(OnRestartClicked);
+            }
+
+            if (quitButton != null)
+            {
+                quitButton.onClick.RemoveListener(OnQuitClicked);
+            }
 
         }
 

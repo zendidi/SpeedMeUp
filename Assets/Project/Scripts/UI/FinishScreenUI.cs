@@ -125,13 +125,13 @@ namespace ArcadeRacer.UI
         private void OnRestartClicked()
         {
             Hide();
-            raceManager?. RestartRace();
+            raceManager?.RestartRace();
         }
 
         private void OnQuitClicked()
         {
             #if UNITY_EDITOR
-            UnityEditor.EditorApplication. isPlaying = false;
+            UnityEditor.EditorApplication.isPlaying = false;
             #else
             Application.Quit();
             #endif

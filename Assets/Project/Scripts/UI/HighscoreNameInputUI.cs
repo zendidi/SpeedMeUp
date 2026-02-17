@@ -15,7 +15,7 @@ namespace ArcadeRacer.UI
         [SerializeField] private GameObject modalPanel;
         [SerializeField] private TMP_InputField nameInputField;
         [SerializeField] private Button confirmButton;
-        [SerializeField] private Button cancelButton;
+        //[SerializeField] private Button cancelButton;
         [SerializeField] private TextMeshProUGUI titleText;
         [SerializeField] private TextMeshProUGUI messageText;
 
@@ -166,10 +166,10 @@ namespace ArcadeRacer.UI
                 confirmButton.onClick.AddListener(OnConfirmClicked);
             }
 
-            if (cancelButton != null)
-            {
-                cancelButton.onClick.AddListener(OnCancelClicked);
-            }
+            //if (cancelButton != null)
+            //{
+            //    cancelButton.onClick.AddListener(OnCancelClicked);
+            //}
         }
 
         #endregion
@@ -386,10 +386,10 @@ namespace ArcadeRacer.UI
                 confirmButton.onClick.RemoveListener(OnConfirmClicked);
             }
 
-            if (cancelButton != null)
-            {
-                cancelButton.onClick.RemoveListener(OnCancelClicked);
-            }
+            //if (cancelButton != null)
+            //{
+            //    cancelButton.onClick.RemoveListener(OnCancelClicked);
+            //}
         }
     }
 }
