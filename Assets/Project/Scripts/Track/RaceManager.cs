@@ -390,8 +390,7 @@ namespace ArcadeRacer.RaceSystem
             string playerName = vehicle.name;
 
             // Obtenir les temps de checkpoints du meilleur tour
-            // Pour l'instant, on utilise les temps du dernier tour si disponible
-            // TODO: Tracker spécifiquement les temps du meilleur tour
+            // On identifie d'abord quel tour a le meilleur temps, puis on extrait ses checkpoints
             float[] checkpointTimes = null;
             var allLapCheckpoints = timer.AllLapsCheckpointTimes;
             if (allLapCheckpoints.Count > 0)
