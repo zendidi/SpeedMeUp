@@ -41,6 +41,7 @@ namespace ArcadeRacer.UI
         private bool _isOpen = false;
         private float _lapTime;
         private string _circuitName;
+        private float _previousTimeScale = 1f;
 
         #region Properties
 
@@ -218,6 +219,7 @@ namespace ArcadeRacer.UI
             // Bloquer les inputs du jeu si nécessaire
             if (blockGameInputWhileOpen)
             {
+                _previousTimeScale = Time.timeScale;
                 Time.timeScale = 0f;
             }
 
@@ -236,10 +238,10 @@ namespace ArcadeRacer.UI
 
             _isOpen = false;
 
-            // Réactiver les inputs du jeu
+            // Réactiver les inputs du jeu (restaurer la valeur précédente)
             if (blockGameInputWhileOpen)
             {
-                Time.timeScale = 1f;
+                Time.timeScale = _previousTimeScale;
             }
 
             Debug.Log("[HighscoreNameInputUI] Modal caché");
