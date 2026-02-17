@@ -14,18 +14,33 @@ namespace ArcadeRacer.Core
         public string playerName;
         public int rank;
         public float[] checkpointTimes; // ← NOUVEAU: temps intermédiaires aux checkpoints
+        public string dateString; // ← Format: dd/MM/yyyy
 
         /// <summary>
         /// Formatte le temps en MM:SS:mmm
         /// </summary>
         public string FormattedTime => FormatTime(timeInSeconds);
 
-        public HighscoreEntry(float time, string name, int position, float[] cpTimes = null)
+        /// <summary>
+        /// Retourne la date au format dd/MM/yyyy
+        /// </summary>
+        public string FormattedDate
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(dateString))
+                    return dateString;
+                return System.DateTime.Now.ToString("dd/MM/yyyy");
+            }
+        }
+
+        public HighscoreEntry(float time, string name, int position, float[] cpTimes = null, string date = null)
         {
             timeInSeconds = time;
             playerName = name;
             rank = position;
             checkpointTimes = cpTimes ?? new float[0];
+            dateString = date ?? System.DateTime.Now.ToString("dd/MM/yyyy");
         }
 
         /// <summary>
@@ -306,7 +321,7 @@ namespace ArcadeRacer.Core
 
         /// <summary>
         /// Formatte une entrée de highscore en string
-        /// Format: "MM:SS:mmm|PlayerName|CP1,CP2,CP3..."
+        /// Format: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy"
         /// </summary>
         private string FormatHighscoreData(HighscoreEntry entry)
         {
@@ -318,18 +333,25 @@ namespace ArcadeRacer.Core
                 string cpTimes = string.Join(",", System.Array.ConvertAll(entry.checkpointTimes, t => t.ToString("F3")));
                 result += $"{HIGHSCORE_SEPARATOR}{cpTimes}";
             }
+            else
+            {
+                result += $"{HIGHSCORE_SEPARATOR}"; // Séparateur vide pour les checkpoints
+            }
+            
+            // Ajouter la date
+            result += $"{HIGHSCORE_SEPARATOR}{entry.FormattedDate}";
             
             return result;
         }
 
         /// <summary>
         /// Parse une string de highscore
-        /// Format attendu: "MM:SS:mmm|PlayerName|CP1,CP2,CP3..."
+        /// Format attendu: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy"
         /// </summary>
         private HighscoreEntry ParseHighscoreData(string data, int rank)
         {
             if (string.IsNullOrEmpty(data))
-                return new HighscoreEntry(0f, "", rank, null);
+                return new HighscoreEntry(0f, "", rank, null, null);
 
             string[] parts = data.Split(new[] { HIGHSCORE_SEPARATOR }, System.StringSplitOptions.None);
             
@@ -350,10 +372,17 @@ namespace ArcadeRacer.Core
                     }
                 }
                 
-                return new HighscoreEntry(time, playerName, rank, checkpointTimes);
+                // Parse date if present
+                string dateString = null;
+                if (parts.Length >= 4 && !string.IsNullOrEmpty(parts[3]))
+                {
+                    dateString = parts[3];
+                }
+                
+                return new HighscoreEntry(time, playerName, rank, checkpointTimes, dateString);
             }
 
-            return new HighscoreEntry(0f, "", rank, null);
+            return new HighscoreEntry(0f, "", rank, null, null);
         }
 
         #endregion
