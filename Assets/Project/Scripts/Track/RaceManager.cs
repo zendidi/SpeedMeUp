@@ -288,13 +288,18 @@ namespace ArcadeRacer.RaceSystem
             _vehicleLaps[vehicle]++;
             int currentLap = _vehicleLaps[vehicle];
 
-            // Notifier le timer
+            // Notifier le timer et récupérer le temps du tour
+            float lapTime = 0f;
             if (_vehicleTimers.ContainsKey(vehicle))
             {
                 _vehicleTimers[vehicle].CompleteLap();
+                lapTime = _vehicleTimers[vehicle].LastLapTime;
             }
 
             Debug.Log($"🏁 [RaceManager] {vehicle.name} completed lap {currentLap}/{totalLaps}");
+
+            // Vérifier si ce temps est un top 10 et demander le nom du joueur
+            CheckAndPromptForHighscore(vehicle, lapTime);
 
             // Vérifier si le véhicule a terminé la course
             if (currentLap >= totalLaps)
@@ -430,6 +435,112 @@ namespace ArcadeRacer.RaceSystem
             else
             {
                 Debug.Log($"[RaceManager] Temps enregistré pour {circuitName}: {LapTimer.FormatTime(bestLapTime)} - {playerName}");
+            }
+        }
+
+        /// <summary>
+        /// Vérifie si le temps au tour est un top 10 et demande le nom du joueur
+        /// </summary>
+        private void CheckAndPromptForHighscore(VehicleController vehicle, float lapTime)
+        {
+            // Vérifier qu'on a un temps valide
+            if (lapTime <= 0f)
+            {
+                return;
+            }
+
+            // Obtenir le nom du circuit
+            var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+            if (circuitManager == null || circuitManager.CurrentCircuit == null)
+            {
+                return;
+            }
+
+            string circuitName = circuitManager.CurrentCircuit.circuitName;
+
+            // Vérifier si ce temps ferait partie du top 10
+            bool wouldBeTopScore = ArcadeRacer.Core.HighscoreManager.Instance.WouldBeTopScore(circuitName, lapTime);
+
+            if (wouldBeTopScore)
+            {
+                Debug.Log($"🏆 [RaceManager] Temps qualifiant pour le top 10: {LapTimer.FormatTime(lapTime)} sur {circuitName}");
+                
+                // Trouver l'UI de saisie du nom
+                var nameInputUI = FindFirstObjectByType<ArcadeRacer.UI.HighscoreNameInputUI>();
+                if (nameInputUI != null)
+                {
+                    // Unsubscribe d'éventuels anciens listeners
+                    nameInputUI.OnNameSubmitted -= OnPlayerNameSubmitted;
+                    nameInputUI.OnCancelled -= OnPlayerNameCancelled;
+
+                    // Subscribe aux événements
+                    nameInputUI.OnNameSubmitted += (playerName) => OnPlayerNameSubmitted(playerName, vehicle, lapTime, circuitName);
+                    nameInputUI.OnCancelled += () => OnPlayerNameCancelled(vehicle, lapTime, circuitName);
+
+                    // Afficher le modal
+                    nameInputUI.Show(lapTime, circuitName);
+                }
+                else
+                {
+                    Debug.LogWarning("[RaceManager] HighscoreNameInputUI non trouvé! Utilise le nom par défaut.");
+                    // Fallback: sauvegarder avec le nom du véhicule
+                    SaveLapTimeToHighscores(vehicle.name, lapTime, circuitName, vehicle);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Appelé quand le joueur soumet son nom
+        /// </summary>
+        private void OnPlayerNameSubmitted(string playerName, VehicleController vehicle, float lapTime, string circuitName)
+        {
+            Debug.Log($"[RaceManager] Nom du joueur reçu: {playerName}");
+            SaveLapTimeToHighscores(playerName, lapTime, circuitName, vehicle);
+        }
+
+        /// <summary>
+        /// Appelé quand le joueur annule la saisie
+        /// </summary>
+        private void OnPlayerNameCancelled(VehicleController vehicle, float lapTime, string circuitName)
+        {
+            Debug.Log("[RaceManager] Saisie du nom annulée, utilise le nom par défaut");
+            SaveLapTimeToHighscores("Player", lapTime, circuitName, vehicle);
+        }
+
+        /// <summary>
+        /// Sauvegarde un temps au tour dans le HighscoreManager
+        /// </summary>
+        private void SaveLapTimeToHighscores(string playerName, float lapTime, string circuitName, VehicleController vehicle)
+        {
+            if (!_vehicleTimers.ContainsKey(vehicle))
+            {
+                return;
+            }
+
+            var timer = _vehicleTimers[vehicle];
+
+            // Obtenir les temps de checkpoints du tour actuel
+            float[] checkpointTimes = null;
+            var currentLapCheckpoints = timer.CurrentLapCheckpointTimes;
+            
+            // Si le tour est déjà complété, prendre les checkpoints du dernier tour complété
+            var allLapCheckpoints = timer.AllLapsCheckpointTimes;
+            if (allLapCheckpoints.Count > 0)
+            {
+                checkpointTimes = allLapCheckpoints[allLapCheckpoints.Count - 1].ToArray();
+            }
+
+            // Sauvegarder dans le HighscoreManager
+            bool isTopScore = ArcadeRacer.Core.HighscoreManager.Instance.TryAddScore(
+                circuitName,
+                lapTime,
+                playerName,
+                checkpointTimes
+            );
+
+            if (isTopScore)
+            {
+                Debug.Log($"🏆 [RaceManager] Highscore sauvegardé: {LapTimer.FormatTime(lapTime)} - {playerName} sur {circuitName}");
             }
         }
 

@@ -15,6 +15,7 @@ namespace ArcadeRacer.UI
         [SerializeField] private CountdownUI countdownUI;
         [SerializeField] private FinishScreenUI finishScreenUI;
         [SerializeField] private CircuitSelectionUI circuitSelectionUI;
+        [SerializeField] private HighscoreNameInputUI highscoreNameInputUI;
 
         [Header("=== REFERENCES ===")]
         [SerializeField] private RaceManager raceManager;
@@ -74,6 +75,11 @@ namespace ArcadeRacer.UI
             {
                 circuitSelectionUI = FindFirstObjectByType<CircuitSelectionUI>();
             }
+
+            if (highscoreNameInputUI == null)
+            {
+                highscoreNameInputUI = FindFirstObjectByType<HighscoreNameInputUI>();
+            }
         }
 
         private void InitializeUI()
@@ -97,6 +103,11 @@ namespace ArcadeRacer.UI
             if (circuitSelectionUI != null)
             {
                 circuitSelectionUI.Hide();
+            }
+
+            if (highscoreNameInputUI != null)
+            {
+                highscoreNameInputUI.Hide();
             }
         }
 
@@ -203,6 +214,7 @@ namespace ArcadeRacer.UI
             raceHUD?.SetVisible(false);
             finishScreenUI?.gameObject.SetActive(false);
             circuitSelectionUI?.Hide();
+            highscoreNameInputUI?.Hide();
         }
         private Car_Actions _carActions;
 
@@ -264,6 +276,26 @@ namespace ArcadeRacer.UI
         public void HideCircuitSelection()
         {
             circuitSelectionUI?.Hide();
+        }
+
+        /// <summary>
+        /// Afficher le modal de saisie du nom pour highscore
+        /// </summary>
+        public void ShowHighscoreNameInput(float lapTime, string circuitName)
+        {
+            if (highscoreNameInputUI != null)
+            {
+                highscoreNameInputUI.Show(lapTime, circuitName);
+                Debug.Log("[UIManager] Highscore Name Input UI activé");
+            }
+        }
+
+        /// <summary>
+        /// Cacher le modal de saisie du nom pour highscore
+        /// </summary>
+        public void HideHighscoreNameInput()
+        {
+            highscoreNameInputUI?.Hide();
         }
 
         #endregion
