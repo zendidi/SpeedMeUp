@@ -9,10 +9,9 @@ namespace ArcadeRacer.UI
 {
     /// <summary>
     /// Affiche les temps intermédiaires aux checkpoints avec code couleur selon la performance
-    /// Rouge: hors du top 10
-    /// Bleu: top 4-10
-    /// Vert: top 2-3  
-    /// Mauve: RECORD (rang 1)
+    /// Vert: Meilleur que le rank 1
+    /// Bleu: Dans la moyenne des 9 autres (ranks 2-10)
+    /// Rouge: Au-delà de la moyenne des 9 autres
     /// </summary>
     public class CheckpointTimingDisplay : MonoBehaviour
     {
@@ -22,10 +21,9 @@ namespace ArcadeRacer.UI
         
         [Header("=== COLORS ===")]
         [SerializeField] private Color defaultColor = Color.white;
-        [SerializeField] private Color outsideTop10Color = Color.red;
-        [SerializeField] private Color top4to10Color = Color.blue;
-        [SerializeField] private Color top2to3Color = Color.green;
-        [SerializeField] private Color recordColor = new Color(0.8f, 0f, 0.8f); // Mauve
+        [SerializeField] private Color betterThanRank1Color = Color.green; // Meilleur que rank 1
+        [SerializeField] private Color averageColor = Color.blue; // Dans la moyenne des 9 autres
+        [SerializeField] private Color worseColor = Color.red; // Au-delà de la moyenne
         
         [Header("=== SETTINGS ===")]
         [SerializeField] private string circuitName = "";
@@ -34,6 +32,10 @@ namespace ArcadeRacer.UI
         
         private float _lastUpdateTime;
         private List<float> _lastDisplayedTimes = new List<float>();
+        
+        // Cache des temps de référence pour comparaison
+        private float[] _rank1CheckpointTimes;
+        private float[] _averageCheckpointTimes;
         
         #region Unity Lifecycle
         
@@ -44,7 +46,29 @@ namespace ArcadeRacer.UI
                 lapTimer = FindFirstObjectByType<LapTimer>();
             }
             
+            // Charger le circuit actuel si disponible
+            if (string.IsNullOrEmpty(circuitName))
+            {
+                var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+                if (circuitManager != null && circuitManager.CurrentCircuit != null)
+                {
+                    circuitName = circuitManager.CurrentCircuit.circuitName;
+                }
+            }
+            
+            // S'abonner à l'événement de chargement de circuit
+            SubscribeToCircuitManager();
+            
+            // Charger les temps de référence depuis les highscores
+            LoadReferenceTimesFromHighscores();
+            
             ClearDisplay();
+        }
+        
+        private void OnDestroy()
+        {
+            // Se désabonner des événements
+            UnsubscribeFromCircuitManager();
         }
         
         private void Update()
@@ -55,6 +79,75 @@ namespace ArcadeRacer.UI
             {
                 UpdateDisplay();
                 _lastUpdateTime = Time.time;
+            }
+        }
+        
+        #endregion
+        
+        #region Circuit Manager Integration
+        
+        private void SubscribeToCircuitManager()
+        {
+            var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+            if (circuitManager != null)
+            {
+                circuitManager.OnCircuitLoaded += OnCircuitLoadedHandler;
+                Debug.Log("[CheckpointTimingDisplay] Subscribed to CircuitManager events.");
+            }
+        }
+        
+        private void UnsubscribeFromCircuitManager()
+        {
+            var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+            if (circuitManager != null)
+            {
+                circuitManager.OnCircuitLoaded -= OnCircuitLoadedHandler;
+            }
+        }
+        
+        private void OnCircuitLoadedHandler(ArcadeRacer.Settings.CircuitData circuitData)
+        {
+            Debug.Log($"[CheckpointTimingDisplay] Circuit loaded: '{circuitData.circuitName}'. Reloading reference times...");
+            SetCircuitName(circuitData.circuitName);
+        }
+        
+        #endregion
+        
+        #region Highscore Reference Loading
+        
+        /// <summary>
+        /// Charge les temps de référence depuis les highscores
+        /// </summary>
+        private void LoadReferenceTimesFromHighscores()
+        {
+            if (string.IsNullOrEmpty(circuitName))
+            {
+                Debug.LogWarning("[CheckpointTimingDisplay] Circuit name not set, cannot load reference times.");
+                return;
+            }
+            
+            // Charger le temps du rank 1
+            var bestTime = HighscoreManager.Instance.GetBestTime(circuitName);
+            if (bestTime.HasValue && bestTime.Value.checkpointTimes != null)
+            {
+                _rank1CheckpointTimes = bestTime.Value.checkpointTimes;
+                Debug.Log($"[CheckpointTimingDisplay] Loaded rank 1 checkpoint times for {circuitName}: {_rank1CheckpointTimes.Length} checkpoints");
+            }
+            else
+            {
+                _rank1CheckpointTimes = null;
+                Debug.Log($"[CheckpointTimingDisplay] No rank 1 checkpoint times found for {circuitName}");
+            }
+            
+            // Charger les temps moyens des ranks 2-10
+            _averageCheckpointTimes = HighscoreManager.Instance.GetAverageCheckpointTimes(circuitName);
+            if (_averageCheckpointTimes != null)
+            {
+                Debug.Log($"[CheckpointTimingDisplay] Loaded average checkpoint times for {circuitName}: {_averageCheckpointTimes.Length} checkpoints");
+            }
+            else
+            {
+                Debug.Log($"[CheckpointTimingDisplay] No average checkpoint times found for {circuitName}");
             }
         }
         
@@ -71,9 +164,6 @@ namespace ArcadeRacer.UI
             
             var currentCheckpointTimes = lapTimer.CurrentLapCheckpointTimes;
             
-            // Obtenir les highscores pour comparaison
-            var highscores = HighscoreManager.Instance.GetHighscores(circuitName);
-            
             for (int i = 0; i < checkpointTimeTexts.Length; i++)
             {
                 if (checkpointTimeTexts[i] == null) continue;
@@ -83,8 +173,8 @@ namespace ArcadeRacer.UI
                     float checkpointTime = currentCheckpointTimes[i];
                     string formattedTime = LapTimer.FormatTime(checkpointTime);
                     
-                    // Déterminer la couleur basée sur la performance
-                    Color timeColor = GetTimeColor(i, checkpointTime, highscores);
+                    // Déterminer la couleur basée sur la comparaison avec les highscores
+                    Color timeColor = GetComparisonColor(i, checkpointTime);
                     
                     checkpointTimeTexts[i].text = $"CP{i + 1}: {formattedTime}";
                     checkpointTimeTexts[i].color = timeColor;
@@ -103,57 +193,46 @@ namespace ArcadeRacer.UI
         
         /// <summary>
         /// Détermine la couleur du temps basée sur la comparaison avec les highscores
+        /// Vert: Meilleur que rank 1
+        /// Bleu: Dans la moyenne des 9 autres
+        /// Rouge: Au-delà de la moyenne
         /// </summary>
-        private Color GetTimeColor(int checkpointIndex, float checkpointTime, List<HighscoreEntry> highscores)
+        private Color GetComparisonColor(int checkpointIndex, float checkpointTime)
         {
-            if (highscores == null || highscores.Count == 0)
+            // Si pas de temps de référence, utiliser la couleur par défaut
+            if (_rank1CheckpointTimes == null || checkpointIndex >= _rank1CheckpointTimes.Length)
             {
-                return defaultColor; // Pas de comparaison possible
+                return defaultColor;
             }
             
-            // Compter combien de highscores ont un meilleur temps à ce checkpoint
-            int betterScoresCount = 0;
-            int totalComparableScores = 0;
+            float rank1Time = _rank1CheckpointTimes[checkpointIndex];
             
-            foreach (var score in highscores)
+            // Si meilleur que le rank 1: VERT
+            if (checkpointTime < rank1Time)
             {
-                // Vérifier si ce highscore a des temps de checkpoints
-                if (score.checkpointTimes == null || checkpointIndex >= score.checkpointTimes.Length)
-                    continue;
+                return betterThanRank1Color;
+            }
+            
+            // Si on a les temps moyens, comparer avec la moyenne
+            if (_averageCheckpointTimes != null && checkpointIndex < _averageCheckpointTimes.Length)
+            {
+                float averageTime = _averageCheckpointTimes[checkpointIndex];
                 
-                totalComparableScores++;
-                
-                if (score.checkpointTimes[checkpointIndex] < checkpointTime)
+                // Si dans la moyenne ou meilleur: BLEU
+                if (checkpointTime <= averageTime)
                 {
-                    betterScoresCount++;
+                    return averageColor;
+                }
+                // Si au-delà de la moyenne: ROUGE
+                else
+                {
+                    return worseColor;
                 }
             }
             
-            if (totalComparableScores == 0)
-            {
-                return defaultColor; // Pas de données de comparaison
-            }
-            
-            // Déterminer le "rang" approximatif
-            int approximateRank = betterScoresCount + 1;
-            
-            // Appliquer le code couleur
-            if (approximateRank == 1)
-            {
-                return recordColor; // RECORD! Mauve
-            }
-            else if (approximateRank >= 2 && approximateRank <= 3)
-            {
-                return top2to3Color; // Top 2-3: Vert
-            }
-            else if (approximateRank >= 4 && approximateRank <= 10)
-            {
-                return top4to10Color; // Top 4-10: Bleu
-            }
-            else
-            {
-                return outsideTop10Color; // Hors top 10: Rouge
-            }
+            // Si pas de moyenne disponible, comparer juste avec rank 1
+            // Si égal ou moins bon que rank 1 mais pas de moyenne: utiliser couleur moyenne
+            return averageColor;
         }
         
         /// <summary>
@@ -182,6 +261,7 @@ namespace ArcadeRacer.UI
         public void SetCircuitName(string name)
         {
             circuitName = name;
+            LoadReferenceTimesFromHighscores(); // Recharger les temps de référence
             UpdateDisplay();
         }
         

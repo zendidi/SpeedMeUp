@@ -280,6 +280,57 @@ namespace ArcadeRacer.Core
             
             return null;
         }
+        
+        /// <summary>
+        /// Récupère les temps de checkpoint moyens du top 10 (en excluant le rank 1)
+        /// </summary>
+        public float[] GetAverageCheckpointTimes(string circuitName)
+        {
+            List<HighscoreEntry> scores = GetHighscores(circuitName);
+            
+            if (scores.Count < 2)
+                return null; // Pas assez de données pour calculer une moyenne
+            
+            // Exclure le rank 1, ne prendre que les 9 autres (ou moins si pas assez de scores)
+            List<HighscoreEntry> otherScores = scores.Skip(1).Take(9).ToList();
+            
+            if (otherScores.Count == 0)
+                return null;
+            
+            // Trouver le nombre maximum de checkpoints
+            int maxCheckpoints = 0;
+            foreach (var score in otherScores)
+            {
+                if (score.checkpointTimes != null && score.checkpointTimes.Length > maxCheckpoints)
+                {
+                    maxCheckpoints = score.checkpointTimes.Length;
+                }
+            }
+            
+            if (maxCheckpoints == 0)
+                return null;
+            
+            // Calculer les moyennes pour chaque checkpoint
+            float[] averages = new float[maxCheckpoints];
+            for (int i = 0; i < maxCheckpoints; i++)
+            {
+                float sum = 0f;
+                int count = 0;
+                
+                foreach (var score in otherScores)
+                {
+                    if (score.checkpointTimes != null && i < score.checkpointTimes.Length)
+                    {
+                        sum += score.checkpointTimes[i];
+                        count++;
+                    }
+                }
+                
+                averages[i] = count > 0 ? sum / count : 0f;
+            }
+            
+            return averages;
+        }
 
         #endregion
 

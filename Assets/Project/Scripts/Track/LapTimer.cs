@@ -19,6 +19,7 @@ namespace ArcadeRacer.RaceSystem
         private List<float> _currentLapCheckpointTimes = new List<float>(); // ← NOUVEAU: temps intermédiaires du tour actuel
         private List<List<float>> _allLapsCheckpointTimes = new List<List<float>>(); // ← NOUVEAU: tous les tours
         private bool _isRacing = false;
+        private bool _timerStarted = false; // ← NOUVEAU: indique si le chrono a été lancé
 
         #region Properties
 
@@ -79,18 +80,32 @@ namespace ArcadeRacer.RaceSystem
         #region Race Control
 
         /// <summary>
-        /// Démarrer la course
+        /// Préparer la course (appelé au début par RaceManager)
+        /// Le timer ne démarre qu'au passage du premier checkpoint
         /// </summary>
         public void StartRace()
         {
-            _raceStartTime = Time.time;
-            _currentLapStartTime = Time.time;
             _lapTimes.Clear();
             _currentLapCheckpointTimes.Clear();
             _allLapsCheckpointTimes.Clear();
             _isRacing = true;
+            _timerStarted = false; // Le timer ne démarre pas encore
 
-            Debug.Log($"[LapTimer] {gameObject.name} - Race started!");
+            Debug.Log($"[LapTimer] {gameObject.name} - Race ready! Timer will start on first checkpoint.");
+        }
+        
+        /// <summary>
+        /// Démarre réellement le chronomètre (appelé au passage du CP0)
+        /// </summary>
+        public void StartTimer()
+        {
+            if (!_timerStarted)
+            {
+                _raceStartTime = Time.time;
+                _currentLapStartTime = Time.time;
+                _timerStarted = true;
+                Debug.Log($"[LapTimer] {gameObject.name} - Timer started!");
+            }
         }
         
         /// <summary>
@@ -99,6 +114,9 @@ namespace ArcadeRacer.RaceSystem
         public void RecordCheckpoint()
         {
             if (!_isRacing) return;
+            
+            // Si le timer n'est pas encore démarré, ne pas enregistrer
+            if (!_timerStarted) return;
             
             float checkpointTime = Time.time - _currentLapStartTime;
             _currentLapCheckpointTimes.Add(checkpointTime);
@@ -114,12 +132,15 @@ namespace ArcadeRacer.RaceSystem
         /// </summary>
         public void CompleteLap()
         {
-            if (! _isRacing) return;
+            if (!_isRacing) return;
+            
+            // Si le timer n'est pas encore démarré, ne pas compter le tour
+            if (!_timerStarted) return;
 
             float lapTime = Time.time - _currentLapStartTime;
             string lapTimeFormatted = FormatTime(lapTime);
             Debug.Log($"[LapTimer] {lapTime} seconds - completed in {lapTimeFormatted}");
-            Debug.Log($" [LapTimer] {gameObject.name} - Lap {_lapTimes.Count} completed in {FormatTime(lapTime)}");
+            Debug.Log($" [LapTimer] {gameObject.name} - Lap {_lapTimes.Count + 1} completed in {FormatTime(lapTime)}");
             _lapTimes.Add(lapTime);
             
             // Sauvegarder les temps intermédiaires de ce tour
@@ -149,6 +170,7 @@ namespace ArcadeRacer.RaceSystem
             _currentLapCheckpointTimes.Clear();
             _allLapsCheckpointTimes.Clear();
             _isRacing = false;
+            _timerStarted = false;
             _raceStartTime = 0f;
             _currentLapStartTime = 0f;
         }
