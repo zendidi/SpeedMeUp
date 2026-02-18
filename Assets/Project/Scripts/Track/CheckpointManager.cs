@@ -394,7 +394,7 @@ namespace ArcadeRacer. RaceSystem
                     Debug.Log($"[CheckpointManager] {vehicle.name} completed lap at CP0 🏁");
                 }
                 // Pour tous les autres checkpoints: enregistrer le temps intermédiaire
-                else if (!checkpoint.IsStartFinishLine || expectedCheckpoint != 0)
+                else
                 {
                     LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
                     if (lapTimer != null)
