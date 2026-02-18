@@ -121,6 +121,14 @@ namespace ArcadeRacer.RaceSystem
             float checkpointTime = Time.time - _currentLapStartTime;
             _currentLapCheckpointTimes.Add(checkpointTime);
             
+            // Notifier le CheckpointTimingDisplay pour afficher le temps
+            int checkpointIndex = _currentLapCheckpointTimes.Count - 1;
+            var checkpointDisplay = FindFirstObjectByType<ArcadeRacer.UI.CheckpointTimingDisplay>();
+            if (checkpointDisplay != null)
+            {
+                checkpointDisplay.OnCheckpointRecorded(checkpointIndex, checkpointTime);
+            }
+            
             if (showDebugInfo)
             {
                 Debug.Log($"[LapTimer] Checkpoint {_currentLapCheckpointTimes.Count}: {FormatTime(checkpointTime)}");

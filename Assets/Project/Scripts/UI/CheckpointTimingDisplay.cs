@@ -8,30 +8,25 @@ using System.Collections.Generic;
 namespace ArcadeRacer.UI
 {
     /// <summary>
-    /// Affiche les temps intermédiaires aux checkpoints avec code couleur selon la performance
+    /// Affiche le temps du dernier checkpoint passé avec code couleur selon la performance
     /// Vert: Meilleur que le rank 1
-    /// Bleu: Dans la moyenne des 9 autres (ranks 2-10)
-    /// Rouge: Au-delà de la moyenne des 9 autres
+    /// Bleu: Dans la moyenne de toutes les entrées
+    /// Rouge: Au-delà de la moyenne
     /// </summary>
     public class CheckpointTimingDisplay : MonoBehaviour
     {
         [Header("=== REFERENCES ===")]
-        [SerializeField] private TextMeshProUGUI[] checkpointTimeTexts;
+        [SerializeField] private TextMeshProUGUI checkpointTimeText; // Un seul champ pour le dernier checkpoint
         [SerializeField] private LapTimer lapTimer;
         
         [Header("=== COLORS ===")]
         [SerializeField] private Color defaultColor = Color.white;
         [SerializeField] private Color betterThanRank1Color = Color.green; // Meilleur que rank 1
-        [SerializeField] private Color averageColor = Color.blue; // Dans la moyenne des 9 autres
+        [SerializeField] private Color averageColor = Color.blue; // Dans la moyenne
         [SerializeField] private Color worseColor = Color.red; // Au-delà de la moyenne
         
         [Header("=== SETTINGS ===")]
         [SerializeField] private string circuitName = "";
-        [SerializeField] private bool autoUpdate = true;
-        [SerializeField] private float updateInterval = 0.1f;
-        
-        private float _lastUpdateTime;
-        private List<float> _lastDisplayedTimes = new List<float>();
         
         // Cache des temps de référence pour comparaison
         private float[] _rank1CheckpointTimes;
@@ -69,17 +64,6 @@ namespace ArcadeRacer.UI
         {
             // Se désabonner des événements
             UnsubscribeFromCircuitManager();
-        }
-        
-        private void Update()
-        {
-            if (!autoUpdate || lapTimer == null) return;
-            
-            if (Time.time - _lastUpdateTime >= updateInterval)
-            {
-                UpdateDisplay();
-                _lastUpdateTime = Time.time;
-            }
         }
         
         #endregion
@@ -156,45 +140,36 @@ namespace ArcadeRacer.UI
         #region Display Update
         
         /// <summary>
-        /// Met à jour l'affichage des temps intermédiaires
+        /// Appelé par LapTimer quand un checkpoint est enregistré
+        /// Affiche le temps du dernier checkpoint passé avec la couleur appropriée
         /// </summary>
-        public void UpdateDisplay()
+        public void OnCheckpointRecorded(int checkpointIndex, float checkpointTime)
         {
-            if (lapTimer == null || checkpointTimeTexts == null) return;
-            
-            var currentCheckpointTimes = lapTimer.CurrentLapCheckpointTimes;
-            
-            for (int i = 0; i < checkpointTimeTexts.Length; i++)
+            if (checkpointTimeText == null)
             {
-                if (checkpointTimeTexts[i] == null) continue;
-                
-                if (i < currentCheckpointTimes.Count)
-                {
-                    float checkpointTime = currentCheckpointTimes[i];
-                    string formattedTime = LapTimer.FormatTime(checkpointTime);
-                    
-                    // Déterminer la couleur basée sur la comparaison avec les highscores
-                    Color timeColor = GetComparisonColor(i, checkpointTime);
-                    
-                    checkpointTimeTexts[i].text = $"CP{i + 1}: {formattedTime}";
-                    checkpointTimeTexts[i].color = timeColor;
-                    checkpointTimeTexts[i].enabled = true;
-                }
-                else
-                {
-                    checkpointTimeTexts[i].text = $"CP{i + 1}: --:--.---";
-                    checkpointTimeTexts[i].color = defaultColor;
-                    checkpointTimeTexts[i].enabled = true;
-                }
+                Debug.LogWarning("[CheckpointTimingDisplay] checkpointTimeText is null!");
+                return;
             }
             
-            _lastDisplayedTimes = new List<float>(currentCheckpointTimes);
+            string formattedTime = LapTimer.FormatTime(checkpointTime);
+            
+            // Déterminer la couleur basée sur la comparaison avec les highscores
+            Color timeColor = GetComparisonColor(checkpointIndex, checkpointTime);
+            
+            checkpointTimeText.text = $"CP{checkpointIndex + 1}: {formattedTime}";
+            checkpointTimeText.color = timeColor;
+            checkpointTimeText.enabled = true;
+            
+            if (UnityEngine.Application.isEditor)
+            {
+                Debug.Log($"[CheckpointTimingDisplay] CP{checkpointIndex + 1}: {formattedTime} - Color: {timeColor}");
+            }
         }
         
         /// <summary>
         /// Détermine la couleur du temps basée sur la comparaison avec les highscores
         /// Vert: Meilleur que rank 1
-        /// Bleu: Dans la moyenne des 9 autres
+        /// Bleu: Dans la moyenne de toutes les entrées
         /// Rouge: Au-delà de la moyenne
         /// </summary>
         private Color GetComparisonColor(int checkpointIndex, float checkpointTime)
@@ -240,19 +215,12 @@ namespace ArcadeRacer.UI
         /// </summary>
         public void ClearDisplay()
         {
-            if (checkpointTimeTexts == null) return;
-            
-            foreach (var text in checkpointTimeTexts)
+            if (checkpointTimeText != null)
             {
-                if (text != null)
-                {
-                    text.text = "--:--.---";
-                    text.color = defaultColor;
-                    text.enabled = false;
-                }
+                checkpointTimeText.text = "--:--.---";
+                checkpointTimeText.color = defaultColor;
+                checkpointTimeText.enabled = false;
             }
-            
-            _lastDisplayedTimes.Clear();
         }
         
         /// <summary>
@@ -262,7 +230,7 @@ namespace ArcadeRacer.UI
         {
             circuitName = name;
             LoadReferenceTimesFromHighscores(); // Recharger les temps de référence
-            UpdateDisplay();
+            ClearDisplay(); // Effacer l'affichage actuel
         }
         
         #endregion
@@ -270,26 +238,13 @@ namespace ArcadeRacer.UI
         #region Public API
         
         /// <summary>
-        /// Force une mise à jour immédiate de l'affichage
-        /// </summary>
-        public void ForceUpdate()
-        {
-            UpdateDisplay();
-        }
-        
-        /// <summary>
         /// Active/désactive l'affichage
         /// </summary>
         public void SetVisible(bool visible)
         {
-            if (checkpointTimeTexts == null) return;
-            
-            foreach (var text in checkpointTimeTexts)
+            if (checkpointTimeText != null)
             {
-                if (text != null)
-                {
-                    text.enabled = visible;
-                }
+                checkpointTimeText.enabled = visible;
             }
         }
         

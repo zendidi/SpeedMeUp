@@ -282,7 +282,8 @@ namespace ArcadeRacer.Core
         }
         
         /// <summary>
-        /// Récupère les temps de checkpoint moyens du top 10 (en excluant le rank 1)
+        /// Récupère les temps de checkpoint moyens du top 10
+        /// Pour chaque checkpoint (index i), calcule la moyenne des temps de toutes les entrées à cet index
         /// Utilisé pour comparer la performance du joueur: si meilleur que rank 1 → vert,
         /// si dans la moyenne → bleu, si au-delà de la moyenne → rouge
         /// </summary>
@@ -290,19 +291,12 @@ namespace ArcadeRacer.Core
         {
             List<HighscoreEntry> scores = GetHighscores(circuitName);
             
-            if (scores.Count < 2)
-                return null; // Pas assez de données pour calculer une moyenne
-            
-            // Exclure le rank 1 (on compare avec les "autres" du top 10, pas le meilleur)
-            // Skip(1) exclut le rank 1, Take(9) récupère les ranks 2-10 (ou moins si pas assez de scores)
-            List<HighscoreEntry> otherScores = scores.Skip(1).Take(9).ToList();
-            
-            if (otherScores.Count == 0)
-                return null;
+            if (scores.Count == 0)
+                return null; // Pas de données pour calculer une moyenne
             
             // Trouver le nombre maximum de checkpoints
             int maxCheckpoints = 0;
-            foreach (var score in otherScores)
+            foreach (var score in scores)
             {
                 if (score.checkpointTimes != null && score.checkpointTimes.Length > maxCheckpoints)
                 {
@@ -313,14 +307,15 @@ namespace ArcadeRacer.Core
             if (maxCheckpoints == 0)
                 return null;
             
-            // Calculer les moyennes pour chaque checkpoint
+            // Calculer les moyennes pour chaque checkpoint (index i) à travers toutes les entrées
             float[] averages = new float[maxCheckpoints];
             for (int i = 0; i < maxCheckpoints; i++)
             {
                 float sum = 0f;
                 int count = 0;
                 
-                foreach (var score in otherScores)
+                // Moyenner le temps au checkpoint i pour toutes les entrées qui ont ce checkpoint
+                foreach (var score in scores)
                 {
                     if (score.checkpointTimes != null && i < score.checkpointTimes.Length)
                     {
