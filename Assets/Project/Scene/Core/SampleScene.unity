@@ -2374,7 +2374,7 @@ GameObject:
   - component: {fileID: 511769652}
   - component: {fileID: 511769651}
   m_Layer: 5
-  m_Name: BestLapTime_Text (1)
+  m_Name: CheckpointTime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6038,6 +6038,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1666378668}
+  - component: {fileID: 1666378669}
   m_Layer: 5
   m_Name: Highscore
   m_TagString: Untagged
@@ -6067,6 +6068,28 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1666378669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1666378667}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ae37d66308ba4f4f90c5518e541fab6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.UI.CheckpointTimingDisplay
+  checkpointTimeTexts:
+  - {fileID: 408984557}
+  lapTimer: {fileID: 0}
+  defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  betterThanRank1Color: {r: 0, g: 1, b: 0, a: 1}
+  averageColor: {r: 0, g: 0, b: 1, a: 1}
+  worseColor: {r: 1, g: 0, b: 0, a: 1}
+  circuitName: 
+  autoUpdate: 1
+  updateInterval: 0.1
 --- !u!1 &1674142559
 GameObject:
   m_ObjectHideFlags: 0
