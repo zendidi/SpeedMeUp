@@ -14,13 +14,13 @@ namespace ArcadeRacer.Settings
         /// Nombre de segments par point de spline pour l'interpolation.
         /// Valeur identique éditeur/runtime pour garantir le même mesh.
         /// </summary>
-        public const int SEGMENTS_PER_SPLINE_POINT = 10;
+        public const int SEGMENTS_PER_SPLINE_POINT = 50;
         
         /// <summary>
         /// Multiplicateur de qualité des courbes (plus élevé = courbes plus lisses).
         /// Valeur identique éditeur/runtime.
         /// </summary>
-        public const float CURVE_QUALITY_MULTIPLIER = 10f;
+        public const float CURVE_QUALITY_MULTIPLIER =20f;
         
         /// <summary>
         /// Tiling UV en X (largeur de la texture route).

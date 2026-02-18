@@ -134,7 +134,7 @@ MonoBehaviour:
     rotation: {x: -0.00000004134057, y: 0.82675105, z: -0.0000000013200079, w: -0.56256783}
   trackWidth: 20
   closedLoop: 1
-  spawnPosition: {x: -31, y: 1.45, z: -29.6}
+  spawnPosition: {x: -28.4, y: 0.470127, z: -4.1}
   spawnRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   checkpointData:
   - relativePosition: {x: 0, y: 0, z: -8.400002}
@@ -178,7 +178,7 @@ MonoBehaviour:
     index: 9
     isStartFinishLine: 0
   autoCheckpointCount: 10
-  checkpointWidth: 22
+  checkpointWidth: 25
   checkpointHeight: 5
   roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
   wallMaterial: {fileID: 2100000, guid: f96e581884ccaaf4baa9a237b21b7388, type: 2}

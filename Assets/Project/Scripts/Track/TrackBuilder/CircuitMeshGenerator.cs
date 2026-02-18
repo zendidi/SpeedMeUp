@@ -13,8 +13,8 @@ namespace ArcadeRacer.Utilities
     public static class CircuitMeshGenerator
     {
 
-        public const int DEFAULT_SEGMENTS = 25;
-        public const float DEFAULT_CURVE_QUALITY = 10f;
+        public const int DEFAULT_SEGMENTS = 50;
+        public const float DEFAULT_CURVE_QUALITY = 30f;
         /// <summary>
         /// Résultat de la génération de mesh.
         /// </summary>
