@@ -294,7 +294,7 @@ namespace ArcadeRacer.Core
                 return null; // Pas assez de données pour calculer une moyenne
             
             // Exclure le rank 1 (on compare avec les "autres" du top 10, pas le meilleur)
-            // Prendre jusqu'à 9 scores (ranks 2-10) pour calculer la moyenne
+            // Skip(1) exclut le rank 1, Take(9) récupère les ranks 2-10 (ou moins si pas assez de scores)
             List<HighscoreEntry> otherScores = scores.Skip(1).Take(9).ToList();
             
             if (otherScores.Count == 0)

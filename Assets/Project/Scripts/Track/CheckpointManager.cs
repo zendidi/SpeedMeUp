@@ -371,13 +371,14 @@ namespace ArcadeRacer. RaceSystem
             int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
             
             // Vérifier si on est au CP0 (start/finish line)
-            bool isAtStartLine = checkpoint.IsStartFinishLine && expectedCheckpoint == 0;
+            // Cette condition est vraie seulement quand le véhicule passe le CP0 qui est aussi la ligne start/finish
+            bool isAtStartFinishCP0 = checkpoint.IsStartFinishLine && expectedCheckpoint == 0;
 
             // Vérifier si c'est le bon checkpoint
             if (checkpoint.Index == expectedCheckpoint)
             {
                 // Si c'est le CP0 (start/finish) et premier passage: démarrer le timer
-                if (isAtStartLine && !_vehicleHasLeftStart[vehicle])
+                if (isAtStartFinishCP0 && !_vehicleHasLeftStart[vehicle])
                 {
                     LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
                     if (lapTimer != null)
@@ -391,7 +392,7 @@ namespace ArcadeRacer. RaceSystem
                     Debug.Log($"[CheckpointManager] {vehicle.name} started timer at CP0 ⏱️");
                 }
                 // Si c'est le CP0 et on a déjà quitté le départ: c'est un tour complété
-                else if (isAtStartLine && _vehicleHasLeftStart[vehicle])
+                else if (isAtStartFinishCP0 && _vehicleHasLeftStart[vehicle])
                 {
                     OnLapCompleted(vehicle);
                     Debug.Log($"[CheckpointManager] {vehicle.name} completed lap at CP0 🏁");
