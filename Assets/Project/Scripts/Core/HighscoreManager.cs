@@ -283,6 +283,8 @@ namespace ArcadeRacer.Core
         
         /// <summary>
         /// Récupère les temps de checkpoint moyens du top 10 (en excluant le rank 1)
+        /// Utilisé pour comparer la performance du joueur: si meilleur que rank 1 → vert,
+        /// si dans la moyenne → bleu, si au-delà de la moyenne → rouge
         /// </summary>
         public float[] GetAverageCheckpointTimes(string circuitName)
         {
@@ -291,7 +293,8 @@ namespace ArcadeRacer.Core
             if (scores.Count < 2)
                 return null; // Pas assez de données pour calculer une moyenne
             
-            // Exclure le rank 1, ne prendre que les 9 autres (ou moins si pas assez de scores)
+            // Exclure le rank 1 (on compare avec les "autres" du top 10, pas le meilleur)
+            // Prendre jusqu'à 9 scores (ranks 2-10) pour calculer la moyenne
             List<HighscoreEntry> otherScores = scores.Skip(1).Take(9).ToList();
             
             if (otherScores.Count == 0)
