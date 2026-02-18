@@ -137,7 +137,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &51188396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1289,7 +1289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &324036854
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2596,6 +2596,7 @@ GameObject:
   - component: {fileID: 618931070}
   - component: {fileID: 618931073}
   - component: {fileID: 618931074}
+  - component: {fileID: 618931075}
   m_Layer: 0
   m_Name: PlayerCar
   m_TagString: Untagged
@@ -3180,6 +3181,27 @@ MonoBehaviour:
   fullOffroadAccelerationMultiplier: 0.5
   fullOffroadDragIncrease: 2
   showDebug: 0
+--- !u!114 &618931075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 618931060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a0b37fa40468d947b6230a03728f413, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.RaceSystem.LapTimer
+  showDebugInfo: 1
+  _checkpointDisplay: {fileID: 1666378669}
+  _checkpointDisplayFINDER: {fileID: 1789107939}
+  _debugInfo:
+    isRacing: 0
+    currentLapTime: 
+    totalRaceTime: 
+    bestLapTime: 
+    completedLaps: 0
 --- !u!1 &626289288
 GameObject:
   m_ObjectHideFlags: 0
@@ -3267,7 +3289,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &709700059
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5679,7 +5701,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1512547417
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6080,16 +6102,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ae37d66308ba4f4f90c5518e541fab6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.UI.CheckpointTimingDisplay
-  checkpointTimeTexts:
-  - {fileID: 408984557}
+  checkpointTimeText: {fileID: 511769651}
   lapTimer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   betterThanRank1Color: {r: 0, g: 1, b: 0, a: 1}
   averageColor: {r: 0, g: 0, b: 1, a: 1}
   worseColor: {r: 1, g: 0, b: 0, a: 1}
   circuitName: 
-  autoUpdate: 1
-  updateInterval: 0.1
 --- !u!1 &1674142559
 GameObject:
   m_ObjectHideFlags: 0

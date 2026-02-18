@@ -403,6 +403,8 @@ namespace ArcadeRacer. RaceSystem
                     LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
                     if (lapTimer != null)
                     {
+                        Debug.Log($"[CheckpointManager] {vehicle.name} passed checkpoint {checkpoint.Index} ✅");
+
                         lapTimer.RecordCheckpoint();
                     }
                 }

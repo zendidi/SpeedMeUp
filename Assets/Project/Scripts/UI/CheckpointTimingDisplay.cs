@@ -145,12 +145,14 @@ namespace ArcadeRacer.UI
         /// </summary>
         public void OnCheckpointRecorded(int checkpointIndex, float checkpointTime)
         {
+            Debug.Log($"[CheckpointTimingDisplay] Checkpoint {checkpointIndex + 1} recorded with time: {checkpointTime}");
+
             if (checkpointTimeText == null)
             {
                 Debug.LogWarning("[CheckpointTimingDisplay] checkpointTimeText is null!");
                 return;
             }
-            
+            Debug.Log($"[CheckpointTimingDisplay] Checkpoint {checkpointIndex + 1}");
             string formattedTime = LapTimer.FormatTime(checkpointTime);
             
             // Déterminer la couleur basée sur la comparaison avec les highscores
