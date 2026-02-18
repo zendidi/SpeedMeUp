@@ -185,18 +185,19 @@ namespace ArcadeRacer.UI
             
             float rank1Time = _rank1CheckpointTimes[checkpointIndex];
             
-            // Si meilleur que le rank 1: BLEU
+            // Si strictement meilleur que le rank 1: BLEU
             if (checkpointTime < rank1Time)
             {
                 return betterThanRank1Color;
             }
             
             // Si on a les temps du rank 10, comparer
+            // Note: à partir d'ici, checkpointTime >= rank1Time
             if (_rank10CheckpointTimes != null && checkpointIndex < _rank10CheckpointTimes.Length)
             {
                 float rank10Time = _rank10CheckpointTimes[checkpointIndex];
                 
-                // Si entre rank 1 et rank 10: VERT
+                // Si entre rank 1 et rank 10 (inclus): VERT
                 if (checkpointTime <= rank10Time)
                 {
                     return betweenRanksColor;
