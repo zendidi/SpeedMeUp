@@ -211,7 +211,7 @@ namespace ArcadeRacer.RaceSystem
 
         private void Update()
         {
-            if (! showDebugInfo || ! Application.isPlaying) return;
+            if (!showDebugInfo || !Application.isPlaying) return;
 
             _debugInfo.isRacing = _isRacing;
             _debugInfo.currentLapTime = FormatTime(CurrentLapTime);

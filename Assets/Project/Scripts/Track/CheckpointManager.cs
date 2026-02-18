@@ -371,7 +371,7 @@ namespace ArcadeRacer. RaceSystem
             int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
             
             // Vérifier si on est au CP0 (start/finish line)
-            // Cette condition est vraie seulement quand le véhicule passe le CP0 qui est aussi la ligne start/finish
+            // Cette condition est vraie uniquement quand le véhicule passe le CP0 qui est aussi la ligne start/finish
             bool isAtStartFinishCP0 = checkpoint.IsStartFinishLine && expectedCheckpoint == 0;
 
             // Vérifier si c'est le bon checkpoint
