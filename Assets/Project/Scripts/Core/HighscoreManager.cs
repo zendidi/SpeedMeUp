@@ -314,7 +314,7 @@ namespace ArcadeRacer.Core
                 float sum = 0f;
                 int count = 0;
                 
-                // Moyenner le temps au checkpoint i pour toutes les entrées qui ont ce checkpoint
+                // Calculer la moyenne du temps au checkpoint i pour toutes les entrées qui ont ce checkpoint
                 foreach (var score in scores)
                 {
                     if (score.checkpointTimes != null && i < score.checkpointTimes.Length)

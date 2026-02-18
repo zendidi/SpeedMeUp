@@ -78,6 +78,16 @@ namespace ArcadeRacer.RaceSystem
 
         #endregion
 
+        #region Unity Lifecycle
+
+        private void Awake()
+        {
+            // Cacher la référence au CheckpointTimingDisplay dès le départ
+            _checkpointDisplay = FindFirstObjectByType<ArcadeRacer.UI.CheckpointTimingDisplay>();
+        }
+
+        #endregion
+
         #region Race Control
 
         /// <summary>
@@ -91,12 +101,6 @@ namespace ArcadeRacer.RaceSystem
             _allLapsCheckpointTimes.Clear();
             _isRacing = true;
             _timerStarted = false; // Le timer ne démarre pas encore
-            
-            // Trouver et cacher la référence au CheckpointTimingDisplay
-            if (_checkpointDisplay == null)
-            {
-                _checkpointDisplay = FindFirstObjectByType<ArcadeRacer.UI.CheckpointTimingDisplay>();
-            }
 
             Debug.Log($"[LapTimer] {gameObject.name} - Race ready! Timer will start on first checkpoint.");
         }
