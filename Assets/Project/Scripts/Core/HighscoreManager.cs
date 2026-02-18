@@ -282,52 +282,16 @@ namespace ArcadeRacer.Core
         }
         
         /// <summary>
-        /// Récupère les temps de checkpoint moyens du top 10
-        /// Pour chaque checkpoint (index i), calcule la moyenne des temps de toutes les entrées à cet index
-        /// Utilisé pour comparer la performance du joueur: si meilleur que rank 1 → vert,
-        /// si dans la moyenne → bleu, si au-delà de la moyenne → rouge
+        /// Récupère le dernier temps (rank 10) pour un circuit
         /// </summary>
-        public float[] GetAverageCheckpointTimes(string circuitName)
+        public HighscoreEntry? GetWorstTime(string circuitName)
         {
             List<HighscoreEntry> scores = GetHighscores(circuitName);
             
-            if (scores.Count == 0)
-                return null; // Pas de données pour calculer une moyenne
+            if (scores.Count > 0)
+                return scores[scores.Count - 1]; // Dernier = le plus lent
             
-            // Trouver le nombre maximum de checkpoints
-            int maxCheckpoints = 0;
-            foreach (var score in scores)
-            {
-                if (score.checkpointTimes != null && score.checkpointTimes.Length > maxCheckpoints)
-                {
-                    maxCheckpoints = score.checkpointTimes.Length;
-                }
-            }
-            
-            if (maxCheckpoints == 0)
-                return null;
-            
-            // Calculer les moyennes pour chaque checkpoint (index i) à travers toutes les entrées
-            float[] averages = new float[maxCheckpoints];
-            for (int i = 0; i < maxCheckpoints; i++)
-            {
-                float sum = 0f;
-                int count = 0;
-                
-                // Calculer la moyenne du temps au checkpoint i pour toutes les entrées qui ont ce checkpoint
-                foreach (var score in scores)
-                {
-                    if (score.checkpointTimes != null && i < score.checkpointTimes.Length)
-                    {
-                        sum += score.checkpointTimes[i];
-                        count++;
-                    }
-                }
-                
-                averages[i] = count > 0 ? sum / count : 0f;
-            }
-            
-            return averages;
+            return null;
         }
 
         #endregion

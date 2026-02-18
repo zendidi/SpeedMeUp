@@ -9,9 +9,9 @@ namespace ArcadeRacer.UI
 {
     /// <summary>
     /// Affiche le temps du dernier checkpoint passé avec code couleur selon la performance
-    /// Vert: Meilleur que le rank 1
-    /// Bleu: Dans la moyenne de toutes les entrées
-    /// Rouge: Au-delà de la moyenne
+    /// Bleu: Meilleur que le rank 1
+    /// Vert: Entre rank 1 et rank 10 (dernier)
+    /// Rouge: Au-delà du rank 10
     /// </summary>
     public class CheckpointTimingDisplay : MonoBehaviour
     {
@@ -21,16 +21,16 @@ namespace ArcadeRacer.UI
         
         [Header("=== COLORS ===")]
         [SerializeField] private Color defaultColor = Color.white;
-        [SerializeField] private Color betterThanRank1Color = Color.green; // Meilleur que rank 1
-        [SerializeField] private Color averageColor = Color.blue; // Dans la moyenne
-        [SerializeField] private Color worseColor = Color.red; // Au-delà de la moyenne
+        [SerializeField] private Color betterThanRank1Color = Color.blue; // Meilleur que rank 1
+        [SerializeField] private Color betweenRanksColor = Color.green; // Entre rank 1 et rank 10
+        [SerializeField] private Color worseColor = Color.red; // Au-delà du rank 10
         
         [Header("=== SETTINGS ===")]
         [SerializeField] private string circuitName = "";
         
         // Cache des temps de référence pour comparaison
         private float[] _rank1CheckpointTimes;
-        private float[] _averageCheckpointTimes;
+        private float[] _rank10CheckpointTimes;
         
         #region Unity Lifecycle
         
@@ -110,7 +110,7 @@ namespace ArcadeRacer.UI
                 return;
             }
             
-            // Charger le temps du rank 1
+            // Charger le temps du rank 1 (meilleur)
             var bestTime = HighscoreManager.Instance.GetBestTime(circuitName);
             if (bestTime.HasValue && bestTime.Value.checkpointTimes != null)
             {
@@ -123,15 +123,17 @@ namespace ArcadeRacer.UI
                 Debug.Log($"[CheckpointTimingDisplay] No rank 1 checkpoint times found for {circuitName}");
             }
             
-            // Charger les temps moyens des ranks 2-10
-            _averageCheckpointTimes = HighscoreManager.Instance.GetAverageCheckpointTimes(circuitName);
-            if (_averageCheckpointTimes != null)
+            // Charger le temps du rank 10 (dernier/pire)
+            var worstTime = HighscoreManager.Instance.GetWorstTime(circuitName);
+            if (worstTime.HasValue && worstTime.Value.checkpointTimes != null)
             {
-                Debug.Log($"[CheckpointTimingDisplay] Loaded average checkpoint times for {circuitName}: {_averageCheckpointTimes.Length} checkpoints");
+                _rank10CheckpointTimes = worstTime.Value.checkpointTimes;
+                Debug.Log($"[CheckpointTimingDisplay] Loaded rank 10 checkpoint times for {circuitName}: {_rank10CheckpointTimes.Length} checkpoints");
             }
             else
             {
-                Debug.Log($"[CheckpointTimingDisplay] No average checkpoint times found for {circuitName}");
+                _rank10CheckpointTimes = null;
+                Debug.Log($"[CheckpointTimingDisplay] No rank 10 checkpoint times found for {circuitName}");
             }
         }
         
@@ -169,9 +171,9 @@ namespace ArcadeRacer.UI
         
         /// <summary>
         /// Détermine la couleur du temps basée sur la comparaison avec les highscores
-        /// Vert: Meilleur que rank 1
-        /// Bleu: Dans la moyenne de toutes les entrées
-        /// Rouge: Au-delà de la moyenne
+        /// Bleu: Meilleur que rank 1
+        /// Vert: Entre rank 1 et rank 10 (dernier)
+        /// Rouge: Au-delà du rank 10
         /// </summary>
         private Color GetComparisonColor(int checkpointIndex, float checkpointTime)
         {
@@ -183,32 +185,31 @@ namespace ArcadeRacer.UI
             
             float rank1Time = _rank1CheckpointTimes[checkpointIndex];
             
-            // Si meilleur que le rank 1: VERT
+            // Si meilleur que le rank 1: BLEU
             if (checkpointTime < rank1Time)
             {
                 return betterThanRank1Color;
             }
             
-            // Si on a les temps moyens, comparer avec la moyenne
-            if (_averageCheckpointTimes != null && checkpointIndex < _averageCheckpointTimes.Length)
+            // Si on a les temps du rank 10, comparer
+            if (_rank10CheckpointTimes != null && checkpointIndex < _rank10CheckpointTimes.Length)
             {
-                float averageTime = _averageCheckpointTimes[checkpointIndex];
+                float rank10Time = _rank10CheckpointTimes[checkpointIndex];
                 
-                // Si dans la moyenne ou meilleur: BLEU
-                if (checkpointTime <= averageTime)
+                // Si entre rank 1 et rank 10: VERT
+                if (checkpointTime >= rank1Time && checkpointTime <= rank10Time)
                 {
-                    return averageColor;
+                    return betweenRanksColor;
                 }
-                // Si au-delà de la moyenne: ROUGE
-                else
+                // Si au-delà du rank 10: ROUGE
+                else if (checkpointTime > rank10Time)
                 {
                     return worseColor;
                 }
             }
             
-            // Si pas de moyenne disponible, comparer juste avec rank 1
-            // Si égal ou moins bon que rank 1 mais pas de moyenne: utiliser couleur moyenne
-            return averageColor;
+            // Par défaut, si pas de rank 10 disponible mais >= rank 1: couleur verte
+            return betweenRanksColor;
         }
         
         /// <summary>
