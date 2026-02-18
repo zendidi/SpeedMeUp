@@ -160,10 +160,9 @@ namespace ArcadeRacer.UI
             checkpointTimeText.color = timeColor;
             checkpointTimeText.enabled = true;
             
-            if (UnityEngine.Application.isEditor)
-            {
-                Debug.Log($"[CheckpointTimingDisplay] CP{checkpointIndex + 1}: {formattedTime} - Color: {timeColor}");
-            }
+#if UNITY_EDITOR
+            Debug.Log($"[CheckpointTimingDisplay] CP{checkpointIndex + 1}: {formattedTime} - Color: {timeColor}");
+#endif
         }
         
         /// <summary>

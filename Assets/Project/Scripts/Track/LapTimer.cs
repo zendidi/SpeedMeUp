@@ -20,6 +20,7 @@ namespace ArcadeRacer.RaceSystem
         private List<List<float>> _allLapsCheckpointTimes = new List<List<float>>(); // ← NOUVEAU: tous les tours
         private bool _isRacing = false;
         private bool _timerStarted = false; // ← NOUVEAU: indique si le chrono a été lancé
+        private ArcadeRacer.UI.CheckpointTimingDisplay _checkpointDisplay; // Cache de la référence au display
 
         #region Properties
 
@@ -90,6 +91,12 @@ namespace ArcadeRacer.RaceSystem
             _allLapsCheckpointTimes.Clear();
             _isRacing = true;
             _timerStarted = false; // Le timer ne démarre pas encore
+            
+            // Trouver et cacher la référence au CheckpointTimingDisplay
+            if (_checkpointDisplay == null)
+            {
+                _checkpointDisplay = FindFirstObjectByType<ArcadeRacer.UI.CheckpointTimingDisplay>();
+            }
 
             Debug.Log($"[LapTimer] {gameObject.name} - Race ready! Timer will start on first checkpoint.");
         }
@@ -121,12 +128,11 @@ namespace ArcadeRacer.RaceSystem
             float checkpointTime = Time.time - _currentLapStartTime;
             _currentLapCheckpointTimes.Add(checkpointTime);
             
-            // Notifier le CheckpointTimingDisplay pour afficher le temps
-            int checkpointIndex = _currentLapCheckpointTimes.Count - 1;
-            var checkpointDisplay = FindFirstObjectByType<ArcadeRacer.UI.CheckpointTimingDisplay>();
-            if (checkpointDisplay != null)
+            // Notifier le CheckpointTimingDisplay pour afficher le temps (utilise la référence cachée)
+            if (_checkpointDisplay != null)
             {
-                checkpointDisplay.OnCheckpointRecorded(checkpointIndex, checkpointTime);
+                int checkpointIndex = _currentLapCheckpointTimes.Count - 1;
+                _checkpointDisplay.OnCheckpointRecorded(checkpointIndex, checkpointTime);
             }
             
             if (showDebugInfo)
