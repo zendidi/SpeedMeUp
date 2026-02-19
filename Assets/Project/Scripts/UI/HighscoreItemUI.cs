@@ -38,10 +38,10 @@ namespace ArcadeRacer.UI
         /// </summary>
         /// <param name="entry">L'entrée de highscore à afficher</param>
         /// <param name="date">Date du record (optionnel, format DateTime)</param>
-        public void Setup(HighscoreEntry entry, System.DateTime? date = null)
+        public void Setup(HighscoreEntry entry)
         {
             // Formatage du texte: Rang | Nom | Temps | Date
-            string dateString = date.HasValue ? date.Value.ToString("dd/MM/yyyy") : System.DateTime.Now.ToString("dd/MM/yyyy");
+            string dateString = entry.FormattedDate;
             
             string displayText = $"#{entry.rank}  |  {entry.playerName}  |  {entry.FormattedTime}  |  {dateString}";
             

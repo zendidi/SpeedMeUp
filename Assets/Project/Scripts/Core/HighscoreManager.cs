@@ -28,8 +28,6 @@ namespace ArcadeRacer.Core
         {
             get
             {
-                if (!string.IsNullOrEmpty(dateString))
-                    return dateString;
                 return System.DateTime.Now.ToString("dd/MM/yyyy");
             }
         }
@@ -350,7 +348,7 @@ namespace ArcadeRacer.Core
             {
                 result += $"{HIGHSCORE_SEPARATOR}"; // Séparateur vide pour les checkpoints
             }
-            
+            Debug.Log($" DATE_PLS{HIGHSCORE_SEPARATOR}{entry.FormattedDate} and {entry.timeInSeconds}");
             // Ajouter la date
             result += $"{HIGHSCORE_SEPARATOR}{entry.FormattedDate}";
             
