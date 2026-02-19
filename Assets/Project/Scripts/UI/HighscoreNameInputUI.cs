@@ -68,12 +68,15 @@ namespace ArcadeRacer.UI
             InitializeComponents();
             SetupInputField();
             SetupButtons();
+            
+            // Cacher le modal au démarrage (Awake s'exécute une seule fois à l'initialisation)
+            Hide();
         }
 
         private void Start()
         {
-            // Cacher le modal au démarrage
-            Hide();
+            // Start peut être appelé plusieurs fois si l'objet est désactivé/réactivé
+            // Ne plus cacher le modal ici pour éviter de fermer un modal actif pendant la course
         }
 
         #endregion
