@@ -1,0 +1,160 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78611dd453cc5684395f0b325eb891bb, type: 3}
+  m_Name: ForthTry
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.CircuitData
+  circuitName: 'New Way '
+  thumbnail: {fileID: 21300000, guid: e27569b70323e0c42a529d4d78226b72, type: 3}
+  description: A challenging racing circuit.
+  splinePoints:
+  - position: {x: 85.59728, y: -0.51996195, z: -22.562016}
+    tangentIn: {x: 0, y: 0, z: -97.752045}
+    tangentOut: {x: 0, y: 0, z: 72.82828}
+    rotation: {x: -0.0000000060337624, y: 0.99839044, z: 0.000000038523467, w: 0.0567139}
+  - position: {x: 92.37587, y: -0.5199808, z: -213.65501}
+    tangentIn: {x: 0, y: 0, z: -59.738663}
+    tangentOut: {x: 0, y: 0, z: 52.692123}
+    rotation: {x: 6.121192e-10, y: 0.99993145, z: -0.00000004628225, w: 0.011710377}
+  - position: {x: 94.06947, y: -0.51999366, z: -362.4095}
+    tangentIn: {x: 0, y: 0, z: -34.359283}
+    tangentOut: {x: 0, y: 0, z: 18.242249}
+    rotation: {x: 3.4737183e-10, y: 0.9998576, z: -0.00000004622768, w: -0.01687623}
+  - position: {x: 90.76461, y: -0.5199978, z: -404.21307}
+    tangentIn: {x: 0, y: 0, z: -16.281403}
+    tangentOut: {x: 0, y: 0, z: 23.769196}
+    rotation: {x: 0.000000016440248, y: 0.9983563, z: -0.00000011489668, w: 0.057311974}
+  - position: {x: 117.881325, y: -0.5200296, z: -489.37408}
+    tangentIn: {x: 0, y: 0, z: -31.382019}
+    tangentOut: {x: 0, y: 0, z: 50.956146}
+    rotation: {x: 0.000000057931864, y: 0.9087489, z: -0.000000089677805, w: 0.41734323}
+  - position: {x: 350.6198, y: -0.52003044, z: -526.2133}
+    tangentIn: {x: 0, y: 0, z: -62.144226}
+    tangentOut: {x: 0, y: 0, z: 45.986633}
+    rotation: {x: -0.000000051831577, y: 0.8683342, z: 0.0000000759812, w: 0.49597958}
+  - position: {x: 429.94025, y: -0.519986, z: -627.9877}
+    tangentIn: {x: 0, y: 0, z: -34.225525}
+    tangentOut: {x: 0, y: 0, z: 24.450317}
+    rotation: {x: -0.000000044737273, y: 0.88610464, z: 0.00000011615383, w: 0.4634852}
+  - position: {x: 492.75073, y: -0.51997757, z: -647.7713}
+    tangentIn: {x: 0, y: 0, z: -18.09967}
+    tangentOut: {x: 0, y: 0, z: 32.63025}
+    rotation: {x: 0.000000008961802, y: 0.4798155, z: 0.000000020787411, w: 0.87736934}
+  - position: {x: 519.614, y: -0.52000386, z: -435.43484}
+    tangentIn: {x: 0, y: 0, z: -72.19916}
+    tangentOut: {x: 0, y: 0, z: 75.41522}
+    rotation: {x: 0.00000006205063, y: -0.006333897, z: 7.6980206e-10, w: 0.99998003}
+  - position: {x: 484.4446, y: -0.5200326, z: -204.57718}
+    tangentIn: {x: 0, y: 0, z: -52.331604}
+    tangentOut: {x: 0, y: 0, z: 46.486633}
+    rotation: {x: 0.000000034132693, y: -0.44662687, z: 0.00000001172648, w: 0.8947203}
+  - position: {x: 301.72922, y: -0.52002877, z: -228.46312}
+    tangentIn: {x: 0, y: 0, z: -57.344925}
+    tangentOut: {x: 0, y: 0, z: 64.464096}
+    rotation: {x: -0.00000007682516, y: -0.5688385, z: -0.000000045730307, w: 0.8224493}
+  - position: {x: 148.25563, y: -0.5199603, z: -53.331566}
+    tangentIn: {x: 0, y: 0, z: -64.35946}
+    tangentOut: {x: 0, y: 0, z: 61.441032}
+    rotation: {x: -0.000000006571497, y: -0.08120001, z: -9.510219e-10, w: 0.9966978}
+  - position: {x: 229.80849, y: -0.5200179, z: 142.59654}
+    tangentIn: {x: 0, y: 0, z: -69.95471}
+    tangentOut: {x: 0, y: 0, z: 68.71483}
+    rotation: {x: 0.000000027090088, y: 0.22831133, z: -0.000000006316536, w: 0.97358817}
+  - position: {x: 332.7848, y: -0.519985, z: 319.58633}
+    tangentIn: {x: 0, y: 0, z: -55.2977}
+    tangentOut: {x: 0, y: 0, z: 37.685028}
+    rotation: {x: 0.0000000061809526, y: 0.27604738, z: -0.0000000020867819, w: 0.9611441}
+  - position: {x: 385.835, y: -0.5200028, z: 398.5154}
+    tangentIn: {x: 0, y: 0, z: -25.476807}
+    tangentOut: {x: 0, y: 0, z: 70.26962}
+    rotation: {x: 0.000000100078566, y: -0.1984808, z: 0.00000005067894, w: 0.9801048}
+  - position: {x: -325.98657, y: -0.52003914, z: 527.8939}
+    tangentIn: {x: 0, y: 0, z: -147.60004}
+    tangentOut: {x: 0, y: 0, z: 66.93286}
+    rotation: {x: 0.0000001135501, y: 0.7128161, z: 0.000000108673035, w: -0.70135105}
+  - position: {x: -471.4254, y: -0.51993996, z: 496.55664}
+    tangentIn: {x: 0, y: 0, z: -44.583954}
+    tangentOut: {x: 0, y: 0, z: 55.397095}
+    rotation: {x: 0.00000004184514, y: 0.9333901, z: 0.00000015174479, w: -0.35886332}
+  - position: {x: -496.55554, y: -0.5199763, z: 268.24045}
+    tangentIn: {x: 0, y: 0, z: -77.7262}
+    tangentOut: {x: 0, y: 0, z: 81.700745}
+    rotation: {x: 0.0000000029533465, y: 0.99989843, z: -0.00000013841516, w: 0.014258298}
+  - position: {x: -454.4547, y: -0.5200754, z: 17.970253}
+    tangentIn: {x: 0, y: 0, z: -58.972057}
+    tangentOut: {x: 0, y: 0, z: 43.716927}
+    rotation: {x: 0.000110785295, y: 0.760431, z: -0.00012922265, w: 0.6494187}
+  - position: {x: -232.69925, y: -0.5200571, z: 335.48456}
+    tangentIn: {x: 0, y: 0, z: -100.21884}
+    tangentOut: {x: 0, y: 0, z: 81.08203}
+    rotation: {x: -0.000000020542647, y: 0.53517944, z: 0.000000009734275, w: 0.8447384}
+  - position: {x: 20.024384, y: -0.5200492, z: 315.62384}
+    tangentIn: {x: 0, y: 0, z: -72.3938}
+    tangentOut: {x: 0, y: 0, z: 84.39072}
+    rotation: {x: -0.000000045065104, y: 0.91269195, z: 0.00000007765576, w: 0.40864837}
+  trackWidth: 20
+  closedLoop: 1
+  spawnPosition: {x: 83, y: 0.5, z: -3}
+  spawnRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
+  checkpointData:
+  - relativePosition: {x: 0.402719, y: -1.45, z: -16.037983}
+    relativeRotation: {x: 0, y: -0.055038508, z: 0, w: 0.99848425}
+    index: 0
+    isStartFinishLine: 1
+  - relativePosition: {x: -29.860521, y: -1.45, z: 448.93622}
+    relativeRotation: {x: 0, y: -0.42019975, z: 0, w: 0.90743166}
+    index: 1
+    isStartFinishLine: 0
+  - relativePosition: {x: -421.4683, y: -1.45, z: 583.1066}
+    relativeRotation: {x: 0, y: -0.99135566, z: 0, w: 0.13120177}
+    index: 2
+    isStartFinishLine: 0
+  - relativePosition: {x: -354.96027, y: -1.45, z: 162.12222}
+    relativeRotation: {x: 0, y: -0.6183027, z: 0, w: -0.78594}
+    index: 3
+    isStartFinishLine: 0
+  - relativePosition: {x: -80.61509, y: -1.45, z: -68.58363}
+    relativeRotation: {x: 0, y: -0.97411317, z: 0, w: 0.22606094}
+    index: 4
+    isStartFinishLine: 0
+  - relativePosition: {x: -270.33646, y: -1.45, z: -460.015}
+    relativeRotation: {x: 0, y: -0.8416446, z: 0, w: -0.54003197}
+    index: 5
+    isStartFinishLine: 0
+  - relativePosition: {x: 190.88608, y: -1.45, z: -551.01904}
+    relativeRotation: {x: 0, y: -0.74490947, z: 0, w: -0.66716564}
+    index: 6
+    isStartFinishLine: 0
+  - relativePosition: {x: 584.1936, y: -1.45, z: -444.5406}
+    relativeRotation: {x: 0, y: 0.02985987, z: 0, w: 0.9995541}
+    index: 7
+    isStartFinishLine: 0
+  - relativePosition: {x: 496.42587, y: -1.45, z: -103.87715}
+    relativeRotation: {x: 0, y: -0.9661329, z: 0, w: 0.25804523}
+    index: 8
+    isStartFinishLine: 0
+  - relativePosition: {x: 177.6093, y: -1.45, z: -394.61688}
+    relativeRotation: {x: 0, y: -0.6702758, z: 0, w: 0.74211216}
+    index: 9
+    isStartFinishLine: 0
+  autoCheckpointCount: 10
+  checkpointWidth: 20
+  checkpointHeight: 5
+  roadMaterial: {fileID: 2100000, guid: 466e9cf81794c9f4c8920acf525eccde, type: 2}
+  wallMaterial: {fileID: 0}
+  wallHeight: 2
+  generateWalls: 0
+  targetLapCount: 3
+  goldTime: 60
+  silverTime: 75
+  bronzeTime: 90
+  minimapTexture: {fileID: 0}
+  _totalLength: 4619.5977

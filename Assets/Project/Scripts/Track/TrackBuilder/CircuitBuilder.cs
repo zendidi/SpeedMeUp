@@ -7,6 +7,7 @@ using Unity.Mathematics;
 
 namespace ArcadeRacer.Editor
 {
+#if UNITY_EDITOR
     /// <summary>
     /// Outil éditeur pour créer et exporter des circuits.
     /// Convertit une SplineContainer en CircuitData.asset.
@@ -795,4 +796,5 @@ namespace ArcadeRacer.Editor
         
         #endregion
     }
+#endif
 }

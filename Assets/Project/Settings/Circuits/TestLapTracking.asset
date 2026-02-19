@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78611dd453cc5684395f0b325eb891bb, type: 3}
   m_Name: TestLapTracking
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Settings.CircuitData
-  circuitName: TestLapTracking
+  circuitName: Fast One
   thumbnail: {fileID: 21300000, guid: 7fbbf82aaedbfab4ea23a63e4d48a3f6, type: 3}
   description: A challenging racing circuit.
   splinePoints:
@@ -60,7 +60,7 @@ MonoBehaviour:
     tangentIn: {x: 0, y: 0, z: -48.84197}
     tangentOut: {x: 0, y: 0, z: 50.607647}
     rotation: {x: -0.00000014383019, y: -0.5516941, z: -0.00000007316988, w: 0.8340466}
-  trackWidth: 15
+  trackWidth: 20
   closedLoop: 1
   spawnPosition: {x: 90, y: 0.2, z: -46}
   spawnRotation: {x: 0, y: 0.7009093, z: 0, w: -0.7132504}
@@ -106,7 +106,7 @@ MonoBehaviour:
     index: 9
     isStartFinishLine: 0
   autoCheckpointCount: 10
-  checkpointWidth: 15
+  checkpointWidth: 20
   checkpointHeight: 5
   roadMaterial: {fileID: 2100000, guid: 4851eb5bf1e9ebb4eac2ae4bcf2834d4, type: 2}
   wallMaterial: {fileID: 0}
