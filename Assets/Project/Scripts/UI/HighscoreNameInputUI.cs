@@ -68,12 +68,13 @@ namespace ArcadeRacer.UI
             InitializeComponents();
             SetupInputField();
             SetupButtons();
+            
+        
         }
 
         private void Start()
         {
-            // Cacher le modal au démarrage
-            Hide();
+            
         }
 
         #endregion

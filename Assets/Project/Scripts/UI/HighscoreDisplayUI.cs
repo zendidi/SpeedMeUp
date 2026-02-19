@@ -255,7 +255,7 @@ namespace ArcadeRacer.UI
                         out date);
                 }
                 
-                itemUI.Setup(entry, date);
+                itemUI.Setup(entry);
                 _activeItems.Add(itemUI);
             }
             else

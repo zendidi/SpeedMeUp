@@ -369,37 +369,48 @@ namespace ArcadeRacer. RaceSystem
             }
             
             int expectedCheckpoint = _vehicleNextCheckpoint[vehicle];
+            
+            // Vérifier si on est au CP0 (start/finish line)
+            // Cette condition est vraie uniquement quand le véhicule passe le CP0 qui est aussi la ligne start/finish
+            bool isAtStartFinishCP0 = checkpoint.IsStartFinishLine && expectedCheckpoint == 0;
 
             // Vérifier si c'est le bon checkpoint
             if (checkpoint.Index == expectedCheckpoint)
             {
-                // Checkpoint valide ! 
-                _vehicleNextCheckpoint[vehicle] = (expectedCheckpoint + 1) % _checkpoints.Count;
-                
-                // Marquer que le véhicule a quitté la ligne de départ après avoir passé le premier checkpoint
-                if (expectedCheckpoint > 0)
-                {
-                    _vehicleHasLeftStart[vehicle] = true;
-                }
-                
-                // Enregistrer le temps intermédiaire (sauf pour le passage de la ligne d'arrivée qui complète le tour)
-                // On skip si c'est la ligne start/finish ET que c'est le checkpoint 0 (= fin de tour, pas intermédiaire)
-                if (!checkpoint.IsStartFinishLine || expectedCheckpoint != 0)
+                // Si c'est le CP0 (start/finish) et premier passage: démarrer le timer
+                if (isAtStartFinishCP0 && !_vehicleHasLeftStart[vehicle])
                 {
                     LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
                     if (lapTimer != null)
                     {
+                        lapTimer.StartTimer(); // Démarrer le chronomètre
+                    }
+                    
+                    // Marquer que le véhicule a quitté la ligne de départ
+                    _vehicleHasLeftStart[vehicle] = true;
+                    
+                    Debug.Log($"[CheckpointManager] {vehicle.name} started timer at CP0 ⏱️");
+                }
+                // Si c'est le CP0 et on a déjà quitté le départ: c'est un tour complété
+                else if (isAtStartFinishCP0 && _vehicleHasLeftStart[vehicle])
+                {
+                    OnLapCompleted(vehicle);
+                    Debug.Log($"[CheckpointManager] {vehicle.name} completed lap at CP0 🏁");
+                }
+                // Pour tous les autres checkpoints: enregistrer le temps intermédiaire
+                else
+                {
+                    LapTimer lapTimer = vehicle.GetComponent<LapTimer>();
+                    if (lapTimer != null)
+                    {
+                        Debug.Log($"[CheckpointManager] {vehicle.name} passed checkpoint {checkpoint.Index} ✅");
+
                         lapTimer.RecordCheckpoint();
                     }
                 }
-
-                // Si c'est la ligne d'arrivée ET que le véhicule a fait le tour complet, notifier le RaceManager
-                if (checkpoint.IsStartFinishLine && expectedCheckpoint == 0 && _vehicleHasLeftStart[vehicle])
-                {
-                    OnLapCompleted(vehicle);
-                    // Reset le flag pour le prochain tour
-                    _vehicleHasLeftStart[vehicle] = false;
-                }
+                
+                // Avancer au prochain checkpoint
+                _vehicleNextCheckpoint[vehicle] = (expectedCheckpoint + 1) % _checkpoints.Count;
 
                 Debug.Log($"[CheckpointManager] {vehicle.name} passed checkpoint {checkpoint.Index} ✅");
             }

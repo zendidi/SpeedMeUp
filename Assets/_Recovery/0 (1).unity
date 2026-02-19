@@ -6106,7 +6106,7 @@ MonoBehaviour:
   lapTimer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   betterThanRank1Color: {r: 0, g: 1, b: 0, a: 1}
-  averageColor: {r: 0, g: 0, b: 1, a: 1}
+  betweenRanksColor: {r: 0, g: 1, b: 0, a: 1}
   worseColor: {r: 1, g: 0, b: 0, a: 1}
   circuitName: 
 --- !u!1 &1674142559

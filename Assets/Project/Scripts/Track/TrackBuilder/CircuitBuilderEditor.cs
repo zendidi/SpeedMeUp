@@ -8,6 +8,7 @@ namespace ArcadeRacer.Editor
     /// Inspector personnalisé pour CircuitBuilder.
     /// Gère la création de nouveaux CircuitData et l'édition.
     /// </summary>
+    #if UNITY_EDITOR
     [CustomEditor(typeof(CircuitBuilder))]
     public class CircuitBuilderEditor : UnityEditor.Editor
     {
@@ -200,4 +201,5 @@ namespace ArcadeRacer.Editor
             serializedObject.ApplyModifiedProperties();
         }
     }
+#endif
 }
