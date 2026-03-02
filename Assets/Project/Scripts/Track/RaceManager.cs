@@ -51,7 +51,7 @@ namespace ArcadeRacer.RaceSystem
         private ArcadeRacer.UI.HighscoreNameInputUI _highscoreNameInputUI;
 
         // Qualifying laps accumulated during the race, shown at race end
-        private List<(float lapTime, float[] checkpointTimes)> _pendingHighscoreLaps = new List<(float, float[])>();
+        private List<(float lapTime, float[] checkpointTimes, string timeOfDay)> _pendingHighscoreLaps = new List<(float, float[], string)>();
 
         private RaceState _currentState = RaceState.NotStarted;
         private float _countdownTimer;
@@ -542,7 +542,7 @@ namespace ArcadeRacer.RaceSystem
                 }
 
                 // Accumuler le tour qualifiant pour la fin de course
-                _pendingHighscoreLaps.Add((lapTime, checkpointTimes));
+                _pendingHighscoreLaps.Add((lapTime, checkpointTimes, System.DateTime.Now.ToString("HH:mm:ss")));
                 _pendingHighscoreCircuitName = circuitName;
             }
         }
@@ -574,7 +574,7 @@ namespace ArcadeRacer.RaceSystem
         {
             foreach (var lap in _pendingHighscoreLaps)
             {
-                SaveLapTimeToHighscores(playerName, lap.lapTime, _pendingHighscoreCircuitName, lap.checkpointTimes);
+                SaveLapTimeToHighscores(playerName, lap.lapTime, _pendingHighscoreCircuitName, lap.checkpointTimes, lap.timeOfDay);
             }
             _pendingHighscoreLaps.Clear();
         }
@@ -593,7 +593,7 @@ namespace ArcadeRacer.RaceSystem
         /// <summary>
         /// Sauvegarde un temps au tour dans le HighscoreManager
         /// </summary>
-        private void SaveLapTimeToHighscores(string playerName, float lapTime, string circuitName, float[] checkpointTimes)
+        private void SaveLapTimeToHighscores(string playerName, float lapTime, string circuitName, float[] checkpointTimes, string timeOfDay = null)
         {
             Debug.Log($"[RaceManager] SaveLapTimeToHighscores appelé: {playerName}, {LapTimer.FormatTime(lapTime)}, {circuitName}, checkpoints: {(checkpointTimes != null ? checkpointTimes.Length : 0)}");
             
@@ -602,7 +602,8 @@ namespace ArcadeRacer.RaceSystem
                 circuitName,
                 lapTime,
                 playerName,
-                checkpointTimes
+                checkpointTimes,
+                timeOfDay
             );
 
             if (isTopScore)
