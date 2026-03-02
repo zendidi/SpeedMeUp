@@ -72,6 +72,7 @@ namespace ArcadeRacer.Physics
         public float UndersteerIntensity => slipCalculator.UndersteerIntensity;
         public float FrontSlipAngle      => slipCalculator.FrontSlipAngle;
         public float RearSlipAngle       => slipCalculator.RearSlipAngle;
+        public float SpinOutIntensity    => slipCalculator.SpinOutIntensity;
 
         #endregion
 
@@ -205,7 +206,13 @@ namespace ArcadeRacer.Physics
                 velocity, vehicleTransform, steeringInput, _angularVelocity, deltaTime,
                 out float angularDelta);
 
-            _angularVelocity = Mathf.Clamp(_angularVelocity + angularDelta, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
+            // En tête-à-queue, le plafond angulaire est relevé progressivement
+            // jusqu'à spinOutMaxAngularVelocity pour permettre au spin de s'emballer.
+            float maxOmega = Mathf.Lerp(MAX_ANGULAR_VELOCITY,
+                slipCalculator.spinOutMaxAngularVelocity,
+                slipCalculator.SpinOutIntensity);
+
+            _angularVelocity = Mathf.Clamp(_angularVelocity + angularDelta, -maxOmega, maxOmega);
             return velocityCorrection;
         }
 

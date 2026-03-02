@@ -32,6 +32,14 @@ namespace ArcadeRacer.Vehicle
         [Header("=== ADVANCED PHYSICS ===")]
         [SerializeField] private VehiclePhysicsCore physicsCore = new VehiclePhysicsCore(); // ← NOUVEAU
 
+        [Header("=== WHEEL DEBUG REFS (optionnel) ===")]
+        [Tooltip("Roues avant (FL, FR) pour le debug visuel du sous-virage. " +
+                 "Si non renseigné, la position de l'essieu est calculée depuis le wheelbase.")]
+        [SerializeField] private Transform[] _frontWheelDebug;
+        [Tooltip("Roues arrière (RL, RR) pour le debug visuel du survirage. " +
+                 "Si non renseigné, la position de l'essieu est calculée depuis le wheelbase.")]
+        [SerializeField] private Transform[] _rearWheelDebug;
+
         [Header("=== DEBUG ===")]
         [SerializeField] private bool _showDebug = false;
 
@@ -63,6 +71,7 @@ namespace ArcadeRacer.Vehicle
         public float baseSteeringSpeed => stats.steeringSpeed;
         public float OversteerIntensity  => physicsCore.OversteerIntensity;
         public float UndersteerIntensity => physicsCore.UndersteerIntensity;
+        public float SpinOutIntensity    => physicsCore.SpinOutIntensity;
 
         #endregion
 
@@ -330,7 +339,13 @@ namespace ArcadeRacer.Vehicle
             if (_showDebug && Time.frameCount % 30 == 0
                 && (physicsCore.OversteerIntensity > 0.1f || physicsCore.UndersteerIntensity > 0.1f))
             {
-                Debug.Log($"[Slip] Oversteer: {physicsCore.OversteerIntensity:F2} | Understeer: {physicsCore.UndersteerIntensity:F2} | Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
+                Debug.Log($"[Slip] Oversteer: {physicsCore.OversteerIntensity:F2} | Understeer: {physicsCore.UndersteerIntensity:F2} | SpinOut: {physicsCore.SpinOutIntensity:F2} | Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
+            }
+
+            // Debug visuel sur les roues (visible en mode Play dans la Scene view)
+            if (_showDebug)
+            {
+                DrawWheelSlipDebug();
             }
         }
 
@@ -563,10 +578,75 @@ namespace ArcadeRacer.Vehicle
 
         #region Debug
 
+        /// <summary>
+        /// Dessine les rayons de glissement sur les roues (Debug.DrawRay, visible en Play).
+        /// Essieux arrière  → magenta  (survirage / tête-à-queue)
+        /// Essieux avant    → jaune    (sous-virage / déport extérieur)
+        /// </summary>
+        private void DrawWheelSlipDebug()
+        {
+            float halfWB = physicsCore.slipCalculator.wheelbase * 0.5f;
+
+            // Positions de fallback calculées depuis l'empattement
+            Vector3 frontAxlePos = _transform.position + _transform.forward * halfWB;
+            Vector3 rearAxlePos  = _transform.position - _transform.forward * halfWB;
+
+            // ESSIEUX ARRIÈRE — survirage (magenta, intensifié en rouge lors du tête-à-queue)
+            if (physicsCore.OversteerIntensity > 0.05f)
+            {
+                Color oversteerColor = Color.Lerp(Color.magenta, Color.red, physicsCore.SpinOutIntensity);
+                Vector3 slipDir = _transform.right * (physicsCore.RearSlipAngle * 3f);
+
+                if (_rearWheelDebug != null && _rearWheelDebug.Length > 0)
+                {
+                    foreach (Transform w in _rearWheelDebug)
+                    {
+                        if (w != null)
+                            Debug.DrawRay(w.position, slipDir, oversteerColor);
+                    }
+                }
+                else
+                {
+                    // Fallback : deux points symétriques sur l'essieu arrière
+                    Debug.DrawRay(rearAxlePos + _transform.right * 0.7f, slipDir, oversteerColor);
+                    Debug.DrawRay(rearAxlePos - _transform.right * 0.7f, slipDir, oversteerColor);
+                }
+            }
+
+            // ESSIEUX AVANT — sous-virage (jaune, intensifié en orange lors du déport)
+            if (physicsCore.UndersteerIntensity > 0.05f)
+            {
+                float pushProgress = Mathf.Clamp01(
+                    (physicsCore.UndersteerIntensity - physicsCore.slipCalculator.understeerPushThreshold)
+                    / (1f - physicsCore.slipCalculator.understeerPushThreshold + 0.001f));
+                Color understeerColor = Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), pushProgress);
+                Vector3 slipDir = _transform.right * (-physicsCore.FrontSlipAngle * 3f);
+
+                if (_frontWheelDebug != null && _frontWheelDebug.Length > 0)
+                {
+                    foreach (Transform w in _frontWheelDebug)
+                    {
+                        if (w != null)
+                            Debug.DrawRay(w.position, slipDir, understeerColor);
+                    }
+                }
+                else
+                {
+                    // Fallback : deux points symétriques sur l'essieu avant
+                    Debug.DrawRay(frontAxlePos + _transform.right * 0.7f, slipDir, understeerColor);
+                    Debug.DrawRay(frontAxlePos - _transform.right * 0.7f, slipDir, understeerColor);
+                }
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
             if (!_showDebug || !Application.isPlaying) return;
+
+            float halfWB = physicsCore.slipCalculator.wheelbase * 0.5f;
+            Vector3 frontAxlePos = transform.position + transform.forward * halfWB;
+            Vector3 rearAxlePos  = transform.position - transform.forward * halfWB;
 
             Gizmos.color = Color.blue;
             Gizmos.DrawRay(transform.position, _velocity);
@@ -577,22 +657,65 @@ namespace ArcadeRacer.Vehicle
                 Gizmos.DrawRay(transform.position, _groundNormal * 2f);
             }
 
-            // Visualiser transfert de charge
+            // Visualiser transfert de charge sur les essieux
             Gizmos.color = Color.red;
-            Gizmos.DrawSphere(transform.position + transform.forward * 1.2f, 0.1f * physicsCore.FrontAxleLoad);
+            Gizmos.DrawSphere(frontAxlePos, 0.12f * physicsCore.FrontAxleLoad);
             Gizmos.color = Color.cyan;
-            Gizmos.DrawSphere(transform.position - transform.forward * 1.2f, 0.1f * physicsCore.RearAxleLoad);
+            Gizmos.DrawSphere(rearAxlePos, 0.12f * physicsCore.RearAxleLoad);
 
-            // Visualiser survirage (magenta) et sous-virage (jaune)
+            // SURVIRAGE sur les roues arrière (magenta → rouge en tête-à-queue)
             if (physicsCore.OversteerIntensity > 0.05f)
             {
-                Gizmos.color = Color.magenta;
-                Gizmos.DrawRay(transform.position, transform.right * physicsCore.RearSlipAngle * 5f);
+                Color oversteerColor = Color.Lerp(Color.magenta, Color.red, physicsCore.SpinOutIntensity);
+                Gizmos.color = oversteerColor;
+                Vector3 slipDir = transform.right * (physicsCore.RearSlipAngle * 3f);
+
+                if (_rearWheelDebug != null && _rearWheelDebug.Length > 0)
+                {
+                    foreach (Transform w in _rearWheelDebug)
+                    {
+                        if (w != null)
+                        {
+                            Gizmos.DrawRay(w.position, slipDir);
+                            Gizmos.DrawWireSphere(w.position, 0.1f + 0.15f * physicsCore.OversteerIntensity);
+                        }
+                    }
+                }
+                else
+                {
+                    Gizmos.DrawRay(rearAxlePos + transform.right * 0.7f, slipDir);
+                    Gizmos.DrawRay(rearAxlePos - transform.right * 0.7f, slipDir);
+                    Gizmos.DrawWireSphere(rearAxlePos, 0.1f + 0.2f * physicsCore.OversteerIntensity);
+                }
             }
+
+            // SOUS-VIRAGE sur les roues avant (jaune → orange en déport)
             if (physicsCore.UndersteerIntensity > 0.05f)
             {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawRay(transform.position, transform.forward * physicsCore.UndersteerIntensity * 3f);
+                float pushProgress = Mathf.Clamp01(
+                    (physicsCore.UndersteerIntensity - physicsCore.slipCalculator.understeerPushThreshold)
+                    / (1f - physicsCore.slipCalculator.understeerPushThreshold + 0.001f));
+                Color understeerColor = Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), pushProgress);
+                Gizmos.color = understeerColor;
+                Vector3 slipDir = transform.right * (-physicsCore.FrontSlipAngle * 3f);
+
+                if (_frontWheelDebug != null && _frontWheelDebug.Length > 0)
+                {
+                    foreach (Transform w in _frontWheelDebug)
+                    {
+                        if (w != null)
+                        {
+                            Gizmos.DrawRay(w.position, slipDir);
+                            Gizmos.DrawWireSphere(w.position, 0.1f + 0.15f * physicsCore.UndersteerIntensity);
+                        }
+                    }
+                }
+                else
+                {
+                    Gizmos.DrawRay(frontAxlePos + transform.right * 0.7f, slipDir);
+                    Gizmos.DrawRay(frontAxlePos - transform.right * 0.7f, slipDir);
+                    Gizmos.DrawWireSphere(frontAxlePos, 0.1f + 0.2f * physicsCore.UndersteerIntensity);
+                }
             }
         }
 #endif

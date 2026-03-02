@@ -56,6 +56,32 @@ namespace ArcadeRacer.Physics
         [Range(0f, 10f)]
         public float understeerYawDampFactor = 2f;
 
+        [Header("=== TÊTE-À-QUEUE (survirage extrême) ===")]
+        [Tooltip("Intensité de survirage à partir de laquelle le tête-à-queue se déclenche (0-1). " +
+                 "En dessous : survirage normal contrôlable. Au-dessus : la voiture commence à pivoter.")]
+        [Range(0f, 1f)]
+        public float spinOutThreshold = 0.65f;
+
+        [Tooltip("Multiplicateur de couple angulaire supplémentaire pendant le tête-à-queue. " +
+                 "Plus cette valeur est haute, plus la rotation s'emballe vite.")]
+        [Range(0f, 10f)]
+        public float spinOutAngularMultiplier = 4f;
+
+        [Tooltip("Vitesse angulaire maximale (rad/s) atteinte en tête-à-queue total. " +
+                 "5 rad/s = 286°/s ≈ 1 tour en 1.3s ; 15 rad/s ≈ 1 tour en 0.4s.")]
+        [Range(5f, 30f)]
+        public float spinOutMaxAngularVelocity = 12f;
+
+        [Header("=== DÉPORT EXTÉRIEUR (sous-virage extrême) ===")]
+        [Tooltip("Intensité de sous-virage à partir de laquelle la voiture est déportée vers l'extérieur du virage (0-1).")]
+        [Range(0f, 1f)]
+        public float understeerPushThreshold = 0.5f;
+
+        [Tooltip("Force de déport vers l'extérieur du virage en sous-virage extrême (m/s de delta par seconde). " +
+                 "Valeurs typiques : 2-8.")]
+        [Range(0f, 15f)]
+        public float understeerOutwardPushStrength = 4f;
+
         // Epsilon pour éviter la division par zéro dans les intensités normalisées
         private const float THRESHOLD_EPSILON = 0.001f;
 
@@ -64,6 +90,7 @@ namespace ArcadeRacer.Physics
         private float _rearSlipAngle;
         private float _oversteerIntensity;
         private float _understeerIntensity;
+        private float _spinOutIntensity;
 
         #region Properties
 
@@ -78,6 +105,12 @@ namespace ArcadeRacer.Physics
 
         /// <summary>Intensité du sous-virage normalisée (0 = aucun, 1 = maximum)</summary>
         public float UndersteerIntensity => _understeerIntensity;
+
+        /// <summary>
+        /// Intensité du tête-à-queue normalisée (0 = aucun, 1 = spin total).
+        /// Non-nul uniquement quand l'oversteer dépasse spinOutThreshold.
+        /// </summary>
+        public float SpinOutIntensity => _spinOutIntensity;
 
         #endregion
 
@@ -110,6 +143,7 @@ namespace ArcadeRacer.Physics
                 _rearSlipAngle = 0f;
                 _oversteerIntensity = 0f;
                 _understeerIntensity = 0f;
+                _spinOutIntensity = 0f;
                 return Vector3.zero;
             }
 
@@ -123,6 +157,7 @@ namespace ArcadeRacer.Physics
                 _rearSlipAngle = 0f;
                 _oversteerIntensity = 0f;
                 _understeerIntensity = 0f;
+                _spinOutIntensity = 0f;
                 return Vector3.zero;
             }
 
@@ -148,6 +183,10 @@ namespace ArcadeRacer.Physics
             _understeerIntensity = Mathf.Clamp01(
                 (frontSlipAbs - rearSlipAbs - understeerThreshold) / (understeerThreshold + THRESHOLD_EPSILON));
 
+            // Tête-à-queue : intensité du survirage au-delà du seuil critique
+            _spinOutIntensity = Mathf.Clamp01(
+                (_oversteerIntensity - spinOutThreshold) / (1f - spinOutThreshold + THRESHOLD_EPSILON));
+
             Vector3 velocityCorrection = Vector3.zero;
             float speed = Mathf.Abs(forwardSpeed);
 
@@ -160,8 +199,19 @@ namespace ArcadeRacer.Physics
                 float slideForce = _rearSlipAngle * _oversteerIntensity * oversteerStrength * speed;
                 velocityCorrection += vehicleTransform.right * (slideForce * deltaTime);
 
-                // Delta angulaire : augmente la rotation dans le sens du virage
+                // Delta angulaire de base : augmente la rotation dans le sens du virage
                 angularVelocityDelta += -_rearSlipAngle * _oversteerIntensity * oversteerStrength * oversteerYawFactor * deltaTime;
+
+                // TÊTE-À-QUEUE : survirage extrême → couple auto-entretenu
+                // L'arrière a lâché → la rotation s'emballe car il n'y a plus de force
+                // de rappel depuis l'essieu arrière.
+                if (_spinOutIntensity > 0f)
+                {
+                    angularVelocityDelta += -Mathf.Sign(_rearSlipAngle)
+                        * _spinOutIntensity
+                        * spinOutAngularMultiplier
+                        * deltaTime;
+                }
             }
 
             // SOUS-VIRAGE ────────────────────────────────────────────────────────────
@@ -174,6 +224,20 @@ namespace ArcadeRacer.Physics
                     * understeerStrength
                     * Mathf.Abs(angularVelocity)
                     * understeerYawDampFactor * deltaTime;
+
+                // DÉPORT EXTÉRIEUR : sous-virage extrême → la voiture est poussée
+                // vers l'extérieur du virage (comme quand on prend un virage trop vite).
+                if (_understeerIntensity > understeerPushThreshold && Mathf.Abs(steeringInput) > 0.05f)
+                {
+                    float pushIntensity = (_understeerIntensity - understeerPushThreshold)
+                        / (1f - understeerPushThreshold + THRESHOLD_EPSILON);
+
+                    // Direction extérieure = opposée à la direction de braquage
+                    // Si steering droite (+1) → extérieur = gauche (-transform.right)
+                    float outwardForce = -steeringInput * pushIntensity
+                        * understeerOutwardPushStrength * speed * deltaTime;
+                    velocityCorrection += vehicleTransform.right * outwardForce;
+                }
             }
 
             return velocityCorrection;
