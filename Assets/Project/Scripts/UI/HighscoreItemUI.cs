@@ -40,10 +40,10 @@ namespace ArcadeRacer.UI
         /// <param name="date">Date du record (optionnel, format DateTime)</param>
         public void Setup(HighscoreEntry entry)
         {
-            // Formatage du texte: Rang | Nom | Temps | Date
+            // Formatage du texte: Rang | Nom | Temps | Date | Heure
             string dateString = entry.FormattedDate;
             
-            string displayText = $"#{entry.rank}  |  {entry.playerName}  |  {entry.FormattedTime}  |  {dateString}";
+            string displayText = $"#{entry.rank}  |  {entry.playerName}  |  {entry.FormattedTime}  |  {dateString}  |  {entry.FormattedTimeOfDay}";
             
             if (infoText != null)
             {

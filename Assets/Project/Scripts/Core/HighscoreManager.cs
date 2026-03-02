@@ -15,6 +15,7 @@ namespace ArcadeRacer.Core
         public int rank;
         public float[] checkpointTimes; // ← NOUVEAU: temps intermédiaires aux checkpoints
         public string dateString; // ← Format: dd/MM/yyyy
+        public string timeOfDayString; // ← Format: HH:mm:ss (heure locale au moment du tour)
 
         /// <summary>
         /// Formatte le temps en MM:SS:mmm
@@ -28,17 +29,29 @@ namespace ArcadeRacer.Core
         {
             get
             {
-                return System.DateTime.Now.ToString("dd/MM/yyyy");
+                return !string.IsNullOrEmpty(dateString) ? dateString : System.DateTime.Now.ToString("dd/MM/yyyy");
             }
         }
 
-        public HighscoreEntry(float time, string name, int position, float[] cpTimes = null, string date = null)
+        /// <summary>
+        /// Retourne l'heure au format HH:mm:ss
+        /// </summary>
+        public string FormattedTimeOfDay
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(timeOfDayString) ? timeOfDayString : "--:--:--";
+            }
+        }
+
+        public HighscoreEntry(float time, string name, int position, float[] cpTimes = null, string date = null, string timeOfDay = null)
         {
             timeInSeconds = time;
             playerName = name;
             rank = position;
             checkpointTimes = cpTimes ?? new float[0];
             dateString = date ?? System.DateTime.Now.ToString("dd/MM/yyyy");
+            timeOfDayString = timeOfDay ?? System.DateTime.Now.ToString("HH:mm:ss");
         }
 
         /// <summary>
@@ -134,7 +147,7 @@ namespace ArcadeRacer.Core
         /// Tente d'ajouter un score au classement.
         /// Retourne true si le score fait partie du top 10.
         /// </summary>
-        public bool TryAddScore(string circuitName, float timeInSeconds, string playerName, float[] checkpointTimes = null)
+        public bool TryAddScore(string circuitName, float timeInSeconds, string playerName, float[] checkpointTimes = null, string timeOfDay = null)
         {
             if (string.IsNullOrEmpty(circuitName) || string.IsNullOrEmpty(playerName))
             {
@@ -146,7 +159,7 @@ namespace ArcadeRacer.Core
             List<HighscoreEntry> scores = GetHighscores(circuitName);
 
             // Créer la nouvelle entrée
-            HighscoreEntry newEntry = new HighscoreEntry(timeInSeconds, playerName, 0, checkpointTimes);
+            HighscoreEntry newEntry = new HighscoreEntry(timeInSeconds, playerName, 0, checkpointTimes, null, timeOfDay);
 
             // Ajouter et trier
             scores.Add(newEntry);
@@ -332,7 +345,7 @@ namespace ArcadeRacer.Core
 
         /// <summary>
         /// Formatte une entrée de highscore en string
-        /// Format: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy"
+        /// Format: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy|HH:mm:ss"
         /// </summary>
         private string FormatHighscoreData(HighscoreEntry entry)
         {
@@ -348,21 +361,22 @@ namespace ArcadeRacer.Core
             {
                 result += $"{HIGHSCORE_SEPARATOR}"; // Séparateur vide pour les checkpoints
             }
-            Debug.Log($" DATE_PLS{HIGHSCORE_SEPARATOR}{entry.FormattedDate} and {entry.timeInSeconds}");
             // Ajouter la date
-            result += $"{HIGHSCORE_SEPARATOR}{entry.FormattedDate}";
+            result += $"{HIGHSCORE_SEPARATOR}{entry.dateString}";
+            // Ajouter l'heure locale
+            result += $"{HIGHSCORE_SEPARATOR}{entry.timeOfDayString}";
             
             return result;
         }
 
         /// <summary>
         /// Parse une string de highscore
-        /// Format attendu: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy"
+        /// Format attendu: "MM:SS:mmm|PlayerName|CP1,CP2,CP3...|dd/MM/yyyy|HH:mm:ss"
         /// </summary>
         private HighscoreEntry ParseHighscoreData(string data, int rank)
         {
             if (string.IsNullOrEmpty(data))
-                return new HighscoreEntry(0f, "", rank, null, null);
+                return new HighscoreEntry(0f, "", rank, null, null, null);
 
             string[] parts = data.Split(new[] { HIGHSCORE_SEPARATOR }, System.StringSplitOptions.None);
             
@@ -390,10 +404,17 @@ namespace ArcadeRacer.Core
                     dateString = parts[3];
                 }
                 
-                return new HighscoreEntry(time, playerName, rank, checkpointTimes, dateString);
+                // Parse time of day if present
+                string timeOfDay = null;
+                if (parts.Length >= 5 && !string.IsNullOrEmpty(parts[4]))
+                {
+                    timeOfDay = parts[4];
+                }
+                
+                return new HighscoreEntry(time, playerName, rank, checkpointTimes, dateString, timeOfDay);
             }
 
-            return new HighscoreEntry(0f, "", rank, null, null);
+            return new HighscoreEntry(0f, "", rank, null, null, null);
         }
 
         #endregion
