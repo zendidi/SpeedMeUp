@@ -50,6 +50,9 @@ namespace ArcadeRacer.RaceSystem
         private float[] _pendingCheckpointTimes; // NOUVEAU: sauvegarder les checkpoint times immédiatement
         private ArcadeRacer.UI.HighscoreNameInputUI _highscoreNameInputUI;
 
+        // Qualifying laps accumulated during the race, shown at race end
+        private List<(float lapTime, float[] checkpointTimes)> _pendingHighscoreLaps = new List<(float, float[])>();
+
         private RaceState _currentState = RaceState.NotStarted;
         private float _countdownTimer;
 
@@ -271,6 +274,25 @@ namespace ArcadeRacer.RaceSystem
 
             Debug.Log("🏆 [RaceManager] Race finished!");
             DisplayFinalResults();
+
+            // Afficher le modal de saisie du nom une seule fois si des tours qualifiants existent
+            if (_pendingHighscoreLaps.Count > 0)
+            {
+                if (_highscoreNameInputUI != null)
+                {
+                    // Afficher avec le meilleur temps qualifiant
+                    float bestTime = float.MaxValue;
+                    foreach (var lap in _pendingHighscoreLaps)
+                        if (lap.lapTime < bestTime) bestTime = lap.lapTime;
+
+                    _highscoreNameInputUI.Show(bestTime, _pendingHighscoreCircuitName);
+                }
+                else
+                {
+                    Debug.LogWarning("[RaceManager] HighscoreNameInputUI non disponible! Utilise le nom par défaut.");
+                    SaveAllPendingHighscores("Player");
+                }
+            }
         }
 
         /// <summary>
@@ -291,6 +313,7 @@ namespace ArcadeRacer.RaceSystem
             }
 
             _finishedVehicles.Clear();
+            _pendingHighscoreLaps.Clear();
             _currentState = RaceState.NotStarted;
             CheckpointManager cpM= FindFirstObjectByType<CheckpointManager>();
             if (cpM != null) 
@@ -374,9 +397,6 @@ namespace ArcadeRacer.RaceSystem
             if (_vehicleTimers.ContainsKey(vehicle))
             {
                 _vehicleTimers[vehicle].FinishRace();
-                
-                // Sauvegarder le meilleur temps dans le HighscoreManager
-                SaveBestLapToHighscores(vehicle);
             }
 
             Debug.Log($"🏆 [RaceManager] {vehicle.name} finished in position {position}!");
@@ -476,7 +496,7 @@ namespace ArcadeRacer.RaceSystem
         }
 
         /// <summary>
-        /// Vérifie si le temps au tour est un top 10 et demande le nom du joueur
+        /// Vérifie si le temps au tour est un top 10 et l'enregistre pour la fin de course
         /// </summary>
         private void CheckAndPromptForHighscore(VehicleController vehicle, float lapTime)
         {
@@ -503,8 +523,8 @@ namespace ArcadeRacer.RaceSystem
             if (wouldBeTopScore)
             {
                 Debug.Log($"🏆 [RaceManager] Temps qualifiant pour le top 10: {LapTimer.FormatTime(lapTime)} sur {circuitName}");
-                
-                // IMPORTANT: Sauvegarder les checkpoint times IMMÉDIATEMENT avant qu'ils ne soient effacés
+
+                // Sauvegarder les checkpoint times de ce tour
                 float[] checkpointTimes = null;
                 if (_vehicleTimers.ContainsKey(vehicle))
                 {
@@ -520,25 +540,10 @@ namespace ArcadeRacer.RaceSystem
                         Debug.LogWarning("[RaceManager] Aucun checkpoint time trouvé dans AllLapsCheckpointTimes!");
                     }
                 }
-                
-                // Sauvegarder le contexte pour les callbacks
-                _pendingHighscoreVehicle = vehicle;
-                _pendingHighscoreLapTime = lapTime;
+
+                // Accumuler le tour qualifiant pour la fin de course
+                _pendingHighscoreLaps.Add((lapTime, checkpointTimes));
                 _pendingHighscoreCircuitName = circuitName;
-                _pendingCheckpointTimes = checkpointTimes; // Sauvegarder ici!
-                
-                // Afficher le modal si disponible
-                if (_highscoreNameInputUI != null)
-                {
-                    _highscoreNameInputUI.Show(lapTime, circuitName);
-                }
-                else
-                {
-                    Debug.LogWarning("[RaceManager] HighscoreNameInputUI non disponible! Utilise le nom par défaut.");
-                    // Fallback: sauvegarder avec le nom du véhicule
-                    SaveLapTimeToHighscores(vehicle.name, lapTime, circuitName, checkpointTimes);
-                    ClearPendingHighscoreContext();
-                }
             }
         }
 
@@ -548,13 +553,8 @@ namespace ArcadeRacer.RaceSystem
         private void OnPlayerNameSubmitted(string playerName)
         {
             Debug.Log($"[RaceManager] Nom du joueur reçu: {playerName}");
-            
-            if (_pendingHighscoreVehicle != null)
-            {
-                // Utiliser les checkpoint times sauvegardés, pas ceux du timer qui peuvent avoir changé
-                SaveLapTimeToHighscores(playerName, _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingCheckpointTimes);
-                ClearPendingHighscoreContext();
-            }
+            SaveAllPendingHighscores(playerName);
+            ClearPendingHighscoreContext();
         }
 
         /// <summary>
@@ -563,13 +563,20 @@ namespace ArcadeRacer.RaceSystem
         private void OnPlayerNameCancelled()
         {
             Debug.Log("[RaceManager] Saisie du nom annulée, utilise le nom par défaut");
-            
-            if (_pendingHighscoreVehicle != null)
+            SaveAllPendingHighscores("Player");
+            ClearPendingHighscoreContext();
+        }
+
+        /// <summary>
+        /// Sauvegarde tous les tours qualifiants en attente avec le nom du joueur
+        /// </summary>
+        private void SaveAllPendingHighscores(string playerName)
+        {
+            foreach (var lap in _pendingHighscoreLaps)
             {
-                // Utiliser les checkpoint times sauvegardés, pas ceux du timer qui peuvent avoir changé
-                SaveLapTimeToHighscores("Player", _pendingHighscoreLapTime, _pendingHighscoreCircuitName, _pendingCheckpointTimes);
-                ClearPendingHighscoreContext();
+                SaveLapTimeToHighscores(playerName, lap.lapTime, _pendingHighscoreCircuitName, lap.checkpointTimes);
             }
+            _pendingHighscoreLaps.Clear();
         }
 
         /// <summary>
@@ -580,7 +587,7 @@ namespace ArcadeRacer.RaceSystem
             _pendingHighscoreVehicle = null;
             _pendingHighscoreLapTime = 0f;
             _pendingHighscoreCircuitName = null;
-            _pendingCheckpointTimes = null; // Nettoyer aussi les checkpoint times
+            _pendingCheckpointTimes = null;
         }
 
         /// <summary>
