@@ -176,11 +176,11 @@ namespace ArcadeRacer.UI
                 raceHUD.SetVisible(false);
             }
 
-            // Afficher l'écran de fin
-            if (finishScreenUI != null)
-            {
-                finishScreenUI.gameObject.SetActive(true);
-            }
+            //// Afficher l'écran de fin
+            //if (finishScreenUI != null)
+            //{
+            //    finishScreenUI.gameObject.SetActive(true);
+            //}
 
             Debug.Log("[UIManager] Finish Screen activé");
         }
