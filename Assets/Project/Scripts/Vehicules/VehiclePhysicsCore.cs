@@ -204,6 +204,7 @@ namespace ArcadeRacer.Physics
         {
             Vector3 velocityCorrection = slipCalculator.ComputeSlipCorrection(
                 velocity, vehicleTransform, steeringInput, _angularVelocity, deltaTime,
+                _frontAxleLoad, _rearAxleLoad,
                 out float angularDelta);
 
             // En tête-à-queue, le plafond angulaire est relevé progressivement

@@ -43,6 +43,15 @@ namespace ArcadeRacer.Vehicle
         [Header("=== DEBUG ===")]
         [SerializeField] private bool _showDebug = false;
 
+        // Caches Renderer pour la couleur des roues (peuplés dans Awake)
+        private Renderer[] _frontWheelRenderers = System.Array.Empty<Renderer>();
+        private Renderer[] _rearWheelRenderers  = System.Array.Empty<Renderer>();
+        private MaterialPropertyBlock _wheelPropBlock;
+        private static readonly int _colorId     = Shader.PropertyToID("_Color");
+        private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
+        private bool _rearWheelColorApplied  = false;
+        private bool _frontWheelColorApplied = false;
+
         #endregion
 
         #region State Variables
@@ -92,6 +101,11 @@ namespace ArcadeRacer.Vehicle
 
             // ← NOUVEAU : Initialiser le physics core
             physicsCore.Initialize(stats.mass);
+
+            // Cache des renderers de roues pour le debug couleur
+            _wheelPropBlock = new MaterialPropertyBlock();
+            _frontWheelRenderers = FindWheelRenderers(_frontWheelDebug);
+            _rearWheelRenderers  = FindWheelRenderers(_rearWheelDebug);
         }
 
         private void FixedUpdate()
@@ -347,6 +361,20 @@ namespace ArcadeRacer.Vehicle
             {
                 DrawWheelSlipDebug();
             }
+            else
+            {
+                // Restaurer les couleurs d'origine si le debug vient d'être désactivé
+                if (_rearWheelColorApplied)
+                {
+                    foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                    _rearWheelColorApplied = false;
+                }
+                if (_frontWheelColorApplied)
+                {
+                    foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                    _frontWheelColorApplied = false;
+                }
+            }
         }
 
         #endregion
@@ -574,14 +602,59 @@ namespace ArcadeRacer.Vehicle
             physicsCore.ResetAngularVelocity(); // ← NOUVEAU
         }
 
+        private void OnDestroy()
+        {
+            // Restaurer les matériaux d'origine si le composant est détruit en cours de jeu
+            ClearWheelColor(_frontWheelRenderers);
+            ClearWheelColor(_rearWheelRenderers);
+        }
+
         #endregion
 
         #region Debug
 
+        // ── Helpers Renderer ────────────────────────────────────────────────────────
+
+        /// <summary>Cherche le premier Renderer sur chaque roue (ou ses enfants).</summary>
+        private Renderer[] FindWheelRenderers(Transform[] wheels)
+        {
+            if (wheels == null || wheels.Length == 0) return System.Array.Empty<Renderer>();
+            var result = new Renderer[wheels.Length];
+            for (int i = 0; i < wheels.Length; i++)
+            {
+                if (wheels[i] != null)
+                    result[i] = wheels[i].GetComponentInChildren<Renderer>();
+            }
+            return result;
+        }
+
+        /// <summary>Applique une couleur via MaterialPropertyBlock (non-destructif).</summary>
+        private void ApplyWheelColor(Renderer[] renderers, Color color)
+        {
+            foreach (Renderer r in renderers)
+            {
+                if (r == null) continue;
+                _wheelPropBlock.SetColor(_colorId,     color);
+                _wheelPropBlock.SetColor(_baseColorId, color);
+                r.SetPropertyBlock(_wheelPropBlock);
+            }
+        }
+
+        /// <summary>Retire le PropertyBlock sur tous les renderers fournis et restaure le matériau d'origine.</summary>
+        private void ClearWheelColor(Renderer[] renderers)
+        {
+            foreach (Renderer r in renderers)
+            {
+                if (r != null) r.SetPropertyBlock(null);
+            }
+        }
+
+        // ── Debug visuel des essieux ─────────────────────────────────────────────────
+
         /// <summary>
-        /// Dessine les rayons de glissement sur les roues (Debug.DrawRay, visible en Play).
-        /// Essieux arrière  → magenta  (survirage / tête-à-queue)
-        /// Essieux avant    → jaune    (sous-virage / déport extérieur)
+        /// Met à jour la couleur des meshes de roues ET dessine des rayons dans la Scene view.
+        /// Essieux arrière  → magenta/rouge  (survirage / tête-à-queue)
+        /// Essieux avant    → jaune/orange   (sous-virage / déport extérieur)
         /// </summary>
         private void DrawWheelSlipDebug()
         {
@@ -591,11 +664,14 @@ namespace ArcadeRacer.Vehicle
             Vector3 frontAxlePos = _transform.position + _transform.forward * halfWB;
             Vector3 rearAxlePos  = _transform.position - _transform.forward * halfWB;
 
-            // ESSIEUX ARRIÈRE — survirage (magenta, intensifié en rouge lors du tête-à-queue)
+            // ── ESSIEUX ARRIÈRE — survirage (magenta → rouge en tête-à-queue) ───────
             if (physicsCore.OversteerIntensity > 0.05f)
             {
                 Color oversteerColor = Color.Lerp(Color.magenta, Color.red, physicsCore.SpinOutIntensity);
                 Vector3 slipDir = _transform.right * (physicsCore.RearSlipAngle * 3f);
+
+                ApplyWheelColor(_rearWheelRenderers, oversteerColor);
+                _rearWheelColorApplied = true;
 
                 if (_rearWheelDebug != null && _rearWheelDebug.Length > 0)
                 {
@@ -607,13 +683,17 @@ namespace ArcadeRacer.Vehicle
                 }
                 else
                 {
-                    // Fallback : deux points symétriques sur l'essieu arrière
                     Debug.DrawRay(rearAxlePos + _transform.right * 0.7f, slipDir, oversteerColor);
                     Debug.DrawRay(rearAxlePos - _transform.right * 0.7f, slipDir, oversteerColor);
                 }
             }
+            else if (_rearWheelColorApplied)
+            {
+                foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                _rearWheelColorApplied = false;
+            }
 
-            // ESSIEUX AVANT — sous-virage (jaune, intensifié en orange lors du déport)
+            // ── ESSIEUX AVANT — sous-virage (jaune → orange en déport) ───────────────
             if (physicsCore.UndersteerIntensity > 0.05f)
             {
                 float pushProgress = Mathf.Clamp01(
@@ -621,6 +701,9 @@ namespace ArcadeRacer.Vehicle
                     / (1f - physicsCore.slipCalculator.understeerPushThreshold + 0.001f));
                 Color understeerColor = Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), pushProgress);
                 Vector3 slipDir = _transform.right * (-physicsCore.FrontSlipAngle * 3f);
+
+                ApplyWheelColor(_frontWheelRenderers, understeerColor);
+                _frontWheelColorApplied = true;
 
                 if (_frontWheelDebug != null && _frontWheelDebug.Length > 0)
                 {
@@ -632,10 +715,14 @@ namespace ArcadeRacer.Vehicle
                 }
                 else
                 {
-                    // Fallback : deux points symétriques sur l'essieu avant
                     Debug.DrawRay(frontAxlePos + _transform.right * 0.7f, slipDir, understeerColor);
                     Debug.DrawRay(frontAxlePos - _transform.right * 0.7f, slipDir, understeerColor);
                 }
+            }
+            else if (_frontWheelColorApplied)
+            {
+                foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                _frontWheelColorApplied = false;
             }
         }
 

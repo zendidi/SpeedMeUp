@@ -29,13 +29,38 @@ namespace ArcadeRacer.Physics
         [Range(10f, 45f)]
         public float maxSteeringAngleDeg = 25f;
 
-        [Header("=== SEUILS ===")]
-        [Tooltip("Angle de glissement minimum (rad) avant que le survirage s'applique")]
-        [Range(0.01f, 0.5f)]
+        [Header("=== GRIP DES PNEUS ===")]
+        [Tooltip("Coefficient d'adhérence latérale des pneus avant (μ). " +
+                 "1.0 = standard, 0.7 = pneu usé, 1.4 = slick racing.")]
+        [Range(0.1f, 2f)]
+        public float frontGripCoefficient = 1.0f;
+
+        [Tooltip("Coefficient d'adhérence latérale des pneus arrière (μ). " +
+                 "Valeur inférieure au front = tendance naturelle au survirage.")]
+        [Range(0.1f, 2f)]
+        public float rearGripCoefficient = 0.9f;
+
+        [Tooltip("Vitesse longitudinale de référence (m/s) à partir de laquelle les effets atteignent " +
+                 "leur pleine intensité. En dessous : effets réduits proportionnellement. " +
+                 "30 m/s ≈ 108 km/h.")]
+        [Range(5f, 100f)]
+        public float referenceSpeed = 30f;
+
+        [Header("=== ZONE MORTE ===")]
+        [Tooltip("Vitesse latérale minimale au CENTRE du véhicule (m/s) avant que le système s'active. " +
+                 "Empêche les faux positifs lors des petits coups de volant en ligne droite. " +
+                 "0.2 = insensible à moins de 0.2 m/s de glissement latéral.")]
+        [Range(0f, 2f)]
+        public float lateralVelocityDeadZone = 0.2f;
+
+        [Header("=== SEUILS D'ACTIVATION ===")]
+        [Tooltip("Différence d'angle de glissement normalisé (par le grip) pour déclencher le survirage. " +
+                 "Augmenter pour réduire la sensibilité. Valeur recommandée : 0.05-0.15.")]
+        [Range(0f, 0.5f)]
         public float oversteerThreshold = 0.08f;
 
-        [Tooltip("Angle de glissement minimum (rad) avant que le sous-virage s'applique")]
-        [Range(0.01f, 0.5f)]
+        [Tooltip("Différence d'angle de glissement normalisé (par le grip) pour déclencher le sous-virage.")]
+        [Range(0f, 0.5f)]
         public float understeerThreshold = 0.10f;
 
         [Header("=== INTENSITÉS ===")]
@@ -122,6 +147,8 @@ namespace ArcadeRacer.Physics
         /// <param name="steeringInput">Entrée de direction [-1 gauche … 1 droite]</param>
         /// <param name="angularVelocity">Vitesse angulaire de lacet courante (rad/s)</param>
         /// <param name="deltaTime">Pas de temps (Time.fixedDeltaTime)</param>
+        /// <param name="frontAxleLoad">Charge normalisée sur l'essieu avant (0-1, issue du transfert de charge)</param>
+        /// <param name="rearAxleLoad">Charge normalisée sur l'essieu arrière (0-1)</param>
         /// <param name="angularVelocityDelta">
         ///   Delta à ajouter à la vitesse angulaire de lacet (rad/s).
         ///   Positif = rotation droite, négatif = rotation gauche.
@@ -133,6 +160,8 @@ namespace ArcadeRacer.Physics
             float steeringInput,
             float angularVelocity,
             float deltaTime,
+            float frontAxleLoad,
+            float rearAxleLoad,
             out float angularVelocityDelta)
         {
             angularVelocityDelta = 0f;
@@ -161,6 +190,20 @@ namespace ArcadeRacer.Physics
                 return Vector3.zero;
             }
 
+            // ─── ZONE MORTE ──────────────────────────────────────────────────────────
+            // Ne pas calculer si le centre du véhicule ne glisse pas latéralement.
+            // Empêche les faux positifs sur ligne droite lors des petits coups de volant
+            // (ω crée de la vitesse latérale aux essieux mais pas au centre de masse).
+            if (Mathf.Abs(lateralSpeed) < lateralVelocityDeadZone)
+            {
+                _frontSlipAngle = 0f;
+                _rearSlipAngle = 0f;
+                _oversteerIntensity = 0f;
+                _understeerIntensity = 0f;
+                _spinOutIntensity = 0f;
+                return Vector3.zero;
+            }
+
             float halfWB = wheelbase * 0.5f;
 
             // Vitesse latérale à chaque essieu (effet de la rotation du véhicule inclus)
@@ -169,19 +212,39 @@ namespace ArcadeRacer.Physics
 
             // Angles de glissement par essieu
             float steeringAngleRad = steeringInput * maxSteeringAngleDeg * Mathf.Deg2Rad;
+            // _frontSlipAngle conserve la compensation de braquage (utilisée pour la direction de correction)
             _frontSlipAngle = PhysicsFormulas.SlipAngle(frontLateralSpeed, forwardSpeed) - steeringAngleRad;
             _rearSlipAngle  = PhysicsFormulas.SlipAngle(rearLateralSpeed,  forwardSpeed);
 
+            // ─── DÉTECTION PAR ANGLES RAW (sans compensation steering) ───────────────
+            // Utiliser les angles bruts (non-compensés) garantit la SYMÉTRIE en ligne droite :
+            // en ligne droite (v_lat = 0), ω pousse le front et le rear avec des vitesses latérales
+            // égales et opposées → |frontRaw| = |rearRaw| → aucun régime ne se déclenche.
+            // La compensation de steering (-steeringAngleRad) ne s'applique QU'À la correction
+            // physique (direction du vecteur), PAS à la comparaison d'intensités.
+            float frontSlipRaw = PhysicsFormulas.SlipAngle(frontLateralSpeed, forwardSpeed);
             float rearSlipAbs  = Mathf.Abs(_rearSlipAngle);
-            float frontSlipAbs = Mathf.Abs(_frontSlipAngle);
+            float frontSlipAbs = Mathf.Abs(frontSlipRaw);
 
-            // Survirage : l'arrière glisse plus que l'avant
-            _oversteerIntensity = Mathf.Clamp01(
-                (rearSlipAbs - frontSlipAbs - oversteerThreshold) / (oversteerThreshold + THRESHOLD_EPSILON));
+            // Normalisation par le grip effectif de chaque essieu
+            // grip_effectif = μ_pneu × fraction_de_charge
+            // Un essieu avec moins de grip ou moins de charge "sature" plus facilement.
+            float rearEffectiveGrip  = rearGripCoefficient  * rearAxleLoad;
+            float frontEffectiveGrip = frontGripCoefficient * frontAxleLoad;
 
-            // Sous-virage : l'avant glisse plus que l'arrière
-            _understeerIntensity = Mathf.Clamp01(
-                (frontSlipAbs - rearSlipAbs - understeerThreshold) / (understeerThreshold + THRESHOLD_EPSILON));
+            float rearNormSlip  = rearSlipAbs  / Mathf.Max(rearEffectiveGrip,  THRESHOLD_EPSILON);
+            float frontNormSlip = frontSlipAbs / Mathf.Max(frontEffectiveGrip, THRESHOLD_EPSILON);
+
+            // Facteur vitesse : les effets montent en intensité avec la vitesse longitudinale.
+            float speedFactor = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / (referenceSpeed + THRESHOLD_EPSILON));
+
+            // Survirage : essieu arrière normalisé > essieu avant normalisé
+            _oversteerIntensity = Mathf.Clamp01(speedFactor * Mathf.Max(0f,
+                (rearNormSlip - frontNormSlip - oversteerThreshold) / (oversteerThreshold + THRESHOLD_EPSILON)));
+
+            // Sous-virage : essieu avant normalisé > essieu arrière normalisé
+            _understeerIntensity = Mathf.Clamp01(speedFactor * Mathf.Max(0f,
+                (frontNormSlip - rearNormSlip - understeerThreshold) / (understeerThreshold + THRESHOLD_EPSILON)));
 
             // Tête-à-queue : intensité du survirage au-delà du seuil critique
             _spinOutIntensity = Mathf.Clamp01(
