@@ -61,6 +61,8 @@ namespace ArcadeRacer.Vehicle
         public float CurrentSteeringAngle => _currentSteeringAngle;
         public VehicleStats Stats => stats;
         public float baseSteeringSpeed => stats.steeringSpeed;
+        public float OversteerIntensity  => physicsCore.OversteerIntensity;
+        public float UndersteerIntensity => physicsCore.UndersteerIntensity;
 
         #endregion
 
@@ -317,6 +319,18 @@ namespace ArcadeRacer.Vehicle
             {
                 float gripFactor = Mathf.Clamp01(stats.gripStrength * 0.15f);
                 _velocity = forwardVelocity + sidewaysVelocity * (1f - gripFactor);
+
+                // Appliquer les effets de survirage/sous-virage
+                if (_isGrounded && _currentSpeed > 1f)
+                {
+                    _velocity += physicsCore.ComputeSlipEffect(_velocity, _transform, _steeringInput, Time.fixedDeltaTime);
+                }
+            }
+
+            if (_showDebug && Time.frameCount % 30 == 0
+                && (physicsCore.OversteerIntensity > 0.1f || physicsCore.UndersteerIntensity > 0.1f))
+            {
+                Debug.Log($"[Slip] Oversteer: {physicsCore.OversteerIntensity:F2} | Understeer: {physicsCore.UndersteerIntensity:F2} | Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
             }
         }
 
@@ -568,6 +582,18 @@ namespace ArcadeRacer.Vehicle
             Gizmos.DrawSphere(transform.position + transform.forward * 1.2f, 0.1f * physicsCore.FrontAxleLoad);
             Gizmos.color = Color.cyan;
             Gizmos.DrawSphere(transform.position - transform.forward * 1.2f, 0.1f * physicsCore.RearAxleLoad);
+
+            // Visualiser survirage (magenta) et sous-virage (jaune)
+            if (physicsCore.OversteerIntensity > 0.05f)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawRay(transform.position, transform.right * physicsCore.RearSlipAngle * 5f);
+            }
+            if (physicsCore.UndersteerIntensity > 0.05f)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawRay(transform.position, transform.forward * physicsCore.UndersteerIntensity * 3f);
+            }
         }
 #endif
 

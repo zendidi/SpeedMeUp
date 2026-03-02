@@ -68,6 +68,41 @@ namespace ArcadeRacer.Physics
 
         #endregion
 
+        #region Angles de Glissement (Slip Angles)
+
+        /// <summary>
+        /// Calcule l'angle de glissement d'un pneu (slip angle).
+        /// α = atan2(v_latéral, |v_longitudinal| + ε)
+        /// </summary>
+        /// <param name="lateralVelocity">Composante latérale de la vélocité à l'essieu (m/s)</param>
+        /// <param name="forwardVelocity">Composante longitudinale de la vélocité (m/s)</param>
+        /// <returns>Angle de glissement en radians</returns>
+        public static float SlipAngle(float lateralVelocity, float forwardVelocity)
+        {
+            // Le +0.1f évite la singularité à vitesse nulle et lisse le comportement
+            // à très basse vitesse (différent du THRESHOLD_EPSILON de division pure).
+            return Mathf.Atan2(lateralVelocity, Mathf.Abs(forwardVelocity) + 0.1f);
+        }
+
+        /// <summary>
+        /// Calcule la vitesse latérale à un essieu en tenant compte de la rotation de lacet du véhicule.
+        /// v_essieu_avant  = v_lat + ω × (L/2)
+        /// v_essieu_arrière = v_lat − ω × (L/2)
+        /// </summary>
+        /// <param name="lateralVelocity">Vitesse latérale au centre de masse (m/s)</param>
+        /// <param name="angularVelocity">Vitesse angulaire de lacet du véhicule (rad/s)</param>
+        /// <param name="halfWheelbase">Demi-empattement en mètres</param>
+        /// <param name="isFront">Vrai pour l'essieu avant, faux pour l'essieu arrière</param>
+        /// <returns>Vitesse latérale à l'essieu (m/s)</returns>
+        public static float AxleLateralVelocity(float lateralVelocity, float angularVelocity, float halfWheelbase, bool isFront)
+        {
+            return isFront
+                ? lateralVelocity + angularVelocity * halfWheelbase
+                : lateralVelocity - angularVelocity * halfWheelbase;
+        }
+
+        #endregion
+
         #region Transfert de Charge
 
         /// <summary>
