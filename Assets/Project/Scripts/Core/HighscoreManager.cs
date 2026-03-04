@@ -1,6 +1,9 @@
 using UnityEngine;
+using UnityEngine.Networking;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace ArcadeRacer.Core
 {
@@ -90,8 +93,15 @@ namespace ArcadeRacer.Core
     }
 
     /// <summary>
-    /// Gestionnaire de highscores local (PlayerPrefs).
-    /// Gère le top 10 des meilleurs temps par circuit avec noms des joueurs.
+    /// Gestionnaire de highscores avec stockage local (PlayerPrefs) et
+    /// synchronisation réseau optionnelle via Firebase Realtime Database REST API.
+    ///
+    /// Pour activer la synchronisation réseau (gratuite) :
+    ///   1. Créer un projet sur https://console.firebase.google.com
+    ///   2. Activer "Realtime Database" (mode test ou avec règles d'authentification)
+    ///   3. Copier l'URL de la database (ex: https://mon-projet-default-rtdb.firebaseio.com)
+    ///   4. Coller l'URL dans le champ "Firebase Database Url" de ce composant dans l'Inspector
+    /// En laissant ce champ vide, le mode local (PlayerPrefs) reste actif.
     /// </summary>
     public class HighscoreManager : MonoBehaviour
     {
@@ -99,6 +109,31 @@ namespace ArcadeRacer.Core
         private const string HIGHSCORE_KEY_PREFIX = "Highscore_";
         private const string HIGHSCORE_SEPARATOR = "|";
         private const float FLOAT_COMPARISON_EPSILON = 0.001f; // Tolérance pour comparaison de floats
+
+        #region Network Settings
+
+        [Header("=== RÉSEAU (Firebase Realtime Database) ===")]
+        [Tooltip("URL de la Firebase Realtime Database.\nEx: https://VOTRE-PROJET-default-rtdb.firebaseio.com\nLaisser vide pour mode local uniquement.")]
+        [SerializeField] private string firebaseDatabaseUrl = "";
+
+        [Tooltip("Synchroniser automatiquement les highscores depuis Firebase au démarrage.")]
+        [SerializeField] private bool autoSyncOnStart = true;
+
+        [Tooltip("Timeout des requêtes réseau en secondes.")]
+        [SerializeField] private int networkTimeoutSeconds = 10;
+
+        /// <summary>
+        /// True si une URL Firebase est configurée.
+        /// </summary>
+        public bool IsNetworkEnabled => !string.IsNullOrEmpty(firebaseDatabaseUrl);
+
+        /// <summary>
+        /// Déclenché après le chargement réseau des highscores pour un circuit.
+        /// Le paramètre est le nom du circuit mis à jour.
+        /// </summary>
+        public static event System.Action<string> OnNetworkHighscoresLoaded;
+
+        #endregion
 
         #region Singleton
 
@@ -137,6 +172,11 @@ namespace ArcadeRacer.Core
 
             _instance = this;
             DontDestroyOnLoad(gameObject);
+
+            if (autoSyncOnStart && IsNetworkEnabled)
+            {
+                StartCoroutine(SyncAllFromNetwork());
+            }
         }
 
         #endregion
@@ -341,6 +381,12 @@ namespace ArcadeRacer.Core
             }
 
             PlayerPrefs.Save();
+
+            // Synchroniser vers Firebase si activé
+            if (IsNetworkEnabled)
+            {
+                StartCoroutine(PushToNetwork(circuitName, scores));
+            }
         }
 
         /// <summary>
@@ -415,6 +461,219 @@ namespace ArcadeRacer.Core
             }
 
             return new HighscoreEntry(0f, "", rank, null, null, null);
+        }
+
+        #endregion
+
+        #region Network (Firebase Realtime Database)
+
+        // ── JSON helpers ──────────────────────────────────────────────────────
+
+        [System.Serializable]
+        private class NetworkEntryData
+        {
+            public float timeInSeconds;
+            public string playerName;
+            public int rank;
+            public string dateString;
+            public string timeOfDayString;
+        }
+
+        [System.Serializable]
+        private class NetworkHighscoreData
+        {
+            public List<NetworkEntryData> entries = new List<NetworkEntryData>();
+        }
+
+        private string SerializeEntries(List<HighscoreEntry> entries)
+        {
+            NetworkHighscoreData data = new NetworkHighscoreData();
+            foreach (var e in entries)
+            {
+                data.entries.Add(new NetworkEntryData
+                {
+                    timeInSeconds = e.timeInSeconds,
+                    playerName = e.playerName,
+                    rank = e.rank,
+                    dateString = e.dateString,
+                    timeOfDayString = e.timeOfDayString
+                });
+            }
+            return JsonUtility.ToJson(data);
+        }
+
+        private List<HighscoreEntry> DeserializeEntries(string json)
+        {
+            List<HighscoreEntry> result = new List<HighscoreEntry>();
+            if (string.IsNullOrEmpty(json) || json == "null")
+                return result;
+
+            try
+            {
+                NetworkHighscoreData data = JsonUtility.FromJson<NetworkHighscoreData>(json);
+                if (data?.entries != null)
+                {
+                    for (int i = 0; i < data.entries.Count; i++)
+                    {
+                        NetworkEntryData ed = data.entries[i];
+                        result.Add(new HighscoreEntry(
+                            ed.timeInSeconds,
+                            ed.playerName,
+                            ed.rank > 0 ? ed.rank : i + 1,
+                            null,
+                            ed.dateString,
+                            ed.timeOfDayString
+                        ));
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[HighscoreManager] Erreur désérialisation JSON réseau: {ex.Message}");
+            }
+
+            return result.OrderBy(s => s.timeInSeconds).ToList();
+        }
+
+        private string GetNetworkUrl(string circuitName)
+        {
+            string clean = circuitName.Replace(" ", "_").Replace("-", "_")
+                                      .Replace("/", "_").Replace(".", "_");
+            return $"{firebaseDatabaseUrl.TrimEnd('/')}/highscores/{clean}.json";
+        }
+
+        // ── Fetch scores from Firebase for a single circuit ───────────────────
+
+        private IEnumerator SyncFromNetwork(string circuitName)
+        {
+            string url = GetNetworkUrl(circuitName);
+
+            using (UnityWebRequest req = UnityWebRequest.Get(url))
+            {
+                req.timeout = networkTimeoutSeconds;
+                yield return req.SendWebRequest();
+
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    List<HighscoreEntry> networkScores = DeserializeEntries(req.downloadHandler.text);
+                    if (networkScores.Count > 0)
+                    {
+                        MergeIntoLocal(circuitName, networkScores);
+                        Debug.Log($"[HighscoreManager] Synchronisation réseau OK pour '{circuitName}': {networkScores.Count} scores.");
+                        OnNetworkHighscoresLoaded?.Invoke(circuitName);
+                    }
+                }
+                else if (req.responseCode == 404)
+                {
+                    // Aucune donnée encore enregistrée pour ce circuit – c'est normal
+                    Debug.Log($"[HighscoreManager] Aucun score réseau pour '{circuitName}' (404).");
+                }
+                else
+                {
+                    Debug.LogWarning($"[HighscoreManager] Échec synchronisation réseau pour '{circuitName}': {req.error}");
+                }
+            }
+        }
+
+        // ── Fetch scores for all known circuits ───────────────────────────────
+
+        private IEnumerator SyncAllFromNetwork()
+        {
+            if (Settings.CircuitDatabase.Instance == null)
+                yield break;
+
+            foreach (var circuit in Settings.CircuitDatabase.Instance.AvailableCircuits)
+            {
+                if (circuit != null)
+                    yield return SyncFromNetwork(circuit.circuitName);
+            }
+        }
+
+        // ── Push local scores to Firebase ──────────────────────────────────────
+
+        private IEnumerator PushToNetwork(string circuitName, List<HighscoreEntry> scores)
+        {
+            string url = GetNetworkUrl(circuitName);
+            string json = SerializeEntries(scores);
+            byte[] body = Encoding.UTF8.GetBytes(json);
+
+            using (UnityWebRequest req = new UnityWebRequest(url, "PUT"))
+            {
+                req.uploadHandler = new UploadHandlerRaw(body);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "application/json");
+                req.timeout = networkTimeoutSeconds;
+                yield return req.SendWebRequest();
+
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    Debug.Log($"[HighscoreManager] Scores poussés vers Firebase pour '{circuitName}'.");
+                }
+                else
+                {
+                    Debug.LogWarning($"[HighscoreManager] Échec push Firebase pour '{circuitName}': {req.error}");
+                }
+            }
+        }
+
+        // ── Merge network scores into local cache (PlayerPrefs) ───────────────
+
+        private void MergeIntoLocal(string circuitName, List<HighscoreEntry> networkScores)
+        {
+            List<HighscoreEntry> local = GetHighscores(circuitName);
+
+            // Fusionner en dédupliquant sur (playerName, timeInSeconds)
+            foreach (var ns in networkScores)
+            {
+                bool alreadyPresent = local.Any(l =>
+                    l.playerName == ns.playerName &&
+                    Mathf.Abs(l.timeInSeconds - ns.timeInSeconds) < FLOAT_COMPARISON_EPSILON);
+
+                if (!alreadyPresent)
+                    local.Add(ns);
+            }
+
+            List<HighscoreEntry> merged = local
+                .OrderBy(s => s.timeInSeconds)
+                .Take(MAX_HIGHSCORES_PER_CIRCUIT)
+                .ToList();
+
+            for (int i = 0; i < merged.Count; i++)
+            {
+                var e = merged[i];
+                e.rank = i + 1;
+                merged[i] = e;
+            }
+
+            // Sauvegarder localement uniquement (pas de push réseau ici pour éviter la boucle)
+            for (int i = 0; i < MAX_HIGHSCORES_PER_CIRCUIT; i++)
+                PlayerPrefs.DeleteKey(GetHighscoreKey(circuitName, i));
+
+            for (int i = 0; i < merged.Count; i++)
+                PlayerPrefs.SetString(GetHighscoreKey(circuitName, i), FormatHighscoreData(merged[i]));
+
+            PlayerPrefs.Save();
+        }
+
+        // ── Public method for manual refresh from network ─────────────────────
+
+        /// <summary>
+        /// Force une synchronisation réseau pour un circuit donné.
+        /// L'événement OnNetworkHighscoresLoaded est déclenché à la fin.
+        /// </summary>
+        public void RefreshFromNetwork(string circuitName)
+        {
+            if (!IsNetworkEnabled)
+            {
+                Debug.LogWarning("[HighscoreManager] Réseau désactivé (URL Firebase non configurée).");
+                return;
+            }
+            if (string.IsNullOrEmpty(circuitName))
+            {
+                Debug.LogWarning("[HighscoreManager] RefreshFromNetwork: circuit name invalide.");
+                return;
+            }
+            StartCoroutine(SyncFromNetwork(circuitName));
         }
 
         #endregion
