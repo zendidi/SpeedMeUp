@@ -33,25 +33,19 @@ namespace ArcadeRacer.Vehicle
         [Header("=== ADVANCED PHYSICS ===")]
         [SerializeField] private VehiclePhysicsCore physicsCore = new VehiclePhysicsCore(); // ← NOUVEAU
 
-        [Header("=== WHEEL DEBUG REFS (optionnel) ===")]
-        [Tooltip("Roues avant (FL, FR) pour le debug visuel du sous-virage. " +
-                 "Si non renseigné, la position de l'essieu est calculée depuis le wheelbase.")]
-        [SerializeField] private Transform[] _frontWheelDebug;
-        [Tooltip("Roues arrière (RL, RR) pour le debug visuel du survirage. " +
-                 "Si non renseigné, la position de l'essieu est calculée depuis le wheelbase.")]
-        [SerializeField] private Transform[] _rearWheelDebug;
+        [Header("=== FREINAGE ADAPTATIF ===")]
+        [Tooltip("Taux de montée de l'intensité de freinage adaptatif par seconde. " +
+                 "Le joueur doit maintenir la touche pour atteindre le freinage maximum.")]
+        [Range(0.1f, 5f)]
+        public float brakeBuildRate = 1.2f;
+
+        [Tooltip("Taux de relâchement du freinage adaptatif par seconde quand la touche est lâchée. " +
+                 "Doit être plus élevé que brakeBuildRate pour un retour plus rapide.")]
+        [Range(0.5f, 20f)]
+        public float brakeReleaseRate = 4f;
 
         [Header("=== DEBUG ===")]
         [SerializeField] private bool _showDebug = false;
-
-        // Caches Renderer pour la couleur des roues (peuplés dans Awake)
-        private Renderer[] _frontWheelRenderers = System.Array.Empty<Renderer>();
-        private Renderer[] _rearWheelRenderers  = System.Array.Empty<Renderer>();
-        private MaterialPropertyBlock _wheelPropBlock;
-        private static readonly int _colorId     = Shader.PropertyToID("_Color");
-        private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
-        private bool _rearWheelColorApplied  = false;
-        private bool _frontWheelColorApplied = false;
 
         #endregion
 
@@ -67,6 +61,9 @@ namespace ArcadeRacer.Vehicle
         private Vector3 _groundNormal;
         private float _currentSpeed;
         private float _currentSteeringAngle;
+
+        // Freinage adaptatif [0-1] — monte lentement, retombe plus vite
+        private float _adaptiveBrake;
 
         #endregion
 
@@ -85,13 +82,12 @@ namespace ArcadeRacer.Vehicle
         public float BrakeInput     => _brakeInput;
         public float SteeringInput  => _steeringInput;
 
-        // Délègue au nouveau système de virage si présent, sinon à l'ancien
-        public float OversteerIntensity  => _corneringPhysics != null
-            ? _corneringPhysics.OversteerIntensity  : physicsCore.OversteerIntensity;
-        public float UndersteerIntensity => _corneringPhysics != null
-            ? _corneringPhysics.UndersteerIntensity : physicsCore.UndersteerIntensity;
-        public float SpinOutIntensity    => _corneringPhysics != null
-            ? _corneringPhysics.SpinOutIntensity    : physicsCore.SpinOutIntensity;
+        /// <summary>Intensité de freinage adaptatif [0-1] — destiné à la jauge UI.</summary>
+        public float AdaptiveBrakeIntensity => _adaptiveBrake;
+
+        public float OversteerIntensity  => _corneringPhysics != null ? _corneringPhysics.OversteerIntensity  : 0f;
+        public float UndersteerIntensity => _corneringPhysics != null ? _corneringPhysics.UndersteerIntensity : 0f;
+        public float SpinOutIntensity    => _corneringPhysics != null ? _corneringPhysics.SpinOutIntensity    : 0f;
 
         #endregion
 
@@ -113,11 +109,6 @@ namespace ArcadeRacer.Vehicle
 
             // ← NOUVEAU : Initialiser le physics core
             physicsCore.Initialize(stats.mass);
-
-            // Cache des renderers de roues pour le debug couleur
-            _wheelPropBlock = new MaterialPropertyBlock();
-            _frontWheelRenderers = FindWheelRenderers(_frontWheelDebug);
-            _rearWheelRenderers  = FindWheelRenderers(_rearWheelDebug);
         }
 
         private void FixedUpdate()
@@ -128,6 +119,7 @@ namespace ArcadeRacer.Vehicle
             CheckGround();
             ApplyGravity();
             ApplyAcceleration();
+            UpdateAdaptiveBrake();
             ApplySteering();
             ApplyBraking();
             ApplyDrag();
@@ -307,7 +299,7 @@ namespace ArcadeRacer.Vehicle
 
             // Mettre à jour l'état du nouveau système de virage avant d'appliquer les corrections
             _corneringPhysics?.UpdateCorneringState(
-                _steeringInput, _throttleInput, _brakeInput, CurrentSpeedKMH, Time.fixedDeltaTime);
+                _steeringInput, _throttleInput, CurrentSpeedKMH, Time.fixedDeltaTime);
 
             ApplyGripOrDrift();
             ApplyTurningSpeedLoss();
@@ -359,79 +351,35 @@ namespace ArcadeRacer.Vehicle
                 float gripFactor = Mathf.Clamp01(stats.gripStrength * 0.15f);
                 _velocity = forwardVelocity + sidewaysVelocity * (1f - gripFactor);
 
-                // Appliquer les effets de virage
-                if (_isGrounded && _currentSpeed > 1f)
+                if (_isGrounded && _currentSpeed > 1f && _corneringPhysics != null)
                 {
-                    if (_corneringPhysics != null)
-                    {
-                        // ── Nouveau système : VehicleCorneringPhysics ──────────────────
-                        Vector3 velCorr = _corneringPhysics.ComputeCorneringCorrection(
-                            _velocity, _transform,
-                            _steeringInput, _throttleInput,
-                            physicsCore.AngularVelocity,
-                            Time.fixedDeltaTime,
-                            out float angularDelta);
+                    Vector3 velCorr = _corneringPhysics.ComputeCorneringCorrection(
+                        _velocity, _transform,
+                        _steeringInput, _throttleInput,
+                        physicsCore.AngularVelocity,
+                        Time.fixedDeltaTime,
+                        out float angularDelta);
 
-                        _velocity += velCorr;
-                        physicsCore.ApplyExternalAngularDelta(
-                            angularDelta,
-                            _corneringPhysics.SpinOutIntensity,
-                            _corneringPhysics.SpinOutMaxAngularVelocity);
-                    }
-                    else
-                    {
-                        // ── Ancien système : VehicleSlipCalculator (fallback) ──────────
-                        _velocity += physicsCore.ComputeSlipEffect(
-                            _velocity, _transform, _steeringInput, Time.fixedDeltaTime);
-                    }
+                    _velocity += velCorr;
+                    physicsCore.ApplyExternalAngularDelta(
+                        angularDelta,
+                        _corneringPhysics.SpinOutIntensity,
+                        _corneringPhysics.SpinOutMaxAngularVelocity);
                 }
             }
 
-            if (_showDebug && Time.frameCount % 30 == 0)
+            if (_showDebug && Time.frameCount % 30 == 0 && _corneringPhysics != null)
             {
-                float over  = OversteerIntensity;
-                float under = UndersteerIntensity;
+                float over  = _corneringPhysics.OversteerIntensity;
+                float under = _corneringPhysics.UndersteerIntensity;
                 if (over > 0.1f || under > 0.1f)
                 {
-                    if (_corneringPhysics != null)
-                    {
-                        Debug.Log($"[Cornering] Oversteer: {over:F2} | Understeer: {under:F2} | " +
-                                  $"SpinOut: {SpinOutIntensity:F2} | " +
-                                  $"TurnIntensity: {_corneringPhysics.TurnIntensity:F2} | " +
-                                  $"AdaptBrake: {_corneringPhysics.AdaptiveBrakeIntensity:F2} | " +
-                                  $"FrontLoad: {_corneringPhysics.FrontLoadPoint:F2} | " +
-                                  $"RearLoad: {_corneringPhysics.RearLoadPoint:F2}");
-                    }
-                    else
-                    {
-                        Debug.Log($"[Slip] Oversteer: {over:F2} | Understeer: {under:F2} | " +
-                                  $"SpinOut: {SpinOutIntensity:F2} | " +
-                                  $"Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | " +
-                                  $"Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
-                    }
-                }
-            }
-
-            // Debug visuel sur les roues — géré par VehicleCorneringPhysics si présent,
-            // sinon par l'ancienne logique dans DrawWheelSlipDebug.
-            if (_corneringPhysics == null)
-            {
-                if (_showDebug)
-                {
-                    DrawWheelSlipDebug();
-                }
-                else
-                {
-                    if (_rearWheelColorApplied)
-                    {
-                        foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                        _rearWheelColorApplied = false;
-                    }
-                    if (_frontWheelColorApplied)
-                    {
-                        foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                        _frontWheelColorApplied = false;
-                    }
+                    Debug.Log($"[Cornering] Oversteer: {over:F2} | Understeer: {under:F2} | " +
+                              $"SpinOut: {_corneringPhysics.SpinOutIntensity:F2} | " +
+                              $"TurnIntensity: {_corneringPhysics.TurnIntensity:F2} | " +
+                              $"AdaptBrake: {_adaptiveBrake:F2} | " +
+                              $"FrontLoad: {_corneringPhysics.FrontLoadPoint:F2} | " +
+                              $"RearLoad: {_corneringPhysics.RearLoadPoint:F2}");
                 }
             }
         }
@@ -440,20 +388,22 @@ namespace ArcadeRacer.Vehicle
 
         #region Physics - Braking & Drag
 
+        private void UpdateAdaptiveBrake()
+        {
+            if (_brakeInput > 0.05f)
+                _adaptiveBrake = Mathf.MoveTowards(_adaptiveBrake, _brakeInput, brakeBuildRate * Time.fixedDeltaTime);
+            else
+                _adaptiveBrake = Mathf.MoveTowards(_adaptiveBrake, 0f, brakeReleaseRate * Time.fixedDeltaTime);
+        }
+
         private void ApplyBraking()
         {
             if (_brakeInput <= 0f || !_isGrounded) return;
 
-            // Si VehicleCorneringPhysics est présent, le freinage est adaptatif :
-            // l'intensité effective monte progressivement et retombe rapidement.
-            float effectiveBrake = _corneringPhysics != null
-                ? _corneringPhysics.AdaptiveBrakeIntensity
-                : _brakeInput;
-
-            if (effectiveBrake < 0.001f) return;
+            if (_adaptiveBrake < 0.001f) return;
 
             float brakeEfficiency = CalculateBrakeEfficiency();
-            float brakeForce = stats.brakeForce * effectiveBrake * brakeEfficiency;
+            float brakeForce = stats.brakeForce * _adaptiveBrake * brakeEfficiency;
             float brakeDeceleration = brakeForce / stats.mass;
 
             Vector3 forwardVelocity = _transform.forward * Vector3.Dot(_velocity, _transform.forward);
@@ -474,7 +424,7 @@ namespace ArcadeRacer.Vehicle
 
             if (_showDebug && Time.frameCount % 30 == 0)
             {
-                Debug.Log($"[Brake] Force: {brakeForce:F0}N | Decel: {brakeDeceleration:F1}m/s² | Effective: {effectiveBrake:F2} | Raw: {_brakeInput:F2}");
+                Debug.Log($"[Brake] Force: {brakeForce:F0}N | Decel: {brakeDeceleration:F1}m/s² | Effective: {_adaptiveBrake:F2} | Raw: {_brakeInput:F2}");
             }
         }
 
@@ -669,140 +619,16 @@ namespace ArcadeRacer.Vehicle
             physicsCore.ResetAngularVelocity(); // ← NOUVEAU
         }
 
-        private void OnDestroy()
-        {
-            // Restaurer les matériaux d'origine si le composant est détruit en cours de jeu
-            ClearWheelColor(_frontWheelRenderers);
-            ClearWheelColor(_rearWheelRenderers);
-        }
-
         #endregion
 
         #region Debug
 
-        // ── Helpers Renderer ────────────────────────────────────────────────────────
-
-        /// <summary>Cherche le premier Renderer sur chaque roue (ou ses enfants).</summary>
-        private Renderer[] FindWheelRenderers(Transform[] wheels)
-        {
-            if (wheels == null || wheels.Length == 0) return System.Array.Empty<Renderer>();
-            var result = new Renderer[wheels.Length];
-            for (int i = 0; i < wheels.Length; i++)
-            {
-                if (wheels[i] != null)
-                    result[i] = wheels[i].GetComponentInChildren<Renderer>();
-            }
-            return result;
-        }
-
-        /// <summary>Applique une couleur via MaterialPropertyBlock (non-destructif).</summary>
-        private void ApplyWheelColor(Renderer[] renderers, Color color)
-        {
-            foreach (Renderer r in renderers)
-            {
-                if (r == null) continue;
-                _wheelPropBlock.SetColor(_colorId,     color);
-                _wheelPropBlock.SetColor(_baseColorId, color);
-                r.SetPropertyBlock(_wheelPropBlock);
-            }
-        }
-
-        /// <summary>Retire le PropertyBlock sur tous les renderers fournis et restaure le matériau d'origine.</summary>
-        private void ClearWheelColor(Renderer[] renderers)
-        {
-            foreach (Renderer r in renderers)
-            {
-                if (r != null) r.SetPropertyBlock(null);
-            }
-        }
-
-        // ── Debug visuel des essieux ─────────────────────────────────────────────────
-
-        /// <summary>
-        /// Met à jour la couleur des meshes de roues ET dessine des rayons dans la Scene view.
-        /// Essieux arrière  → magenta/rouge  (survirage / tête-à-queue)
-        /// Essieux avant    → jaune/orange   (sous-virage / déport extérieur)
-        /// </summary>
-        private void DrawWheelSlipDebug()
-        {
-            float halfWB = physicsCore.slipCalculator.wheelbase * 0.5f;
-
-            // Positions de fallback calculées depuis l'empattement
-            Vector3 frontAxlePos = _transform.position + _transform.forward * halfWB;
-            Vector3 rearAxlePos  = _transform.position - _transform.forward * halfWB;
-
-            // ── ESSIEUX ARRIÈRE — survirage (magenta → rouge en tête-à-queue) ───────
-            if (physicsCore.OversteerIntensity > 0.05f)
-            {
-                Color oversteerColor = Color.Lerp(Color.magenta, Color.red, physicsCore.SpinOutIntensity);
-                Vector3 slipDir = _transform.right * (physicsCore.RearSlipAngle * 3f);
-
-                ApplyWheelColor(_rearWheelRenderers, oversteerColor);
-                _rearWheelColorApplied = true;
-
-                if (_rearWheelDebug != null && _rearWheelDebug.Length > 0)
-                {
-                    foreach (Transform w in _rearWheelDebug)
-                    {
-                        if (w != null)
-                            Debug.DrawRay(w.position, slipDir, oversteerColor);
-                    }
-                }
-                else
-                {
-                    Debug.DrawRay(rearAxlePos + _transform.right * 0.7f, slipDir, oversteerColor);
-                    Debug.DrawRay(rearAxlePos - _transform.right * 0.7f, slipDir, oversteerColor);
-                }
-            }
-            else if (_rearWheelColorApplied)
-            {
-                foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                _rearWheelColorApplied = false;
-            }
-
-            // ── ESSIEUX AVANT — sous-virage (jaune → orange en déport) ───────────────
-            if (physicsCore.UndersteerIntensity > 0.05f)
-            {
-                float pushProgress = Mathf.Clamp01(
-                    (physicsCore.UndersteerIntensity - physicsCore.slipCalculator.understeerPushThreshold)
-                    / (1f - physicsCore.slipCalculator.understeerPushThreshold + 0.001f));
-                Color understeerColor = Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), pushProgress);
-                Vector3 slipDir = _transform.right * (-physicsCore.FrontSlipAngle * 3f);
-
-                ApplyWheelColor(_frontWheelRenderers, understeerColor);
-                _frontWheelColorApplied = true;
-
-                if (_frontWheelDebug != null && _frontWheelDebug.Length > 0)
-                {
-                    foreach (Transform w in _frontWheelDebug)
-                    {
-                        if (w != null)
-                            Debug.DrawRay(w.position, slipDir, understeerColor);
-                    }
-                }
-                else
-                {
-                    Debug.DrawRay(frontAxlePos + _transform.right * 0.7f, slipDir, understeerColor);
-                    Debug.DrawRay(frontAxlePos - _transform.right * 0.7f, slipDir, understeerColor);
-                }
-            }
-            else if (_frontWheelColorApplied)
-            {
-                foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                _frontWheelColorApplied = false;
-            }
-        }
-
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            // Si VehicleCorneringPhysics est présent, il gère ses propres gizmos
+            // VehicleCorneringPhysics gère ses propres gizmos de virage
             if (_corneringPhysics != null) return;
             if (!_showDebug || !Application.isPlaying) return;
-
-            float halfWB = physicsCore.slipCalculator.wheelbase * 0.5f;
-            Vector3 frontAxlePos = transform.position + transform.forward * halfWB;
-            Vector3 rearAxlePos  = transform.position - transform.forward * halfWB;
 
             Gizmos.color = Color.blue;
             Gizmos.DrawRay(transform.position, _velocity);
@@ -811,67 +637,6 @@ namespace ArcadeRacer.Vehicle
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawRay(transform.position, _groundNormal * 2f);
-            }
-
-            // Visualiser transfert de charge sur les essieux
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(frontAxlePos, 0.12f * physicsCore.FrontAxleLoad);
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawSphere(rearAxlePos, 0.12f * physicsCore.RearAxleLoad);
-
-            // SURVIRAGE sur les roues arrière (magenta → rouge en tête-à-queue)
-            if (physicsCore.OversteerIntensity > 0.05f)
-            {
-                Color oversteerColor = Color.Lerp(Color.magenta, Color.red, physicsCore.SpinOutIntensity);
-                Gizmos.color = oversteerColor;
-                Vector3 slipDir = transform.right * (physicsCore.RearSlipAngle * 3f);
-
-                if (_rearWheelDebug != null && _rearWheelDebug.Length > 0)
-                {
-                    foreach (Transform w in _rearWheelDebug)
-                    {
-                        if (w != null)
-                        {
-                            Gizmos.DrawRay(w.position, slipDir);
-                            Gizmos.DrawWireSphere(w.position, 0.1f + 0.15f * physicsCore.OversteerIntensity);
-                        }
-                    }
-                }
-                else
-                {
-                    Gizmos.DrawRay(rearAxlePos + transform.right * 0.7f, slipDir);
-                    Gizmos.DrawRay(rearAxlePos - transform.right * 0.7f, slipDir);
-                    Gizmos.DrawWireSphere(rearAxlePos, 0.1f + 0.2f * physicsCore.OversteerIntensity);
-                }
-            }
-
-            // SOUS-VIRAGE sur les roues avant (jaune → orange en déport)
-            if (physicsCore.UndersteerIntensity > 0.05f)
-            {
-                float pushProgress = Mathf.Clamp01(
-                    (physicsCore.UndersteerIntensity - physicsCore.slipCalculator.understeerPushThreshold)
-                    / (1f - physicsCore.slipCalculator.understeerPushThreshold + 0.001f));
-                Color understeerColor = Color.Lerp(Color.yellow, new Color(1f, 0.5f, 0f), pushProgress);
-                Gizmos.color = understeerColor;
-                Vector3 slipDir = transform.right * (-physicsCore.FrontSlipAngle * 3f);
-
-                if (_frontWheelDebug != null && _frontWheelDebug.Length > 0)
-                {
-                    foreach (Transform w in _frontWheelDebug)
-                    {
-                        if (w != null)
-                        {
-                            Gizmos.DrawRay(w.position, slipDir);
-                            Gizmos.DrawWireSphere(w.position, 0.1f + 0.15f * physicsCore.UndersteerIntensity);
-                        }
-                    }
-                }
-                else
-                {
-                    Gizmos.DrawRay(frontAxlePos + transform.right * 0.7f, slipDir);
-                    Gizmos.DrawRay(frontAxlePos - transform.right * 0.7f, slipDir);
-                    Gizmos.DrawWireSphere(frontAxlePos, 0.1f + 0.2f * physicsCore.UndersteerIntensity);
-                }
             }
         }
 #endif

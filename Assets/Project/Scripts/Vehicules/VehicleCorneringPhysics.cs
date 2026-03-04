@@ -14,10 +14,11 @@ namespace ArcadeRacer.Vehicle
     ///      de la vitesse (centrifugation simulée). Il est centré au repos et se déplace vers la
     ///      roue extérieure quand on tourne.
     ///   ③ Une intensité de virage s'accumule tant qu'on tient le volant, puis décroît rapidement.
-    ///   ④ Survirage  = accélération  × intensité_virage × |déplacement_charge_avant|
-    ///      Sous-virage = freinage_adapt. × intensité_virage × |déplacement_charge_arrière|
-    ///   ⑤ Le freinage est adaptatif : il monte progressivement et retombe plus vite qu'il ne monte.
-    ///   ⑥ Feedback couleur des roues : arrière magenta→rouge (survirage), avant jaune→orange (sous-virage).
+    ///   ④ Survirage  = freinage_adapt. × intensité_virage × |déplacement_charge_avant|
+    ///      Sous-virage = accélération  × intensité_virage × |déplacement_charge_arrière|
+    ///   ⑤ L'intensité de chaque effet monte/descend progressivement (lerp) au-delà du seuil.
+    ///   ⑥ Le freinage adaptatif est géré par VehiclePhysics (AdaptiveBrakeIntensity).
+    ///   ⑦ Feedback couleur des roues : arrière magenta→rouge (survirage), avant jaune→orange (sous-virage).
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(VehiclePhysics))]
@@ -87,21 +88,6 @@ namespace ArcadeRacer.Vehicle
 
         #endregion
 
-        #region Configuration — Adaptive Braking
-
-        [Header("=== FREINAGE ADAPTATIF ===")]
-        [Tooltip("Taux de montée de l'intensité de freinage par seconde. " +
-                 "Le joueur doit maintenir la touche pour atteindre le freinage maximum.")]
-        [Range(0.1f, 5f)]
-        public float brakeBuildRate = 1.2f;
-
-        [Tooltip("Taux de relâchement du freinage adaptatif par seconde quand la touche est lâchée. " +
-                 "Doit être plus élevé que brakeBuildRate pour un retour plus rapide.")]
-        [Range(0.5f, 20f)]
-        public float brakeReleaseRate = 4f;
-
-        #endregion
-
         #region Configuration — Oversteer
 
         [Header("=== SURVIRAGE ===")]
@@ -114,6 +100,11 @@ namespace ArcadeRacer.Vehicle
         [Tooltip("Multiplicateur global des effets de survirage (intensité du déclenchement).")]
         [Range(0f, 5f)]
         public float oversteerStrength = 1f;
+
+        [Tooltip("Vitesse de montée/descente progressive de l'intensité du survirage (unités/s). " +
+                 "Plus élevé = transition plus rapide.")]
+        [Range(0.1f, 10f)]
+        public float rateOversteerProgression = 2f;
 
         [Tooltip("Facteur de conversion intensité survirage → delta de vitesse angulaire de lacet.")]
         [Range(0f, 10f)]
@@ -151,6 +142,11 @@ namespace ArcadeRacer.Vehicle
         [Tooltip("Multiplicateur global des effets de sous-virage.")]
         [Range(0f, 5f)]
         public float understeerStrength = 1f;
+
+        [Tooltip("Vitesse de montée/descente progressive de l'intensité du sous-virage (unités/s). " +
+                 "Plus élevé = transition plus rapide.")]
+        [Range(0.1f, 10f)]
+        public float rateUndersteerProgression = 2f;
 
         [Tooltip("Facteur d'amortissement de la rotation de lacet en sous-virage.")]
         [Range(0f, 10f)]
@@ -192,9 +188,6 @@ namespace ArcadeRacer.Vehicle
         // Intensité de virage accumulée [0, 1]
         private float _turnIntensity;
 
-        // Freinage adaptatif [0, 1]
-        private float _adaptiveBrake;
-
         // Intensités calculées (exposées en lecture seule)
         private float _oversteerIntensity;
         private float _understeerIntensity;
@@ -228,9 +221,6 @@ namespace ArcadeRacer.Vehicle
 
         /// <summary>Intensité de virage accumulée [0-1]. Monte tant qu'on tourne, descend dès qu'on lâche.</summary>
         public float TurnIntensity => _turnIntensity;
-
-        /// <summary>Intensité de freinage adaptatif [0-1]. Monte lentement, retombe rapidement.</summary>
-        public float AdaptiveBrakeIntensity => _adaptiveBrake;
 
         /// <summary>Intensité du survirage normalisée [0-1].</summary>
         public float OversteerIntensity => _oversteerIntensity;
@@ -285,23 +275,14 @@ namespace ArcadeRacer.Vehicle
         #region State Update (called by VehiclePhysics)
 
         /// <summary>
-        /// Met à jour l'état interne (point de charge, intensité de virage, freinage adaptatif).
+        /// Met à jour l'état interne (point de charge, intensité de virage).
         /// Doit être appelé par VehiclePhysics avant ComputeCorneringCorrection chaque FixedUpdate.
+        /// Le freinage adaptatif est géré par VehiclePhysics et lu via _physics.AdaptiveBrakeIntensity.
         /// </summary>
-        public void UpdateCorneringState(float steering, float throttle, float rawBrake,
-                                         float speedKMH, float deltaTime)
+        public void UpdateCorneringState(float steering, float throttle, float speedKMH, float deltaTime)
         {
-            UpdateAdaptiveBrake(rawBrake, deltaTime);
             UpdateTurnIntensity(steering, deltaTime);
             UpdateLoadPoints(steering, speedKMH, deltaTime);
-        }
-
-        private void UpdateAdaptiveBrake(float rawBrake, float dt)
-        {
-            if (rawBrake > 0.05f)
-                _adaptiveBrake = Mathf.MoveTowards(_adaptiveBrake, rawBrake, brakeBuildRate * dt);
-            else
-                _adaptiveBrake = Mathf.MoveTowards(_adaptiveBrake, 0f, brakeReleaseRate * dt);
         }
 
         private void UpdateTurnIntensity(float steering, float dt)
@@ -377,19 +358,23 @@ namespace ArcadeRacer.Vehicle
 
             // ── SURVIRAGE ──────────────────────────────────────────────────────────────
             // Formule : freinage_adaptatif × intensité_virage × |déplacement_charge_avant| × strength
-            float frontDisp     = Mathf.Abs(_frontLoadPoint);
-            float oversteerRaw  = _adaptiveBrake * _turnIntensity * frontDisp * oversteerStrength;
-            _oversteerIntensity = Mathf.Clamp01(
+            float frontDisp       = Mathf.Abs(_frontLoadPoint);
+            float oversteerRaw    = _physics.AdaptiveBrakeIntensity * _turnIntensity * frontDisp * oversteerStrength;
+            float oversteerTarget = Mathf.Clamp01(
                 Mathf.Max(0f, oversteerRaw - oversteerThreshold)
                 / Mathf.Max(1f - oversteerThreshold, 0.001f));
+            _oversteerIntensity   = Mathf.MoveTowards(_oversteerIntensity, oversteerTarget,
+                                        rateOversteerProgression * deltaTime);
 
             // ── SOUS-VIRAGE ────────────────────────────────────────────────────────────
             // Formule : accélération × intensité_virage × |déplacement_charge_arrière| × strength
-            float rearDisp       = Mathf.Abs(_rearLoadPoint);
-            float understeerRaw  = throttle * _turnIntensity * rearDisp * understeerStrength;
-            _understeerIntensity = Mathf.Clamp01(
+            float rearDisp         = Mathf.Abs(_rearLoadPoint);
+            float understeerRaw    = throttle * _turnIntensity * rearDisp * understeerStrength;
+            float understeerTarget = Mathf.Clamp01(
                 Mathf.Max(0f, understeerRaw - understeerThreshold)
                 / Mathf.Max(1f - understeerThreshold, 0.001f));
+            _understeerIntensity   = Mathf.MoveTowards(_understeerIntensity, understeerTarget,
+                                         rateUndersteerProgression * deltaTime);
 
             // ── TÊTE-À-QUEUE ───────────────────────────────────────────────────────────
             _spinOutIntensity = Mathf.Clamp01(
