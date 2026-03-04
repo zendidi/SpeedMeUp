@@ -5,8 +5,8 @@ namespace ArcadeRacer.Vehicle
     /// <summary>
     /// Système de physique de virage basé sur des points de charge simulés sur les essieux.
     ///
-    /// Ce composant remplace VehicleSlipCalculator/VehiclePhysicsCore pour la détection
-    /// survirage/sous-virage quand il est présent sur le même GameObject que VehiclePhysics.
+    /// Ce composant gère la détection survirage/sous-virage et remplace l'ancien VehicleSlipCalculator.
+    /// Il doit être présent sur le même GameObject que VehiclePhysics (RequireComponent).
     ///
     /// Modèle :
     ///   ① La voie de chaque essieu est mesurée automatiquement depuis les positions des roues.

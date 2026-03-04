@@ -41,9 +41,6 @@ namespace ArcadeRacer.Physics
         [Range(0f, 1f)]
         public float weightTransferInfluence = 0.3f;
 
-        [Header("=== SURVIRAGE / SOUS-VIRAGE ===")]
-        public VehicleSlipCalculator slipCalculator = new VehicleSlipCalculator();
-
         #endregion
 
         #region État
@@ -67,13 +64,6 @@ namespace ArcadeRacer.Physics
         public float FrontAxleLoad => _frontAxleLoad;
         public float RearAxleLoad => _rearAxleLoad;
 
-        // Survirage / sous-virage (délégués au VehicleSlipCalculator)
-        public float OversteerIntensity  => slipCalculator.OversteerIntensity;
-        public float UndersteerIntensity => slipCalculator.UndersteerIntensity;
-        public float FrontSlipAngle      => slipCalculator.FrontSlipAngle;
-        public float RearSlipAngle       => slipCalculator.RearSlipAngle;
-        public float SpinOutIntensity    => slipCalculator.SpinOutIntensity;
-
         #endregion
 
         #region Initialization
@@ -84,9 +74,6 @@ namespace ArcadeRacer.Physics
             _frontAxleLoad = 0.5f;
             _rearAxleLoad = 0.5f;
             _angularVelocity = 0f;
-
-            // Synchroniser l'empattement avec le calculateur de glissement
-            slipCalculator.wheelbase = wheelbase;
         }
 
         #endregion
@@ -195,36 +182,6 @@ namespace ArcadeRacer.Physics
         {
             float maxOmega = Mathf.Lerp(MAX_ANGULAR_VELOCITY, spinOutMaxOmega, spinOutIntensity);
             _angularVelocity = Mathf.Clamp(_angularVelocity + delta, -maxOmega, maxOmega);
-        }
-
-        #endregion
-
-        #region Survirage / Sous-virage
-
-        /// <summary>
-        /// Calcule et applique les effets de survirage/sous-virage.
-        /// Met à jour la vitesse angulaire interne et retourne la correction de vélocité.
-        /// </summary>
-        /// <param name="velocity">Vélocité actuelle (espace monde)</param>
-        /// <param name="vehicleTransform">Transform du véhicule</param>
-        /// <param name="steeringInput">Entrée de direction [-1, 1]</param>
-        /// <param name="deltaTime">Pas de temps (Time.fixedDeltaTime)</param>
-        /// <returns>Correction de vélocité en espace monde (Vector3)</returns>
-        public Vector3 ComputeSlipEffect(Vector3 velocity, Transform vehicleTransform, float steeringInput, float deltaTime)
-        {
-            Vector3 velocityCorrection = slipCalculator.ComputeSlipCorrection(
-                velocity, vehicleTransform, steeringInput, _angularVelocity, deltaTime,
-                _frontAxleLoad, _rearAxleLoad,
-                out float angularDelta);
-
-            // En tête-à-queue, le plafond angulaire est relevé progressivement
-            // jusqu'à spinOutMaxAngularVelocity pour permettre au spin de s'emballer.
-            float maxOmega = Mathf.Lerp(MAX_ANGULAR_VELOCITY,
-                slipCalculator.spinOutMaxAngularVelocity,
-                slipCalculator.SpinOutIntensity);
-
-            _angularVelocity = Mathf.Clamp(_angularVelocity + angularDelta, -maxOmega, maxOmega);
-            return velocityCorrection;
         }
 
         #endregion

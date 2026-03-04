@@ -1,6 +1,6 @@
 using UnityEngine;
 using ArcadeRacer.Settings;
-using ArcadeRacer.Physics; // ← AJOUTER
+using ArcadeRacer.Physics;
 
 namespace ArcadeRacer.Vehicle
 {
@@ -15,8 +15,8 @@ namespace ArcadeRacer.Vehicle
         private Rigidbody _rigidbody;
         private Transform _transform;
         private VehicleController _controller;
-        private OffroadDetector _offroadDetector; // ← NOUVEAU
-        private VehicleCorneringPhysics _corneringPhysics; // ← nouveau système de virage
+        private OffroadDetector _offroadDetector;
+        private VehicleCorneringPhysics _corneringPhysics;
 
         #endregion
 
@@ -31,7 +31,7 @@ namespace ArcadeRacer.Vehicle
         [SerializeField] private Transform[] groundCheckPoints;
 
         [Header("=== ADVANCED PHYSICS ===")]
-        [SerializeField] private VehiclePhysicsCore physicsCore = new VehiclePhysicsCore(); // ← NOUVEAU
+        [SerializeField] private VehiclePhysicsCore physicsCore = new VehiclePhysicsCore();
 
         [Header("=== FREINAGE ADAPTATIF ===")]
         [Tooltip("Taux de montée de l'intensité de freinage adaptatif par seconde. " +
@@ -98,8 +98,8 @@ namespace ArcadeRacer.Vehicle
             _rigidbody = GetComponent<Rigidbody>();
             _transform = transform;
             _controller = GetComponent<VehicleController>();
-            _offroadDetector = GetComponent<OffroadDetector>(); // ← NOUVEAU
-            _corneringPhysics = GetComponent<VehicleCorneringPhysics>(); // ← nouveau système de virage
+            _offroadDetector = GetComponent<OffroadDetector>();
+            _corneringPhysics = GetComponent<VehicleCorneringPhysics>();
 
             _rigidbody.isKinematic = true;
             _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
@@ -107,7 +107,7 @@ namespace ArcadeRacer.Vehicle
 
             _velocity = Vector3.zero;
 
-            // ← NOUVEAU : Initialiser le physics core
+           
             physicsCore.Initialize(stats.mass);
         }
 
@@ -124,7 +124,7 @@ namespace ArcadeRacer.Vehicle
             ApplyBraking();
             ApplyDrag();
 
-            // ← NOUVEAU : Calculer accélération pour transfert de charge
+           
             Vector3 deltaV = _velocity - oldVelocity;
             float longitudinalAccel = Vector3.Dot(deltaV, _transform.forward) / Time.fixedDeltaTime;
             physicsCore.UpdateWeightTransfer(longitudinalAccel, stats.mass);
@@ -211,11 +211,11 @@ namespace ArcadeRacer.Vehicle
 
             float force = stats.accelerationForce * _throttleInput * torque * staticResistance;
 
-            // ← NOUVEAU : Appliquer grip multiplier
+           
             float gripMultiplier = physicsCore.GetGripMultiplier();
             force *= gripMultiplier;
             
-            // ← NOUVEAU : Appliquer pénalité offroad
+           
             if (_offroadDetector != null)
             {
                 force *= _offroadDetector.AccelerationMultiplier;
@@ -282,7 +282,7 @@ namespace ArcadeRacer.Vehicle
         {
             if (!_isGrounded) return;
 
-            // ← NOUVEAU : Système d'inertie angulaire
+           
             float steeringModifier = CalculateSteeringModifier();
             physicsCore.UpdateAngularVelocity(_steeringInput, stats.steeringSpeed * steeringModifier, Time.fixedDeltaTime);
             physicsCore.ApplyAngularInertia(_transform, Time.fixedDeltaTime);
@@ -466,7 +466,7 @@ namespace ArcadeRacer.Vehicle
             }
             else
             {
-                // ← NOUVEAU : Coast down physique quand aucun input
+               
                 if (_throttleInput < 0.1f && _brakeInput < 0.1f)
                 {
                     _velocity = physicsCore.ApplyCoastDown(_velocity, _transform, stats.mass, Time.fixedDeltaTime);
@@ -616,7 +616,7 @@ namespace ArcadeRacer.Vehicle
             _transform.rotation = rotation;
             _velocity = Vector3.zero;
             _currentSpeed = 0f;
-            physicsCore.ResetAngularVelocity(); // ← NOUVEAU
+            physicsCore.ResetAngularVelocity();
         }
 
         #endregion
