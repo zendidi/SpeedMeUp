@@ -16,6 +16,7 @@ namespace ArcadeRacer.Vehicle
         private Transform _transform;
         private VehicleController _controller;
         private OffroadDetector _offroadDetector; // ← NOUVEAU
+        private VehicleCorneringPhysics _corneringPhysics; // ← nouveau système de virage
 
         #endregion
 
@@ -78,9 +79,19 @@ namespace ArcadeRacer.Vehicle
         public float CurrentSteeringAngle => _currentSteeringAngle;
         public VehicleStats Stats => stats;
         public float baseSteeringSpeed => stats.steeringSpeed;
-        public float OversteerIntensity  => physicsCore.OversteerIntensity;
-        public float UndersteerIntensity => physicsCore.UndersteerIntensity;
-        public float SpinOutIntensity    => physicsCore.SpinOutIntensity;
+
+        // Inputs exposés pour les composants voisins (ex : VehicleCorneringPhysics)
+        public float ThrottleInput  => _throttleInput;
+        public float BrakeInput     => _brakeInput;
+        public float SteeringInput  => _steeringInput;
+
+        // Délègue au nouveau système de virage si présent, sinon à l'ancien
+        public float OversteerIntensity  => _corneringPhysics != null
+            ? _corneringPhysics.OversteerIntensity  : physicsCore.OversteerIntensity;
+        public float UndersteerIntensity => _corneringPhysics != null
+            ? _corneringPhysics.UndersteerIntensity : physicsCore.UndersteerIntensity;
+        public float SpinOutIntensity    => _corneringPhysics != null
+            ? _corneringPhysics.SpinOutIntensity    : physicsCore.SpinOutIntensity;
 
         #endregion
 
@@ -92,6 +103,7 @@ namespace ArcadeRacer.Vehicle
             _transform = transform;
             _controller = GetComponent<VehicleController>();
             _offroadDetector = GetComponent<OffroadDetector>(); // ← NOUVEAU
+            _corneringPhysics = GetComponent<VehicleCorneringPhysics>(); // ← nouveau système de virage
 
             _rigidbody.isKinematic = true;
             _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
@@ -293,6 +305,10 @@ namespace ArcadeRacer.Vehicle
                 _currentSteeringAngle = Mathf.Lerp(_currentSteeringAngle, 0f, Time.fixedDeltaTime * stats.steeringReturnSpeed);
             }
 
+            // Mettre à jour l'état du nouveau système de virage avant d'appliquer les corrections
+            _corneringPhysics?.UpdateCorneringState(
+                _steeringInput, _throttleInput, _brakeInput, CurrentSpeedKMH, Time.fixedDeltaTime);
+
             ApplyGripOrDrift();
             ApplyTurningSpeedLoss();
         }
@@ -343,36 +359,79 @@ namespace ArcadeRacer.Vehicle
                 float gripFactor = Mathf.Clamp01(stats.gripStrength * 0.15f);
                 _velocity = forwardVelocity + sidewaysVelocity * (1f - gripFactor);
 
-                // Appliquer les effets de survirage/sous-virage
+                // Appliquer les effets de virage
                 if (_isGrounded && _currentSpeed > 1f)
                 {
-                    _velocity += physicsCore.ComputeSlipEffect(_velocity, _transform, _steeringInput, Time.fixedDeltaTime);
+                    if (_corneringPhysics != null)
+                    {
+                        // ── Nouveau système : VehicleCorneringPhysics ──────────────────
+                        Vector3 velCorr = _corneringPhysics.ComputeCorneringCorrection(
+                            _velocity, _transform,
+                            _steeringInput, _throttleInput,
+                            physicsCore.AngularVelocity,
+                            Time.fixedDeltaTime,
+                            out float angularDelta);
+
+                        _velocity += velCorr;
+                        physicsCore.ApplyExternalAngularDelta(
+                            angularDelta,
+                            _corneringPhysics.SpinOutIntensity,
+                            _corneringPhysics.SpinOutMaxAngularVelocity);
+                    }
+                    else
+                    {
+                        // ── Ancien système : VehicleSlipCalculator (fallback) ──────────
+                        _velocity += physicsCore.ComputeSlipEffect(
+                            _velocity, _transform, _steeringInput, Time.fixedDeltaTime);
+                    }
                 }
             }
 
-            if (_showDebug && Time.frameCount % 30 == 0
-                && (physicsCore.OversteerIntensity > 0.1f || physicsCore.UndersteerIntensity > 0.1f))
+            if (_showDebug && Time.frameCount % 30 == 0)
             {
-                Debug.Log($"[Slip] Oversteer: {physicsCore.OversteerIntensity:F2} | Understeer: {physicsCore.UndersteerIntensity:F2} | SpinOut: {physicsCore.SpinOutIntensity:F2} | Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
+                float over  = OversteerIntensity;
+                float under = UndersteerIntensity;
+                if (over > 0.1f || under > 0.1f)
+                {
+                    if (_corneringPhysics != null)
+                    {
+                        Debug.Log($"[Cornering] Oversteer: {over:F2} | Understeer: {under:F2} | " +
+                                  $"SpinOut: {SpinOutIntensity:F2} | " +
+                                  $"TurnIntensity: {_corneringPhysics.TurnIntensity:F2} | " +
+                                  $"AdaptBrake: {_corneringPhysics.AdaptiveBrakeIntensity:F2} | " +
+                                  $"FrontLoad: {_corneringPhysics.FrontLoadPoint:F2} | " +
+                                  $"RearLoad: {_corneringPhysics.RearLoadPoint:F2}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[Slip] Oversteer: {over:F2} | Understeer: {under:F2} | " +
+                                  $"SpinOut: {SpinOutIntensity:F2} | " +
+                                  $"Front: {physicsCore.FrontSlipAngle * Mathf.Rad2Deg:F1}° | " +
+                                  $"Rear: {physicsCore.RearSlipAngle * Mathf.Rad2Deg:F1}°");
+                    }
+                }
             }
 
-            // Debug visuel sur les roues (visible en mode Play dans la Scene view)
-            if (_showDebug)
+            // Debug visuel sur les roues — géré par VehicleCorneringPhysics si présent,
+            // sinon par l'ancienne logique dans DrawWheelSlipDebug.
+            if (_corneringPhysics == null)
             {
-                DrawWheelSlipDebug();
-            }
-            else
-            {
-                // Restaurer les couleurs d'origine si le debug vient d'être désactivé
-                if (_rearWheelColorApplied)
+                if (_showDebug)
                 {
-                    foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                    _rearWheelColorApplied = false;
+                    DrawWheelSlipDebug();
                 }
-                if (_frontWheelColorApplied)
+                else
                 {
-                    foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
-                    _frontWheelColorApplied = false;
+                    if (_rearWheelColorApplied)
+                    {
+                        foreach (Renderer r in _rearWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                        _rearWheelColorApplied = false;
+                    }
+                    if (_frontWheelColorApplied)
+                    {
+                        foreach (Renderer r in _frontWheelRenderers) if (r != null) r.SetPropertyBlock(null);
+                        _frontWheelColorApplied = false;
+                    }
                 }
             }
         }
@@ -385,8 +444,16 @@ namespace ArcadeRacer.Vehicle
         {
             if (_brakeInput <= 0f || !_isGrounded) return;
 
+            // Si VehicleCorneringPhysics est présent, le freinage est adaptatif :
+            // l'intensité effective monte progressivement et retombe rapidement.
+            float effectiveBrake = _corneringPhysics != null
+                ? _corneringPhysics.AdaptiveBrakeIntensity
+                : _brakeInput;
+
+            if (effectiveBrake < 0.001f) return;
+
             float brakeEfficiency = CalculateBrakeEfficiency();
-            float brakeForce = stats.brakeForce * _brakeInput * brakeEfficiency;
+            float brakeForce = stats.brakeForce * effectiveBrake * brakeEfficiency;
             float brakeDeceleration = brakeForce / stats.mass;
 
             Vector3 forwardVelocity = _transform.forward * Vector3.Dot(_velocity, _transform.forward);
@@ -407,7 +474,7 @@ namespace ArcadeRacer.Vehicle
 
             if (_showDebug && Time.frameCount % 30 == 0)
             {
-                Debug.Log($"[Brake] Force: {brakeForce:F0}N | Decel: {brakeDeceleration:F1}m/s²");
+                Debug.Log($"[Brake] Force: {brakeForce:F0}N | Decel: {brakeDeceleration:F1}m/s² | Effective: {effectiveBrake:F2} | Raw: {_brakeInput:F2}");
             }
         }
 
@@ -729,6 +796,8 @@ namespace ArcadeRacer.Vehicle
 #if UNITY_EDITOR
         private void OnDrawGizmos()
         {
+            // Si VehicleCorneringPhysics est présent, il gère ses propres gizmos
+            if (_corneringPhysics != null) return;
             if (!_showDebug || !Application.isPlaying) return;
 
             float halfWB = physicsCore.slipCalculator.wheelbase * 0.5f;

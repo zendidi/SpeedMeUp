@@ -187,6 +187,16 @@ namespace ArcadeRacer.Physics
             _angularVelocity = 0f;
         }
 
+        /// <summary>
+        /// Applique un delta de vitesse angulaire externe (ex : depuis VehicleCorneringPhysics).
+        /// Pendant un tête-à-queue, le plafond est relevé progressivement jusqu'à spinOutMaxOmega.
+        /// </summary>
+        public void ApplyExternalAngularDelta(float delta, float spinOutIntensity, float spinOutMaxOmega)
+        {
+            float maxOmega = Mathf.Lerp(MAX_ANGULAR_VELOCITY, spinOutMaxOmega, spinOutIntensity);
+            _angularVelocity = Mathf.Clamp(_angularVelocity + delta, -maxOmega, maxOmega);
+        }
+
         #endregion
 
         #region Survirage / Sous-virage
