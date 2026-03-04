@@ -106,7 +106,7 @@ namespace ArcadeRacer.Vehicle
 
         [Header("=== SURVIRAGE ===")]
         [Tooltip("Seuil de déclenchement du survirage [0-1].\n" +
-                 "Formule : accélération × intensité_virage × |charge_avant| × strength.\n" +
+                 "Formule : freinage_adapt × intensité_virage × |charge_avant| × strength.\n" +
                  "En dessous de ce seuil : aucun effet.")]
         [Range(0f, 1f)]
         public float oversteerThreshold = 0.25f;
@@ -143,7 +143,7 @@ namespace ArcadeRacer.Vehicle
 
         [Header("=== SOUS-VIRAGE ===")]
         [Tooltip("Seuil de déclenchement du sous-virage [0-1].\n" +
-                 "Formule : freinage_adapt × intensité_virage × |charge_arrière| × strength.\n" +
+                 "Formule : accélération × intensité_virage × |charge_arrière| × strength.\n" +
                  "En dessous de ce seuil : aucun effet.")]
         [Range(0f, 1f)]
         public float understeerThreshold = 0.25f;
@@ -375,17 +375,17 @@ namespace ArcadeRacer.Vehicle
             float rearScale  = _rearAxleWidth;
 
             // ── SURVIRAGE ──────────────────────────────────────────────────────────────
-            // Formule : accélération × intensité_virage × |déplacement_charge_avant| × strength
+            // Formule : freinage_adaptatif × intensité_virage × |déplacement_charge_avant| × strength
             float frontDisp     = Mathf.Abs(_frontLoadPoint);
-            float oversteerRaw  = throttle * _turnIntensity * frontDisp * oversteerStrength;
+            float oversteerRaw  = _adaptiveBrake * _turnIntensity * frontDisp * oversteerStrength;
             _oversteerIntensity = Mathf.Clamp01(
                 Mathf.Max(0f, oversteerRaw - oversteerThreshold)
                 / Mathf.Max(1f - oversteerThreshold, 0.001f));
 
             // ── SOUS-VIRAGE ────────────────────────────────────────────────────────────
-            // Formule : freinage_adaptatif × intensité_virage × |déplacement_charge_arrière| × strength
+            // Formule : accélération × intensité_virage × |déplacement_charge_arrière| × strength
             float rearDisp       = Mathf.Abs(_rearLoadPoint);
-            float understeerRaw  = _adaptiveBrake * _turnIntensity * rearDisp * understeerStrength;
+            float understeerRaw  = throttle * _turnIntensity * rearDisp * understeerStrength;
             _understeerIntensity = Mathf.Clamp01(
                 Mathf.Max(0f, understeerRaw - understeerThreshold)
                 / Mathf.Max(1f - understeerThreshold, 0.001f));
