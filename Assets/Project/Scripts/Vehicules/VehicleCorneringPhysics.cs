@@ -78,12 +78,12 @@ namespace ArcadeRacer.Vehicle
         [Header("=== INTENSITÉ DE VIRAGE ===")]
         [Tooltip("Taux de montée de l'intensité de virage par seconde, multiplié par |steering|. " +
                  "Avec 1.5 et steering plein : ~0.67s pour atteindre l'intensité max.")]
-        [Range(0.1f, 10f)]
+        [Range(0.1f, 5f)]
         public float turnIntensityBuildRate = 1.5f;
 
         [Tooltip("Taux de décroissance de l'intensité de virage par seconde quand le volant est relâché. " +
                  "Doit être > buildRate pour un retour plus rapide.")]
-        [Range(0.2f, 20f)]
+        [Range(0.2f, 10f)]
         public float turnIntensityDecayRate = 3f;
 
         #endregion
@@ -98,20 +98,20 @@ namespace ArcadeRacer.Vehicle
         public float oversteerThreshold = 0.25f;
 
         [Tooltip("Multiplicateur global des effets de survirage (intensité du déclenchement).")]
-        [Range(0f, 5f)]
+        [Range(0f, 3f)]
         public float oversteerStrength = 1f;
 
         [Tooltip("Vitesse de montée/descente progressive de l'intensité du survirage (unités/s). " +
                  "Plus élevé = transition plus rapide.")]
-        [Range(0.1f, 10f)]
+        [Range(0.1f, 5f)]
         public float rateOversteerProgression = 2f;
 
         [Tooltip("Facteur de conversion intensité survirage → delta de vitesse angulaire de lacet.")]
-        [Range(0f, 10f)]
+        [Range(0f, 5f)]
         public float oversteerYawFactor = 3f;
 
         [Tooltip("Intensité de la dérive latérale de l'arrière lors du survirage.")]
-        [Range(0f, 5f)]
+        [Range(0f, 3f)]
         public float oversteerSlideStrength = 1f;
 
         [Header("=== TÊTE-À-QUEUE (survirage extrême) ===")]
@@ -140,16 +140,16 @@ namespace ArcadeRacer.Vehicle
         public float understeerThreshold = 0.25f;
 
         [Tooltip("Multiplicateur global des effets de sous-virage.")]
-        [Range(0f, 5f)]
+        [Range(0f, 3f)]
         public float understeerStrength = 1f;
 
         [Tooltip("Vitesse de montée/descente progressive de l'intensité du sous-virage (unités/s). " +
                  "Plus élevé = transition plus rapide.")]
-        [Range(0.1f, 10f)]
+        [Range(0.1f, 5f)]
         public float rateUndersteerProgression = 2f;
 
         [Tooltip("Facteur d'amortissement de la rotation de lacet en sous-virage.")]
-        [Range(0f, 10f)]
+        [Range(0f, 3f)]
         public float understeerYawDampFactor = 2f;
 
         [Header("=== DÉPORT EXTÉRIEUR (sous-virage extrême) ===")]
@@ -421,7 +421,7 @@ namespace ArcadeRacer.Vehicle
                         / Mathf.Max(1f - understeerPushThreshold, 0.001f);
                     float outForce = -Mathf.Sign(steering) * push
                         * understeerPushStrength * speed * rearScale * deltaTime;
-                    correction += vehicleTransform.right * outForce;
+                    correction += vehicleTransform.right * outForce* rateUndersteerProgression;
                 }
             }
 
@@ -550,7 +550,7 @@ namespace ArcadeRacer.Vehicle
             UnityEditor.Handles.Label(
                 transform.position + Vector3.up * 2.5f,
                 $"Oversteer: {_oversteerIntensity:F2}  Understeer: {_understeerIntensity:F2}\n" +
-                $"TurnIntensity: {_turnIntensity:F2}  AdaptBrake: {_adaptiveBrake:F2}\n" +
+                $"TurnIntensity: {_turnIntensity:F2}  AdaptBrake: {_physics.AdaptiveBrakeIntensity:F2}\n" +
                 $"FrontLoad: {_frontLoadPoint:F2}  RearLoad: {_rearLoadPoint:F2}");
         }
 
