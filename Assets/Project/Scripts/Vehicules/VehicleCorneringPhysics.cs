@@ -208,6 +208,7 @@ namespace ArcadeRacer.Vehicle
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
         private bool _frontColorApplied;
         private bool _rearColorApplied;
+        private VehiclePhysics _physics;
 
         #endregion
 
