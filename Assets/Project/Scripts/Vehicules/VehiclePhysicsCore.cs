@@ -45,6 +45,9 @@ namespace ArcadeRacer.Physics
 
         #region État
 
+        // Vitesse angulaire maximale de lacet (rad/s). Au-delà la voiture tournerait de façon irréaliste.
+        private const float MAX_ANGULAR_VELOCITY = 5f;
+
         // Inertie angulaire
         private float _angularVelocity; // rad/s
         private float _momentOfInertia;
@@ -139,7 +142,7 @@ namespace ArcadeRacer.Physics
             _angularVelocity += (angularAcceleration + dampingAcceleration) * deltaTime;
 
             // === LIMITER ===
-            _angularVelocity = Mathf.Clamp(_angularVelocity, -5f, 5f);
+            _angularVelocity = Mathf.Clamp(_angularVelocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY);
 
             // === ARRÊT COMPLET SI TRÈS FAIBLE ===
             if (Mathf.Abs(steeringInput) < 0.01f && Mathf.Abs(_angularVelocity) < 0.02f)
@@ -169,6 +172,16 @@ namespace ArcadeRacer.Physics
         public void ResetAngularVelocity()
         {
             _angularVelocity = 0f;
+        }
+
+        /// <summary>
+        /// Applique un delta de vitesse angulaire externe (ex : depuis VehicleCorneringPhysics).
+        /// Pendant un tête-à-queue, le plafond est relevé progressivement jusqu'à spinOutMaxOmega.
+        /// </summary>
+        public void ApplyExternalAngularDelta(float delta, float spinOutIntensity, float spinOutMaxOmega)
+        {
+            float maxOmega = Mathf.Lerp(MAX_ANGULAR_VELOCITY, spinOutMaxOmega, spinOutIntensity);
+            _angularVelocity = Mathf.Clamp(_angularVelocity + delta, -maxOmega, maxOmega);
         }
 
         #endregion

@@ -2597,6 +2597,7 @@ GameObject:
   - component: {fileID: 618931073}
   - component: {fileID: 618931074}
   - component: {fileID: 618931075}
+  - component: {fileID: 618931076}
   m_Layer: 0
   m_Name: PlayerCar
   m_TagString: Untagged
@@ -2637,6 +2638,27 @@ MonoBehaviour:
     centerOfGravityHeight: 0.68
     wheelbase: 2.94
     weightTransferInfluence: 0.679
+    slipCalculator:
+      enabled: 1
+      wheelbase: 2.5
+      maxSteeringAngleDeg: 25
+      frontGripCoefficient: 1
+      rearGripCoefficient: 0.9
+      referenceSpeed: 30
+      lateralVelocityDeadZone: 0.2
+      oversteerThreshold: 0.08
+      understeerThreshold: 0.1
+      oversteerStrength: 1
+      understeerStrength: 0.8
+      oversteerYawFactor: 3
+      understeerYawDampFactor: 2
+      spinOutThreshold: 0.65
+      spinOutAngularMultiplier: 4
+      spinOutMaxAngularVelocity: 12
+      understeerPushThreshold: 0.5
+      understeerOutwardPushStrength: 4
+  _frontWheelDebug: []
+  _rearWheelDebug: []
   _showDebug: 0
 --- !u!114 &618931062
 MonoBehaviour:
@@ -2661,6 +2683,9 @@ MonoBehaviour:
     isGrounded: 0
     isDrifting: 0
     steeringAngle: 0
+    oversteerIntensity: 0
+    understeerIntensity: 0
+    spinOutIntensity: 0
     throttle: 0
     brake: 0
     steering: 0
@@ -3202,6 +3227,47 @@ MonoBehaviour:
     totalRaceTime: 
     bestLapTime: 
     completedLaps: 0
+--- !u!114 &618931076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 618931060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9891dc93f19373849a02845492740904, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.Vehicle.VehicleCorneringPhysics
+  frontWheels:
+  - {fileID: 738860500}
+  - {fileID: 811624205}
+  rearWheels:
+  - {fileID: 204284485}
+  - {fileID: 1297050277}
+  frontAxleEffectMultiplier: 1
+  rearAxleEffectMultiplier: 1
+  frontLoadSensitivity: 2.5
+  rearLoadSensitivity: 2
+  loadReturnSpeed: 4
+  loadReferenceSpeedKMH: 80
+  turnIntensityBuildRate: 1.5
+  turnIntensityDecayRate: 3
+  brakeBuildRate: 2.55
+  brakeReleaseRate: 5
+  oversteerThreshold: 0.408
+  oversteerStrength: 0.56
+  oversteerYawFactor: 3
+  oversteerSlideStrength: 0.32
+  spinOutThreshold: 0.7
+  spinOutAngularMultiplier: 4
+  spinOutMaxAngularVelocity: 12
+  understeerThreshold: 0.239
+  understeerStrength: 1.62
+  understeerYawDampFactor: 1.2
+  understeerPushThreshold: 0.6
+  understeerPushStrength: 1.7
+  showDebug: 1
 --- !u!1 &626289288
 GameObject:
   m_ObjectHideFlags: 0
@@ -6106,7 +6172,7 @@ MonoBehaviour:
   lapTimer: {fileID: 0}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   betterThanRank1Color: {r: 0, g: 1, b: 0, a: 1}
-  averageColor: {r: 0, g: 0, b: 1, a: 1}
+  betweenRanksColor: {r: 0, g: 1, b: 0, a: 1}
   worseColor: {r: 1, g: 0, b: 0, a: 1}
   circuitName: 
 --- !u!1 &1674142559

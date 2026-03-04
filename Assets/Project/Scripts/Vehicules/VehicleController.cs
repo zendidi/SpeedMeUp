@@ -268,6 +268,9 @@ namespace ArcadeRacer.Vehicle
             public bool isGrounded;
             public bool isDrifting;
             public float steeringAngle;
+            public float oversteerIntensity;
+            public float understeerIntensity;
+            public float spinOutIntensity;
 
             [Header("Input")]
             public float throttle;
@@ -292,6 +295,9 @@ namespace ArcadeRacer.Vehicle
             _debugInfo.isGrounded = _physics.IsGrounded;
             _debugInfo.isDrifting = _physics.IsDrifting;
             _debugInfo.steeringAngle = _physics.CurrentSteeringAngle;
+            _debugInfo.oversteerIntensity = _physics.OversteerIntensity;
+            _debugInfo.understeerIntensity = _physics.UndersteerIntensity;
+            _debugInfo.spinOutIntensity = _physics.SpinOutIntensity;
 
             _debugInfo.throttle = _input.Throttle;
             _debugInfo.brake = _input.Brake;
