@@ -89,7 +89,7 @@
                 {
                     "name": "",
                     "id": "00dcc423-a647-446e-b97b-05b39bf3be73",
-                    "path": "<WebGLGamepad>/leftTrigger",
+                    "path": "<Gamepad>/leftTrigger",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

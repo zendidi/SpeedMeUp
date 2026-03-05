@@ -4468,7 +4468,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3341865289747f042b33b50fd2d06c43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.RaceSystem.RaceManager
-  totalLaps: 3
+  totalLaps: 1
   countdownDuration: 1
   autoStart: 1
   checkpointManager: {fileID: 1975976137}
