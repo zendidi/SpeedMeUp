@@ -35,12 +35,17 @@ namespace ArcadeRacer.RaceSystem
         [SerializeField, Tooltip("Liste des véhicules participants")]
         private List<VehicleController> racingVehicles = new List<VehicleController>();
 
+        [Header("=== WARMUP LAP ===")]
+        [SerializeField, Tooltip("Activer le tour de formation : le premier tour ne sera pas comptabilisé")]
+        private bool enableWarmupLap = false;
+
         [Header("=== DEBUG ===")]
         [SerializeField] private bool showDebugInfo = true;
 
         // Runtime
         private Dictionary<VehicleController, LapTimer> _vehicleTimers = new Dictionary<VehicleController, LapTimer>();
         private Dictionary<VehicleController, int> _vehicleLaps = new Dictionary<VehicleController, int>();
+        private Dictionary<VehicleController, bool> _warmupLapActive = new Dictionary<VehicleController, bool>();
         private List<VehicleController> _finishedVehicles = new List<VehicleController>();
 
         // Highscore name input context
@@ -163,6 +168,7 @@ namespace ArcadeRacer.RaceSystem
 
                 _vehicleTimers[vehicle] = timer;
                 _vehicleLaps[vehicle] = 0;
+                _warmupLapActive[vehicle] = enableWarmupLap;
 
                 // Désactiver le contrôle au départ
                 vehicle.SetControllable(false);
@@ -305,6 +311,7 @@ namespace ArcadeRacer.RaceSystem
             {
                 vehicle.SetControllable(false);
                 _vehicleLaps[vehicle] = 0;
+                _warmupLapActive[vehicle] = enableWarmupLap;
                 _vehicleTimers[vehicle].Reset();
                 checkpointManager?.ResetVehicleProgress(vehicle);
 
@@ -341,6 +348,22 @@ namespace ArcadeRacer.RaceSystem
             if (!_vehicleLaps.ContainsKey(vehicle))
             {
                 Debug.LogWarning($"[RaceManager] Véhicule {vehicle.name} non enregistré!");
+                return;
+            }
+
+            // Vérifier si le tour de formation est actif pour ce véhicule
+            if (IsWarmupLapActive(vehicle))
+            {
+                // Le tour de formation est terminé : ne pas compter le tour ni enregistrer le temps
+                _warmupLapActive[vehicle] = false;
+
+                // Réinitialiser le chrono pour repartir de zéro sur le vrai premier tour
+                if (_vehicleTimers.ContainsKey(vehicle))
+                {
+                    _vehicleTimers[vehicle].ResetLapForWarmup();
+                }
+
+                Debug.Log($"[RaceManager] {vehicle.name} - Tour de formation terminé, le tour ne sera pas comptabilisé.");
                 return;
             }
 
@@ -621,6 +644,14 @@ namespace ArcadeRacer.RaceSystem
         #region Public API
 
         /// <summary>
+        /// Indique si le tour de formation est actif pour un véhicule donné
+        /// </summary>
+        public bool IsWarmupLapActive(VehicleController vehicle)
+        {
+            return _warmupLapActive.ContainsKey(vehicle) && _warmupLapActive[vehicle];
+        }
+
+        /// <summary>
         /// Ajouter un véhicule à la course
         /// </summary>
         public void RegisterVehicle(VehicleController vehicle)
@@ -637,6 +668,7 @@ namespace ArcadeRacer.RaceSystem
 
                 _vehicleTimers[vehicle] = timer;
                 _vehicleLaps[vehicle] = 0;
+                _warmupLapActive[vehicle] = enableWarmupLap;
 
                 Debug.Log($"[RaceManager] {vehicle.name} registered for race.");
             }

@@ -177,6 +177,19 @@ namespace ArcadeRacer.RaceSystem
         }
 
         /// <summary>
+        /// Réinitialise le chrono du tour actuel sans comptabiliser ce tour (utilisé pour le tour de formation)
+        /// </summary>
+        public void ResetLapForWarmup()
+        {
+            if (!_isRacing) return;
+
+            _currentLapStartTime = Time.time;
+            _currentLapCheckpointTimes.Clear();
+
+            Debug.Log($"[LapTimer] {gameObject.name} - Tour de formation réinitialisé, nouveau tour démarre.");
+        }
+
+        /// <summary>
         /// Terminer la course
         /// </summary>
         public void FinishRace()

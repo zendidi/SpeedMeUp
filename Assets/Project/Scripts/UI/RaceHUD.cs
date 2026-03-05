@@ -30,6 +30,7 @@ namespace ArcadeRacer.UI
         [SerializeField] private bool showPosition = true;
 
         private LapTimer _playerTimer;
+        private bool _warmupDisplayActive = false;
 
         #region Unity Lifecycle
 
@@ -144,6 +145,25 @@ namespace ArcadeRacer.UI
             {
                 Debug.LogWarning("[RaceHUD] _playerTimer is null!");
                 return;
+            }
+
+            // Afficher "Warmup Lap" en orange si le tour de formation est actif
+            if (raceManager != null && playerVehicle != null && raceManager.IsWarmupLapActive(playerVehicle))
+            {
+                if (!_warmupDisplayActive)
+                {
+                    currentLapTimeText.color = new Color(1f, 0.5f, 0f); // Orange
+                    _warmupDisplayActive = true;
+                }
+                currentLapTimeText.text = "Warmup Lap";
+                return;
+            }
+
+            // Remettre la couleur par défaut (blanc) à la sortie du warmup
+            if (_warmupDisplayActive)
+            {
+                currentLapTimeText.color = Color.white;
+                _warmupDisplayActive = false;
             }
 
             float currentTime = _playerTimer.CurrentLapTime;
