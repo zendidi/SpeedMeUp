@@ -90,9 +90,9 @@ HighscoreManager.TryAddScore()
 1. Dans le menu gauche, cliquer sur **"Build" → "Realtime Database"**
 2. Cliquer sur **"Créer une base de données"**
 3. Choisir la région : **"Europe-West1 (Belgique)"** (plus proche de la France, latence réduite)
-4. Sur l'écran des règles de sécurité, choisir **"Commencer en mode test"**
+4. Sur l'écran des règles de sécurité, choisir **"Commencer en mode verrouillé"**
 
-   > ⚠️ Le mode test autorise tout pendant 30 jours. Parfait pour démarrer. On sécurisera après.
+   > ℹ️ Le mode verrouillé refuse tout par défaut. On appliquera immédiatement les règles permanentes à l'étape suivante.
 
 5. Cliquer **"Activer"**
 
@@ -116,53 +116,47 @@ Ou pour les projets US :
 https://NOM_PROJET-default-rtdb.firebaseio.com
 ```
 
-### Étape 4 : Configurer les Règles de Sécurité
+### Étape 4 : Appliquer les Règles de Sécurité Permanentes
 
-#### Mode Développement (30 premiers jours)
+Les règles de sécurité du projet sont stockées dans le fichier `database.rules.json` à la racine du dépôt. C'est la **source de vérité unique** — modifier ce fichier, puis déployer.
 
-Le mode test génère ces règles automatiquement :
+#### Option A — Via Firebase CLI (recommandé, reproductible)
 
-```json
-{
-  "rules": {
-    ".read": "now < 1748736000000",
-    ".write": "now < 1748736000000"
-  }
-}
+```bash
+# 1. Installer Firebase CLI (une seule fois)
+npm install -g firebase-tools
+
+# 2. Se connecter avec votre compte Google
+firebase login
+
+# 3. Associer le projet Firebase (une seule fois, à la racine du dépôt)
+firebase use --add
+# Choisir votre projet dans la liste, lui donner un alias : "default"
+
+# 4. Déployer les règles
+firebase deploy --only database
 ```
 
-Ces règles expirent automatiquement. Il faut les remplacer avant la date d'expiration.
-
-#### Règles Recommandées pour la Production
-
-Dans la console Firebase → **Realtime Database → Règles**, coller ces règles :
-
-```json
-{
-  "rules": {
-    "highscores": {
-      "$circuit": {
-        ".read": true,
-        ".write": true,
-        ".validate": "newData.hasChildren(['entries'])",
-        "entries": {
-          ".validate": "newData.isString() || newData.hasChildren()"
-        }
-      }
-    }
-  }
-}
+Sortie attendue :
 ```
+✔  Deploy complete!
+
+Project Console: https://console.firebase.google.com/project/speedmeup-highscores/overview
+```
+
+#### Option B — Via la Console Firebase (copier-coller)
+
+Dans la console Firebase → **Realtime Database → Règles**, remplacer tout le contenu par le contenu du fichier `database.rules.json` puis cliquer **"Publier"**.
 
 **Explication des règles :**
 - `".read": true` → Tout le monde peut lire les highscores (classement public)
 - `".write": true` → Tout le monde peut écrire (sans authentification)
 - `".validate"` → La donnée doit avoir un champ `entries`
-- Seule la branche `highscores/` est accessible — le reste de la DB est protégé
+- `timeInSeconds > 5.0` → Refuse tout temps inférieur à 5 secondes (anti-triche basique)
+- `playerName.length 1–20` → Nom de joueur obligatoire, 20 caractères max
+- Seule la branche `highscores/` est accessible — le reste de la DB est protégé par défaut
 
-> 💡 **Note sécurité** : Ce setup est suffisant pour un jeu arcade. Un joueur malveillant pourrait théoriquement écrire n'importe quoi. Si vous souhaitez protéger contre la triche, voir la section [Sécurité Avancée](#sécurité-avancée) en bas de ce document.
-
-Cliquer **"Publier"** pour appliquer les règles.
+> ✅ Ces règles sont **permanentes** — elles n'expirent jamais, contrairement au mode test.
 
 ---
 
@@ -461,37 +455,20 @@ Dans l'éditeur Unity, sélectionner le GameObject **HighscoreManager** :
 
 ## 🔒 Sécurité Avancée (Optionnel)
 
-### Protéger Contre la Triche Simple
+### Modifier la Validation des Temps
 
-Pour empêcher un joueur de soumettre un temps impossiblement bas (ex: 0.001 seconde), ajouter une validation côté Firebase :
+Le seuil minimum par défaut est `5.0` secondes. Si vos circuits sont plus longs, ajuster dans `database.rules.json` :
 
 ```json
-{
-  "rules": {
-    "highscores": {
-      "$circuit": {
-        ".read": true,
-        ".write": true,
-        ".validate": "newData.hasChildren(['entries'])",
-        "entries": {
-          "$index": {
-            "timeInSeconds": {
-              ".validate": "newData.isNumber() && newData.val() > 10.0"
-            },
-            "playerName": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
-            }
-          }
-        }
-      }
-    }
-  }
+"timeInSeconds": {
+  ".validate": "newData.isNumber() && newData.val() > 30.0"
 }
 ```
 
-Cette règle :
-- Refuse tout temps inférieur à 10 secondes (ajuster selon vos circuits)
-- Limite les noms de joueurs à 1-20 caractères
+Puis redéployer :
+```bash
+firebase deploy --only database
+```
 
 ### Utiliser Firebase Authentication (Avancé)
 
@@ -521,11 +498,10 @@ Le plan gratuit est **largement suffisant** pour SpeedMeUp.
 
 ### Firebase Console
 - [ ] Créer un projet Firebase
-- [ ] Activer Realtime Database
+- [ ] Activer Realtime Database en **mode verrouillé**
 - [ ] Choisir la région Europe-West1
-- [ ] Démarrer en mode test
 - [ ] Copier l'URL de la database
-- [ ] Configurer les règles de sécurité (remplacer le mode test après 30 jours)
+- [ ] Déployer les règles permanentes (`firebase deploy --only database` ou copier-coller `database.rules.json`)
 
 ### Unity Inspector
 - [ ] Ouvrir la scène `SampleScene.unity`
@@ -545,11 +521,15 @@ Le plan gratuit est **largement suffisant** pour SpeedMeUp.
 ## 📦 Fichiers Concernés
 
 ```
+(racine du dépôt)
+├── database.rules.json           ← Règles de sécurité Firebase (permanentes, versionnées)
+└── firebase.json                 ← Config Firebase CLI (pointe vers database.rules.json)
+
 Assets/Project/Scripts/Core/
-└── HighscoreManager.cs           ← Modifié: synchronisation Firebase REST
+└── HighscoreManager.cs           ← Synchronisation Firebase REST
 
 Assets/Project/Scripts/UI/
-└── HighscoreDisplayUI.cs         ← Modifié: rafraîchissement auto sur événement réseau
+└── HighscoreDisplayUI.cs         ← Rafraîchissement auto sur événement réseau
 ```
 
 ---
@@ -583,6 +563,7 @@ Chaque entrée contient :
 ---
 
 **Date de création** : 04 mars 2026  
-**Version** : 1.0  
+**Dernière mise à jour** : 05 mars 2026 — Passage aux règles permanentes  
+**Version** : 1.1  
 **Compatibilité** : Unity 2021.3+, Firebase Realtime Database (Plan Spark)  
-**Statut** : ✅ Complet et prêt à l'emploi
+**Statut** : ✅ Règles permanentes actives
