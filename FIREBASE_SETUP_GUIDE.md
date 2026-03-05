@@ -116,9 +116,43 @@ Ou pour les projets US :
 https://NOM_PROJET-default-rtdb.firebaseio.com
 ```
 
-### Étape 4 : Appliquer les Règles de Sécurité Permanentes
+### Étape 4 : Activer l'Authentification Anonyme
+
+Cette étape permet à chaque joueur d'obtenir un identifiant unique sans créer de compte. Le système l'utilise pour autoriser les écritures dans la base de données.
+
+1. Dans le menu gauche, cliquer sur **"Build" → "Authentication"**
+2. Cliquer sur **"Commencer"** (si c'est la première fois)
+3. Aller sur l'onglet **"Sign-in method"**
+4. Cliquer sur **"Anonymous"**
+5. Activer le toggle **"Activer"**
+6. Cliquer **"Enregistrer"**
+
+> ✅ Firebase créera automatiquement un ID anonyme unique pour chaque nouveau joueur au premier lancement du jeu.
+
+### Étape 5 : Récupérer la Web API Key
+
+La Web API Key est nécessaire pour que le jeu puisse appeler l'API d'authentification Firebase.
+
+1. Dans la Firebase Console, cliquer sur l'icône ⚙️ → **"Paramètres du projet"**
+2. Sur l'onglet **"Général"**, repérer la section **"Vos applications"** (ou directement en haut de page)
+3. Copier la valeur du champ **"Web API Key"**
+
+```
+AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+> 📌 **Gardez cette clé** — vous en aurez besoin dans Unity.
+
+### Étape 6 : Appliquer les Règles de Sécurité Permanentes
 
 Les règles de sécurité du projet sont stockées dans le fichier `database.rules.json` à la racine du dépôt. C'est la **source de vérité unique** — modifier ce fichier, puis déployer.
+
+Les règles actuelles exigent une authentification pour les écritures :
+
+```json
+".write": "auth != null"   ← seuls les joueurs authentifiés peuvent écrire
+".read":  true              ← classement public en lecture
+```
 
 #### Option A — Via Firebase CLI (recommandé, reproductible)
 
@@ -150,7 +184,7 @@ Dans la console Firebase → **Realtime Database → Règles**, remplacer tout l
 
 **Explication des règles :**
 - `".read": true` → Tout le monde peut lire les highscores (classement public)
-- `".write": true` → Tout le monde peut écrire (sans authentification)
+- `".write": "auth != null"` → Seuls les joueurs avec un compte anonyme peuvent écrire
 - `".validate"` → La donnée doit avoir un champ `entries`
 - `timeInSeconds > 5.0` → Refuse tout temps inférieur à 5 secondes (anti-triche basique)
 - `playerName.length 1–20` → Nom de joueur obligatoire, 20 caractères max
@@ -162,14 +196,14 @@ Dans la console Firebase → **Realtime Database → Règles**, remplacer tout l
 
 ## 🎮 PARTIE 2 : Configuration dans Unity
 
-### Étape 1 : Trouver le HighscoreManager dans la Scène
+### Étape 1 : Trouver les GameObjects dans la Scène
 
 1. Ouvrir la scène principale : `Assets/Project/Scene/Core/SampleScene.unity`
-2. Dans la **Hiérarchie**, chercher l'objet **"HighscoreManager"**
-   - S'il n'est pas visible, lancer le jeu une fois — il se crée automatiquement
-   - Ou créer manuellement : `Create Empty GameObject` → nommer `HighscoreManager` → ajouter le component `HighscoreManager`
+2. Dans la **Hiérarchie**, chercher les objets **"HighscoreManager"** et **"FirebaseAuthManager"**
+   - S'ils ne sont pas visibles, lancer le jeu une fois — ils se créent automatiquement
+   - Ou créer manuellement : `Create Empty GameObject` → nommer selon le composant souhaité → ajouter le composant correspondant
 
-### Étape 2 : Configurer l'Inspector
+### Étape 2 : Configurer le HighscoreManager
 
 Sélectionner le GameObject **HighscoreManager** dans la hiérarchie. Dans l'Inspector, vous verrez la section :
 
@@ -189,18 +223,40 @@ https://speedmeup-highscores-default-rtdb.europe-west1.firebasedatabase.app
 
 > ⚠️ **Ne pas** ajouter de `/` à la fin de l'URL.
 
-**Options disponibles :**
-
 | Champ | Valeur par défaut | Description |
 |-------|-------------------|-------------|
 | Firebase Database Url | *(vide)* | URL de votre DB Firebase. Vide = mode local uniquement |
 | Auto Sync On Start | `true` | Télécharge les scores Firebase au démarrage du jeu |
 | Network Timeout Secs | `10` | Secondes avant d'abandonner une requête réseau |
 
-### Étape 3 : Sauvegarder la Scène
+### Étape 3 : Configurer le FirebaseAuthManager
+
+1. Créer un GameObject vide dans la scène, nommer le **"FirebaseAuthManager"**
+2. Ajouter le component `FirebaseAuthManager` (`Assets/Project/Scripts/Core/FirebaseAuthManager.cs`)
+3. Dans l'Inspector, vous verrez la section :
+
+```
+=== FIREBASE AUTHENTICATION ===
+
+Firebase Web Api Key : [ _______________________________ ]
+```
+
+**Remplir le champ "Firebase Web Api Key"** avec la Web API Key copiée à l'étape 5 :
+
+```
+AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+> ℹ️ Sans cette clé, les scores seront écrits sans authentification et les règles `"auth != null"` les bloqueront. Les deux composants doivent être configurés ensemble.
+
+| Champ | Description |
+|-------|-------------|
+| Firebase Web Api Key | Clé d'API Web du projet Firebase (pas la clé de la DB) |
+
+### Étape 4 : Sauvegarder la Scène
 
 - `Ctrl+S` (Windows) ou `Cmd+S` (Mac) pour sauvegarder la scène
-- Le champ `firebaseDatabaseUrl` est sérialisé dans la scène — il sera inclus dans le build
+- Les deux champs (`firebaseDatabaseUrl` et `firebaseWebApiKey`) sont sérialisés dans la scène — ils seront inclus dans le build
 
 ---
 
@@ -418,14 +474,21 @@ Dans l'éditeur Unity, sélectionner le GameObject **HighscoreManager** :
 - Vérifier l'URL dans l'Inspector : pas de faute de frappe, pas de `/` à la fin
 - Tester l'URL directement dans un navigateur (elle doit retourner `null` ou du JSON)
 
-### ❌ "Error 401 Unauthorized"
+### ❌ "Error 401 Unauthorized" lors du push des scores
 
-**Cause** : Les règles Firebase sont trop restrictives.
+**Cause** : Les règles exigent `auth != null` mais aucun token n'a été fourni.
 
-**Solution** :
-- Aller sur Firebase Console → **Realtime Database → Règles**
-- Vérifier que les règles permettent la lecture et l'écriture (voir section Règles ci-dessus)
-- Cliquer **"Publier"** après modification
+**Solutions possibles** :
+1. Le composant `FirebaseAuthManager` n'est pas dans la scène → l'ajouter (voir PARTIE 2, Étape 3)
+2. La **Web API Key** est manquante ou incorrecte dans `FirebaseAuthManager`
+3. L'authentification anonyme n'est pas activée dans la Firebase Console → `Authentication → Sign-in method → Anonymous → Activer`
+4. Dans la console Unity, vérifier la présence du log `[FirebaseAuthManager] Connexion anonyme OK`
+
+Si vous ne voulez **pas** utiliser l'auth (debug rapide), remplacer temporairement dans `database.rules.json` :
+```json
+".write": true
+```
+Puis redéployer. ⚠️ Ne pas laisser en production.
 
 ### ❌ Les scores Firebase ne s'affichent pas après démarrage
 
@@ -470,14 +533,15 @@ Puis redéployer :
 firebase deploy --only database
 ```
 
-### Utiliser Firebase Authentication (Avancé)
+### Utiliser Firebase Authentication
 
-Pour une vraie protection anti-triche, vous pouvez activer l'authentification anonyme Firebase :
-- Firebase Console → **Authentication → Sign-in method → Anonymous → Activer**
-- Modifier les règles pour exiger une authentification : `.write: "auth != null"`
-- Intégrer `FirebaseAuth` dans Unity (nécessite le SDK Firebase Unity)
+L'authentification anonyme est **déjà intégrée** dans ce projet via `FirebaseAuthManager.cs`, sans SDK Firebase — uniquement avec l'API REST.
 
-> Ce niveau de protection est optionnel pour un jeu arcade.
+- Aucun `using Firebase.Auth;` requis
+- Aucun `.unitypackage` à importer
+- Fonctionne avec `UnityWebRequest`, comme le reste du projet
+
+> ✅ L'authentification est active dès que la **Web API Key** est configurée dans le composant `FirebaseAuthManager` (voir PARTIE 2, Étape 3).
 
 ---
 
@@ -501,17 +565,20 @@ Le plan gratuit est **largement suffisant** pour SpeedMeUp.
 - [ ] Activer Realtime Database en **mode verrouillé**
 - [ ] Choisir la région Europe-West1
 - [ ] Copier l'URL de la database
+- [ ] Activer **Authentication → Sign-in method → Anonymous**
+- [ ] Copier la **Web API Key** (Project Settings → Général)
 - [ ] Déployer les règles permanentes (`firebase deploy --only database` ou copier-coller `database.rules.json`)
 
 ### Unity Inspector
 - [ ] Ouvrir la scène `SampleScene.unity`
-- [ ] Sélectionner le GameObject **HighscoreManager**
-- [ ] Coller l'URL Firebase dans le champ **"Firebase Database Url"**
+- [ ] Sélectionner le GameObject **HighscoreManager** → coller l'URL Firebase
 - [ ] Vérifier que **"Auto Sync On Start"** est coché
+- [ ] Créer un GameObject **FirebaseAuthManager** → ajouter le component → coller la Web API Key
 - [ ] Sauvegarder la scène (`Ctrl+S`)
 
 ### Tests
-- [ ] Lancer le jeu → vérifier les logs de synchronisation
+- [ ] Lancer le jeu → vérifier `[FirebaseAuthManager] Connexion anonyme OK. UserId: ...` dans la console
+- [ ] Lancer le jeu → vérifier les logs de synchronisation HighscoreManager
 - [ ] Faire un tour qualifiant → vérifier le push Firebase
 - [ ] Vérifier les données dans la console Firebase
 - [ ] Tester sur une deuxième machine → vérifier la synchronisation
@@ -526,7 +593,8 @@ Le plan gratuit est **largement suffisant** pour SpeedMeUp.
 └── firebase.json                 ← Config Firebase CLI (pointe vers database.rules.json)
 
 Assets/Project/Scripts/Core/
-└── HighscoreManager.cs           ← Synchronisation Firebase REST
+├── FirebaseAuthManager.cs        ← Authentification anonyme via Firebase Auth REST API (sans SDK)
+└── HighscoreManager.cs           ← Synchronisation Firebase REST (ajoute ?auth= sur les écritures)
 
 Assets/Project/Scripts/UI/
 └── HighscoreDisplayUI.cs         ← Rafraîchissement auto sur événement réseau
@@ -563,7 +631,7 @@ Chaque entrée contient :
 ---
 
 **Date de création** : 04 mars 2026  
-**Dernière mise à jour** : 05 mars 2026 — Passage aux règles permanentes  
-**Version** : 1.1  
-**Compatibilité** : Unity 2021.3+, Firebase Realtime Database (Plan Spark)  
-**Statut** : ✅ Règles permanentes actives
+**Dernière mise à jour** : 05 mars 2026 — Authentification anonyme REST (sans SDK)  
+**Version** : 1.2  
+**Compatibilité** : Unity 2021.3+, Firebase Realtime Database + Authentication (Plan Spark)  
+**Statut** : ✅ Authentification anonyme active, règles permanentes

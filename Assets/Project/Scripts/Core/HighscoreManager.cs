@@ -535,11 +535,25 @@ namespace ArcadeRacer.Core
             return result.OrderBy(s => s.timeInSeconds).ToList();
         }
 
-        private string GetNetworkUrl(string circuitName)
+        /// <param name="withAuth">
+        /// When true and FirebaseAuthManager is authenticated, appends the Firebase
+        /// idToken as a query parameter (?auth=…) so that rules requiring
+        /// "auth != null" are satisfied.
+        /// </param>
+        private string GetNetworkUrl(string circuitName, bool withAuth = false)
         {
             string clean = circuitName.Replace(" ", "_").Replace("-", "_")
                                       .Replace("/", "_").Replace(".", "_");
-            return $"{firebaseDatabaseUrl.TrimEnd('/')}/highscores/{clean}.json";
+            string url = $"{firebaseDatabaseUrl.TrimEnd('/')}/highscores/{clean}.json";
+
+            if (withAuth &&
+                FirebaseAuthManager.Instance != null &&
+                FirebaseAuthManager.Instance.IsAuthenticated)
+            {
+                url += $"?auth={FirebaseAuthManager.Instance.IdToken}";
+            }
+
+            return url;
         }
 
         // ── Fetch scores from Firebase for a single circuit ───────────────────
@@ -593,7 +607,8 @@ namespace ArcadeRacer.Core
 
         private IEnumerator PushToNetwork(string circuitName, List<HighscoreEntry> scores)
         {
-            string url = GetNetworkUrl(circuitName);
+            // Reads are public; writes require auth when rules enforce "auth != null".
+            string url = GetNetworkUrl(circuitName, withAuth: true);
             string json = SerializeEntries(scores);
             byte[] body = Encoding.UTF8.GetBytes(json);
 

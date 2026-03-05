@@ -3,7 +3,7 @@
     "highscores": {
       "$circuit": {
         ".read": true,
-        ".write": true,
+        ".write": "auth != null",
         ".validate": "newData.hasChildren(['entries'])",
         "entries": {
           "$index": {
