@@ -428,7 +428,7 @@ namespace ArcadeRacer.Vehicle
             UpdateWheelColors();
             return correction;
         }
-
+        private float OutForceStatus=0f;
         private void ClearIntensities()
         {
             _oversteerIntensity  = 0f;

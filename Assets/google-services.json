@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "400056083693",
+    "project_id": "vroumvroum-ce18d",
+    "storage_bucket": "vroumvroum-ce18d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400056083693:android:33c64b37ab8453551198e4",
+        "android_client_info": {
+          "package_name": "com.diego.vrouvroum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAirs3_EAxCtc7McttjaJ28kxG5m3rTs_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

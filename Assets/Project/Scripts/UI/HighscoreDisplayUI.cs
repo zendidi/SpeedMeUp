@@ -44,6 +44,8 @@ namespace ArcadeRacer.UI
 
         private void OnEnable()
         {
+            HighscoreManager.OnNetworkHighscoresLoaded += OnNetworkDataLoaded;
+
             if (refreshOnEnable)
             {
                 InitializeDropdown();
@@ -61,6 +63,11 @@ namespace ArcadeRacer.UI
 
             InitializeDropdown();
             RefreshDisplay();
+        }
+
+        private void OnDisable()
+        {
+            HighscoreManager.OnNetworkHighscoresLoaded -= OnNetworkDataLoaded;
         }
 
         private void OnDestroy()
@@ -317,6 +324,30 @@ namespace ArcadeRacer.UI
         public void Refresh()
         {
             RefreshDisplay();
+        }
+
+        /// <summary>
+        /// Lance une synchronisation réseau pour le circuit affiché et rafraîchit l'affichage.
+        /// Ne fait rien si le réseau n'est pas configuré.
+        /// </summary>
+        public void RefreshFromNetwork()
+        {
+            if (string.IsNullOrEmpty(_currentCircuitName))
+            {
+                Debug.LogWarning("[HighscoreDisplayUI] RefreshFromNetwork: aucun circuit sélectionné.");
+                return;
+            }
+            HighscoreManager.Instance.RefreshFromNetwork(_currentCircuitName);
+        }
+
+        private void OnNetworkDataLoaded(string circuitName)
+        {
+            // Rafraîchir l'affichage seulement si c'est le circuit actuellement affiché
+            if (circuitName == _currentCircuitName)
+            {
+                Debug.Log($"[HighscoreDisplayUI] Données réseau reçues pour '{circuitName}', rafraîchissement.");
+                RefreshDisplay();
+            }
         }
 
         #endregion

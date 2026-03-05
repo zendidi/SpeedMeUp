@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "highscores": {
+      "$circuit": {
+        ".read": true,
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['entries'])",
+        "entries": {
+          "$index": {
+            "timeInSeconds": {
+              ".validate": "newData.isNumber() && newData.val() > 5.0"
+            },
+            "playerName": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            },
+            "rank": {
+              ".validate": "newData.isNumber()"
+            },
+            "dateString": {
+              ".validate": "newData.isString()"
+            },
+            "timeOfDayString": {
+              ".validate": "newData.isString()"
+            }
+          }
+        }
+      }
+    }
+  }
+}
