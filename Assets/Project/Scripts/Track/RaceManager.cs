@@ -315,8 +315,26 @@ namespace ArcadeRacer.RaceSystem
                 _vehicleTimers[vehicle].Reset();
                 checkpointManager?.ResetVehicleProgress(vehicle);
 
-                // Téléporter au spawn point
-                vehicle.ResetToSpawnPoint();
+                // Téléporter au spawn point du circuit courant
+                var circuitManager = ArcadeRacer.Managers.CircuitManager.Instance;
+                if (circuitManager != null && circuitManager.IsCircuitLoaded && circuitManager.SpawnPoint != null)
+                {
+                    // Mettre à jour le spawn point interne du véhicule pour cohérence
+                    vehicle.SetSpawnPoint(circuitManager.SpawnPoint.position, circuitManager.SpawnPoint.rotation);
+                    circuitManager.SpawnVehicle(vehicle.transform);
+                }
+                else
+                {
+                    vehicle.ResetToSpawnPoint();
+                }
+
+                // Réinitialiser la vélocité du Rigidbody
+                Rigidbody rb = vehicle.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                }
             }
 
             _finishedVehicles.Clear();
