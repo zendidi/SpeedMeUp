@@ -166,7 +166,14 @@ namespace ArcadeRacer.Vehicle
 
         private void OnSteering(InputAction.CallbackContext context)
         {
-            _steering = context.ReadValue<float>();
+            if (context.control is UnityEngine.InputSystem.Controls.StickControl)
+            {
+                _steering = context.ReadValue<Vector2>().x;
+            }
+            else
+            {
+                _steering = context.ReadValue<float>();
+            }
         }
 
         private void OnDriftStarted(InputAction.CallbackContext context)
