@@ -421,7 +421,6 @@ namespace ArcadeRacer.Vehicle
                         / Mathf.Max(1f - understeerPushThreshold, 0.001f);
                     float outForce = -Mathf.Sign(steering) * push
                         * understeerPushStrength * speed * rearScale * deltaTime;
-                    Debug.Log($"Applying understeer push: {outForce:F2} N (push={push:F2})");
                     correction += vehicleTransform.right * outForce* rateUndersteerProgression;
                 }
             }
