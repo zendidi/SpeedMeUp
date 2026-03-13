@@ -15,6 +15,7 @@ MonoBehaviour:
   circuitName: "Amincha\xEAl"
   thumbnail: {fileID: 21300000, guid: 8da67c71549655644af5d844eae5bbc3, type: 3}
   description: A challenging racing circuit.
+  isRaceable: 1
   splinePoints:
   - position: {x: -31, y: -0.52, z: -38}
     tangentIn: {x: 0, y: 0, z: -154.51375}
@@ -189,4 +190,5 @@ MonoBehaviour:
   silverTime: 75
   bronzeTime: 90
   minimapTexture: {fileID: 0}
+  decorObjects: []
   _totalLength: 7725.9087
