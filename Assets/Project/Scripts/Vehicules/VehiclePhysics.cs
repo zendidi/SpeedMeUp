@@ -616,7 +616,10 @@ namespace ArcadeRacer.Vehicle
             _transform.rotation = rotation;
             _velocity = Vector3.zero;
             _currentSpeed = 0f;
+            _adaptiveBrake = 0f;
             physicsCore.ResetAngularVelocity();
+            _transform.position = position;
+            _transform.rotation = rotation;
         }
 
         #endregion

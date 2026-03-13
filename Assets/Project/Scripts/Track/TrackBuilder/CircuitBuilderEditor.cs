@@ -158,6 +158,53 @@ namespace ArcadeRacer.Editor
                 GUI.backgroundColor = Color.white;
 
                 EditorGUILayout.Space(15);
+                EditorGUILayout.LabelField("Gestion Décor", EditorStyles.boldLabel);
+
+                // Load Decor
+                GUI.backgroundColor = new Color(0.3f, 0.7f, 1f);
+                if (GUILayout.Button("📥 Charger Décor depuis CircuitData", GUILayout.Height(35)))
+                {
+                    builder.LoadDecorFromCircuitData();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Auto-generate Decor
+                GUI.backgroundColor = new Color(0.4f, 0.85f, 0.4f);
+                if (GUILayout.Button("🌿 Générer Décor Automatique", GUILayout.Height(40)))
+                {
+                    builder.GenerateAutoDecor();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Save Decor
+                GUI.backgroundColor = new Color(0.5f, 0.8f, 0.3f);
+                if (GUILayout.Button("💾 Sauvegarder Décor dans CircuitData", GUILayout.Height(35)))
+                {
+                    builder.SaveDecorToCircuitData();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Clear Decor
+                GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                if (GUILayout.Button("🧹 Effacer Décor", GUILayout.Height(30)))
+                {
+                    if (EditorUtility.DisplayDialog("Effacer le décor ?",
+                        "Tous les objets de décor de la scène seront supprimés.\n" +
+                        "Les données sauvegardées dans CircuitData ne sont PAS effacées.",
+                        "Effacer", "Annuler"))
+                    {
+                        builder.ClearDecor();
+                    }
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(15);
                 EditorGUILayout.LabelField("Utilitaires", EditorStyles.boldLabel);
 
                 // Clear Preview
@@ -195,6 +242,52 @@ namespace ArcadeRacer.Editor
                 {
                     Selection.activeObject = circuitData;
                     EditorGUIUtility.PingObject(circuitData);
+                }
+
+                EditorGUILayout.Space(15);
+
+                // === STATUT ROULABLE ===
+                EditorGUILayout.LabelField("Statut Roulable", EditorStyles.boldLabel);
+
+                if (circuitData.isRaceable)
+                {
+                    GUI.backgroundColor = new Color(0.3f, 0.9f, 0.3f);
+                    EditorGUILayout.HelpBox(
+                        "✅ Ce circuit est ROULABLE\n" +
+                        "Il apparaît dans la sélection de circuit en jeu.",
+                        MessageType.None
+                    );
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.Space(5);
+
+                    GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                    if (GUILayout.Button("❌ Marquer comme NON ROULABLE", GUILayout.Height(30)))
+                    {
+                        builder.MarkAsNotRaceable();
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else
+                {
+                    GUI.backgroundColor = new Color(1f, 0.6f, 0.3f);
+                    EditorGUILayout.HelpBox(
+                        "⚠️ Ce circuit est NON ROULABLE\n" +
+                        "Il n'apparaît pas dans la sélection de circuit en jeu.\n\n" +
+                        "Exportez la spline et sauvegardez les checkpoints,\n" +
+                        "puis marquez-le comme roulable.",
+                        MessageType.Warning
+                    );
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.Space(5);
+
+                    GUI.backgroundColor = new Color(0.3f, 0.9f, 0.3f);
+                    if (GUILayout.Button("✅ Valider et Marquer comme ROULABLE", GUILayout.Height(40)))
+                    {
+                        builder.ValidateAndMarkAsRaceable();
+                    }
+                    GUI.backgroundColor = Color.white;
                 }
             }
 

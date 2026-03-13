@@ -241,7 +241,7 @@ public partial class @Car_Actions: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""c74b4d48-5b55-44bd-9c8b-3a0686f3cb25"",
-                    ""path"": ""<XInputController>/leftStick"",
+                    ""path"": ""<XInputController>/leftStick/x"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
