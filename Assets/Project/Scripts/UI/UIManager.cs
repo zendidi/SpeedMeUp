@@ -244,7 +244,7 @@ namespace ArcadeRacer.UI
             Debug.Log("[UIManager] Menu Trigger activé");
             if (circuitSelectionUI != null && circuitSelectionUI.isActiveAndEnabled)
             {
-                ShowInfo();
+                circuitSelectionUI.gameObject.SetActive(false);
             }
             else
             {

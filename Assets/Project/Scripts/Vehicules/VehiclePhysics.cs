@@ -614,13 +614,12 @@ namespace ArcadeRacer.Vehicle
         {
             _transform.position = position;
             _transform.rotation = rotation;
-            // Sync kinematic rigidbody position immediately to avoid 1-frame physics lag
-            _rigidbody.position = position;
-            _rigidbody.rotation = rotation;
             _velocity = Vector3.zero;
             _currentSpeed = 0f;
             _adaptiveBrake = 0f;
             physicsCore.ResetAngularVelocity();
+            _transform.position = position;
+            _transform.rotation = rotation;
         }
 
         #endregion
