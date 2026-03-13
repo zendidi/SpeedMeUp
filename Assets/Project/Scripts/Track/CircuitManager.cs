@@ -417,12 +417,17 @@ namespace ArcadeRacer.Managers
             _decorRoot = new GameObject($"Decor_{circuitData.circuitName}");
             _decorRoot.transform.position = Vector3.zero;
 
-            var shaderStandard = Shader.Find("Standard");
+            Color[] palette  = circuitData.decorPalette;
             var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
 
             for (int i = 0; i < circuitData.decorObjects.Length; i++)
             {
                 var data = circuitData.decorObjects[i];
+
+                // Résolution de la couleur : palette en priorité, sinon couleur individuelle
+                Color col = (palette != null && palette.Length > 0)
+                    ? palette[i % palette.Length]
+                    : data.color;
 
                 var go = GameObject.CreatePrimitive(data.primitiveType);
                 go.name = $"Decor_{data.primitiveType}_{i}";
@@ -434,17 +439,18 @@ namespace ArcadeRacer.Managers
                 var rend = go.GetComponent<MeshRenderer>();
                 if (rend != null)
                 {
-                    if (!matCache.TryGetValue(data.color, out Material mat))
+                    // Clôner le sharedMaterial du primitive (compatible URP + Built-in)
+                    if (!matCache.TryGetValue(col, out Material mat))
                     {
-                        mat = new Material(shaderStandard) { color = data.color };
-                        matCache[data.color] = mat;
+                        mat = new Material(rend.sharedMaterial) { color = col };
+                        matCache[col] = mat;
                     }
                     rend.sharedMaterial = mat;
                 }
 
                 // Décor purement visuel : pas de collider
-                var col = go.GetComponent<Collider>();
-                if (col != null) Destroy(col);
+                var decCol = go.GetComponent<Collider>();
+                if (decCol != null) Destroy(decCol);
             }
 
             if (_showDebugInfo)

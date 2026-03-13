@@ -854,12 +854,14 @@ namespace ArcadeRacer.Editor
 
             var container = GetOrCreateDecorContainer();
 
+            Color[] palette = circuitData.decorPalette;
             var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
             for (int i = 0; i < circuitData.decorObjects.Length; i++)
             {
-                var data = circuitData.decorObjects[i];
+                var data  = circuitData.decorObjects[i];
+                Color col = ResolveDecorColor(i, data.color, palette);
                 CreateDecorGameObject(container, data.primitiveType, data.position,
-                    data.rotation, data.scale, data.color, i, matCache);
+                    data.rotation, data.scale, col, i, matCache);
             }
 
             Debug.Log($"[CircuitBuilder] {circuitData.decorObjects.Length} objet(s) de décor chargés depuis '{circuitData.circuitName}'.");
@@ -936,6 +938,7 @@ namespace ArcadeRacer.Editor
             // L'effet de parallaxe intense à courte distance maximise la sensation de vitesse.
             float tier1Spacing = 10f;
             float accDist1 = 0f;
+            float trackHW = (circuitData != null ? circuitData.trackWidth : 10f) * 0.5f;
 
             for (int i = 0; i < leftEdge.Length - 1; i++)
             {
@@ -948,26 +951,28 @@ namespace ArcadeRacer.Editor
                 Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
 
                 // Côté gauche
-                float offsetL = UnityEngine.Random.Range(0.5f, 2f);
-                Vector3 posL  = leftEdge[i] - rightDir * offsetL;
-                posL.y = 0f;
-                float hL = UnityEngine.Random.Range(0.6f, 1.4f);
-                Color  cL = (UnityEngine.Random.value > 0.5f)
-                    ? new Color(0.9f, 0.15f, 0.15f)
-                    : new Color(0.95f, 0.65f, 0.05f);
+                float offsetL  = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posL   = leftEdge[i] - rightDir * offsetL;
+                float hL       = UnityEngine.Random.Range(0.6f, 1.4f);
+                var scaleL     = new Vector3(0.25f, hL, 0.25f);
+                float groundYL = GetGroundY(PrimitiveType.Cylinder, scaleL);
+                posL.y = groundYL;
+                posL   = PushOffTrack(posL, leftEdge, rightEdge, trackHW);
+                posL.y = groundYL; // restaurer Y après déplacement horizontal par PushOffTrack
                 CreateDecorGameObject(container, PrimitiveType.Cylinder, posL,
-                    Quaternion.identity, new Vector3(0.25f, hL, 0.25f), cL, totalObjects++, matCache);
+                    Quaternion.identity, scaleL, DarkCyan, totalObjects++, matCache);
 
                 // Côté droit
-                float offsetR = UnityEngine.Random.Range(0.5f, 2f);
-                Vector3 posR  = rightEdge[i] + rightDir * offsetR;
-                posR.y = 0f;
-                float hR = UnityEngine.Random.Range(0.6f, 1.4f);
-                Color  cR = (UnityEngine.Random.value > 0.5f)
-                    ? new Color(0.9f, 0.15f, 0.15f)
-                    : new Color(0.95f, 0.65f, 0.05f);
+                float offsetR  = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posR   = rightEdge[i] + rightDir * offsetR;
+                float hR       = UnityEngine.Random.Range(0.6f, 1.4f);
+                var scaleR     = new Vector3(0.25f, hR, 0.25f);
+                float groundYR = GetGroundY(PrimitiveType.Cylinder, scaleR);
+                posR.y = groundYR;
+                posR   = PushOffTrack(posR, leftEdge, rightEdge, trackHW);
+                posR.y = groundYR;
                 CreateDecorGameObject(container, PrimitiveType.Cylinder, posR,
-                    Quaternion.identity, new Vector3(0.25f, hR, 0.25f), cR, totalObjects++, matCache);
+                    Quaternion.identity, scaleR, DarkCyan, totalObjects++, matCache);
             }
 
             // ── TIER 2 : Marqueurs de bord ───────────────────────────────────────
@@ -992,7 +997,6 @@ namespace ArcadeRacer.Editor
                 Vector3 edge  = isLeft ? leftEdge[i]  : rightEdge[i];
                 Vector3 perp  = isLeft ? (-rightDir)  : rightDir;
                 Vector3 pos   = edge + perp * offset;
-                pos.y = 0f;
 
                 PrimitiveType prim = (tier2Index % 3) switch
                 {
@@ -1006,13 +1010,10 @@ namespace ArcadeRacer.Editor
                 Vector3 scale = (prim == PrimitiveType.Sphere)
                     ? Vector3.one * w
                     : new Vector3(w, h, w);
-                Color col = new Color(
-                    UnityEngine.Random.Range(0.25f, 0.75f),
-                    UnityEngine.Random.Range(0.25f, 0.75f),
-                    UnityEngine.Random.Range(0.25f, 0.75f));
+                pos.y = GetGroundY(prim, scale);
                 Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
 
-                CreateDecorGameObject(container, prim, pos, rot, scale, col, totalObjects++, matCache);
+                CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
             }
 
             // ── TIER 3 : Structures de fond ──────────────────────────────────────
@@ -1034,16 +1035,14 @@ namespace ArcadeRacer.Editor
                 for (int side = 0; side < 2; side++)
                 {
                     bool   isLeft  = (side == 0);
-                    float  offset  = UnityEngine.Random.Range(15f, 40f);
+                    float  offsetD = UnityEngine.Random.Range(15f, 40f);
                     Vector3 edge   = isLeft ? leftEdge[i] : rightEdge[i];
                     Vector3 perp   = isLeft ? (-rightDir) : rightDir;
-                    Vector3 pos    = edge + perp * offset;
-                    pos.y = 0f;
+                    Vector3 pos    = edge + perp * offsetD;
 
                     bool isBuilding = (UnityEngine.Random.value > 0.35f);
                     PrimitiveType prim;
                     Vector3 scale;
-                    Color col;
 
                     if (isBuilding)
                     {
@@ -1052,24 +1051,17 @@ namespace ArcadeRacer.Editor
                             UnityEngine.Random.Range(4f, 14f),
                             UnityEngine.Random.Range(3f, 10f),
                             UnityEngine.Random.Range(4f, 14f));
-                        col = new Color(
-                            UnityEngine.Random.Range(0.45f, 0.85f),
-                            UnityEngine.Random.Range(0.45f, 0.85f),
-                            UnityEngine.Random.Range(0.45f, 0.85f));
                     }
                     else
                     {
                         prim = PrimitiveType.Cylinder;
                         float w = UnityEngine.Random.Range(0.4f, 1.5f);
                         scale = new Vector3(w, UnityEngine.Random.Range(5f, 15f), w);
-                        col = new Color(
-                            UnityEngine.Random.Range(0.05f, 0.25f),
-                            UnityEngine.Random.Range(0.35f, 0.75f),
-                            UnityEngine.Random.Range(0.05f, 0.2f));
                     }
 
+                    pos.y = GetGroundY(prim, scale);
                     Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
-                    CreateDecorGameObject(container, prim, pos, rot, scale, col, totalObjects++, matCache);
+                    CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
                 }
             }
 
@@ -1091,8 +1083,50 @@ namespace ArcadeRacer.Editor
         #region Private Methods
 
         /// <summary>
+        /// Couleur sombre cyan utilisée par défaut pour tous les objets de décor auto-générés.
+        /// Unity n'expose pas Color.darkCyan, on la définit ici : #008B8B (HTML DarkCyan).
+        /// </summary>
+        private static readonly Color DarkCyan = new Color(0f, 0.545f, 0.545f);
+
+        /// <summary>
+        /// Retourne le décalage en Y (halfHeight) pour que la base d'un primitive posé à (x,0,z)
+        /// soit exactement au niveau du sol.
+        ///
+        /// Dimensions des primitives Unity avec scale = Vector3.one :
+        ///   Cube     → extents.y = 0.5 → groundY = 0.5 * scale.y
+        ///   Sphere   → extents.y = 0.5 → groundY = 0.5 * scale.y
+        ///   Cylinder → extents.y = 1.0 → groundY = 1.0 * scale.y
+        ///   Capsule  → extents.y = 1.0 → groundY = 1.0 * scale.y
+        ///   Quad     → plat           → groundY = 0
+        /// </summary>
+        private static float GetGroundY(PrimitiveType primitiveType, Vector3 scale)
+        {
+            return primitiveType switch
+            {
+                PrimitiveType.Cylinder => scale.y,
+                PrimitiveType.Capsule  => scale.y,
+                _                      => scale.y * 0.5f   // Cube, Sphere, Quad
+            };
+        }
+
+        /// <summary>
+        /// Sélectionne la couleur à utiliser pour l'objet d'index <paramref name="index"/> :
+        ///   • Si la palette est renseignée → cycle dans la palette
+        ///   • Sinon → couleur individuelle stockée (data.color) ou DarkCyan par défaut
+        /// </summary>
+        private static Color ResolveDecorColor(int index, Color storedColor, Color[] palette)
+        {
+            if (palette != null && palette.Length > 0)
+                return palette[index % palette.Length];
+            return storedColor;
+        }
+
+        /// <summary>
         /// Crée un primitive Unity comme objet de décor, lui applique couleur et supprime son collider.
         /// Nommage : "Decor_PrimitiveType_Index" pour retrouver le type lors de la sauvegarde.
+        ///
+        /// La position <paramref name="position"/> est supposée déjà ajustée en Y (base au sol).
+        /// Le shader utilisé est celui du primitive Unity par défaut (compatible URP et Built-in).
         /// </summary>
         private static void CreateDecorGameObject(
             GameObject container,
@@ -1111,7 +1145,9 @@ namespace ArcadeRacer.Editor
             go.transform.rotation   = rotation;
             go.transform.localScale = scale;
 
-            // Matériau avec couleur — réutilise le cache pour éviter les doublons
+            // Matériau avec couleur.
+            // On clône le sharedMaterial du primitive (déjà correct pour URP/Built-in)
+            // plutôt que de chercher le shader "Standard" qui n'existe pas en URP.
             var rend = go.GetComponent<MeshRenderer>();
             if (rend != null)
             {
@@ -1119,14 +1155,14 @@ namespace ArcadeRacer.Editor
                 {
                     if (!matCache.TryGetValue(color, out Material mat))
                     {
-                        mat = new Material(Shader.Find("Standard")) { color = color };
+                        mat = new Material(rend.sharedMaterial) { color = color };
                         matCache[color] = mat;
                     }
                     rend.sharedMaterial = mat;
                 }
                 else
                 {
-                    rend.sharedMaterial = new Material(Shader.Find("Standard")) { color = color };
+                    rend.sharedMaterial = new Material(rend.sharedMaterial) { color = color };
                 }
             }
 
@@ -1146,6 +1182,52 @@ namespace ArcadeRacer.Editor
             if (name.Contains("Capsule"))  return PrimitiveType.Capsule;
             if (name.Contains("Quad"))     return PrimitiveType.Quad;
             return PrimitiveType.Cube; // défaut
+        }
+
+        /// <summary>
+        /// Pousse une position hors de la chaussée si elle se trouve à moins de
+        /// <c>trackHalfWidth + safetyMargin</c> du centre de la route le plus proche.
+        ///
+        /// Algorithme : itère jusqu'à 40 fois par pas de 0.3 m en s'éloignant du centre.
+        /// Utile pour les pylônes de Tier 1 dans les virages serrés.
+        /// </summary>
+        private static Vector3 PushOffTrack(
+            Vector3 pos,
+            Vector3[] leftEdge,
+            Vector3[] rightEdge,
+            float trackHalfWidth,
+            float safetyMargin = 0.5f)
+        {
+            const float pushStep  = 0.3f;
+            const int   maxIter   = 40;
+
+            for (int iter = 0; iter < maxIter; iter++)
+            {
+                // Trouver le point central le plus proche (en 2D)
+                float minDist = float.MaxValue;
+                int   closestIdx = 0;
+
+                for (int k = 0; k < leftEdge.Length; k++)
+                {
+                    Vector3 center = (leftEdge[k] + rightEdge[k]) * 0.5f;
+                    float d = Mathf.Sqrt(
+                        (pos.x - center.x) * (pos.x - center.x) +
+                        (pos.z - center.z) * (pos.z - center.z));
+                    if (d < minDist) { minDist = d; closestIdx = k; }
+                }
+
+                if (minDist > trackHalfWidth + safetyMargin) break; // déjà hors route
+
+                // Repousser en s'éloignant du centre
+                Vector3 center3 = (leftEdge[closestIdx] + rightEdge[closestIdx]) * 0.5f;
+                Vector3 outDir  = new Vector3(pos.x - center3.x, 0f, pos.z - center3.z);
+                if (outDir.sqrMagnitude < 0.001f) outDir = Vector3.right;
+                outDir.Normalize();
+                pos.x += outDir.x * pushStep;
+                pos.z += outDir.z * pushStep;
+            }
+
+            return pos;
         }
 
         private bool ValidateBeforeExport(out string errorMessage)
