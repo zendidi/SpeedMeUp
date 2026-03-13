@@ -76,6 +76,7 @@ namespace ArcadeRacer.Managers
         private GameObject _rightWallObject;
         private Transform _spawnPoint;
         private SplineContainer _runtimeSplineContainer; // Pour votre CheckpointManager
+        private GameObject _decorRoot;  // Container de décor, indépendant du circuit root
         private bool _isLoaded;
         
         #endregion
@@ -182,7 +183,10 @@ namespace ArcadeRacer.Managers
                 
                 // 6. Initialiser votre CheckpointManager existant
                 InitializeCheckpointManager(circuitData);
-                
+
+                // 7. Charger le décor du circuit
+                LoadDecorObjects(circuitData);
+
                 _isLoaded = true;
                 
                 Debug.Log($"[CircuitManager] ✓ Circuit '{circuitData.circuitName}' loaded successfully!");
@@ -222,6 +226,9 @@ namespace ArcadeRacer.Managers
             {
                 Destroy(_circuitRoot);
             }
+
+            // Le décor est un GO indépendant (non enfant du circuitRoot) → détruire séparément
+            UnloadDecorObjects();
             
             _currentCircuit = null;
             _roadObject = null;
@@ -390,6 +397,70 @@ namespace ArcadeRacer.Managers
             {
                 Debug.Log("[CircuitManager] CheckpointManager initialized. " +
                           $"CheckpointData available: {circuitData.checkpointData != null && circuitData.checkpointData.Length > 0}");
+            }
+        }
+
+        /// <summary>
+        /// Instancie les objets de décor du circuit à partir des données CircuitData.
+        /// Le container de décor est créé à la racine de la scène en Vector3.zero —
+        /// cohérent avec le container de l'éditeur — et géré indépendamment du circuit root.
+        /// </summary>
+        private void LoadDecorObjects(CircuitData circuitData)
+        {
+            if (circuitData.decorObjects == null || circuitData.decorObjects.Length == 0)
+            {
+                if (_showDebugInfo)
+                    Debug.Log("[CircuitManager] Pas de décor pour ce circuit.");
+                return;
+            }
+
+            _decorRoot = new GameObject($"Decor_{circuitData.circuitName}");
+            _decorRoot.transform.position = Vector3.zero;
+
+            var shaderStandard = Shader.Find("Standard");
+            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+
+            for (int i = 0; i < circuitData.decorObjects.Length; i++)
+            {
+                var data = circuitData.decorObjects[i];
+
+                var go = GameObject.CreatePrimitive(data.primitiveType);
+                go.name = $"Decor_{data.primitiveType}_{i}";
+                go.transform.SetParent(_decorRoot.transform);
+                go.transform.position   = data.position;
+                go.transform.rotation   = data.rotation;
+                go.transform.localScale = data.scale;
+
+                var rend = go.GetComponent<MeshRenderer>();
+                if (rend != null)
+                {
+                    if (!matCache.TryGetValue(data.color, out Material mat))
+                    {
+                        mat = new Material(shaderStandard) { color = data.color };
+                        matCache[data.color] = mat;
+                    }
+                    rend.sharedMaterial = mat;
+                }
+
+                // Décor purement visuel : pas de collider
+                var col = go.GetComponent<Collider>();
+                if (col != null) Destroy(col);
+            }
+
+            if (_showDebugInfo)
+                Debug.Log($"[CircuitManager] {circuitData.decorObjects.Length} objet(s) de décor chargés pour '{circuitData.circuitName}'.");
+        }
+
+        /// <summary>
+        /// Détruit le container de décor du circuit précédent.
+        /// Appelé par UnloadCurrentCircuit() avant de charger un nouveau circuit.
+        /// </summary>
+        private void UnloadDecorObjects()
+        {
+            if (_decorRoot != null)
+            {
+                Destroy(_decorRoot);
+                _decorRoot = null;
             }
         }
         
