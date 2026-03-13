@@ -196,6 +196,52 @@ namespace ArcadeRacer.Editor
                     Selection.activeObject = circuitData;
                     EditorGUIUtility.PingObject(circuitData);
                 }
+
+                EditorGUILayout.Space(15);
+
+                // === STATUT ROULABLE ===
+                EditorGUILayout.LabelField("Statut Roulable", EditorStyles.boldLabel);
+
+                if (circuitData.isRaceable)
+                {
+                    GUI.backgroundColor = new Color(0.3f, 0.9f, 0.3f);
+                    EditorGUILayout.HelpBox(
+                        "✅ Ce circuit est ROULABLE\n" +
+                        "Il apparaît dans la sélection de circuit en jeu.",
+                        MessageType.None
+                    );
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.Space(5);
+
+                    GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                    if (GUILayout.Button("❌ Marquer comme NON ROULABLE", GUILayout.Height(30)))
+                    {
+                        builder.MarkAsNotRaceable();
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+                else
+                {
+                    GUI.backgroundColor = new Color(1f, 0.6f, 0.3f);
+                    EditorGUILayout.HelpBox(
+                        "⚠️ Ce circuit est NON ROULABLE\n" +
+                        "Il n'apparaît pas dans la sélection de circuit en jeu.\n\n" +
+                        "Exportez la spline et sauvegardez les checkpoints,\n" +
+                        "puis marquez-le comme roulable.",
+                        MessageType.Warning
+                    );
+                    GUI.backgroundColor = Color.white;
+
+                    EditorGUILayout.Space(5);
+
+                    GUI.backgroundColor = new Color(0.3f, 0.9f, 0.3f);
+                    if (GUILayout.Button("✅ Valider et Marquer comme ROULABLE", GUILayout.Height(40)))
+                    {
+                        builder.ValidateAndMarkAsRaceable();
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
             }
 
             serializedObject.ApplyModifiedProperties();

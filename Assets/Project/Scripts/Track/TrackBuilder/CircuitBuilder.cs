@@ -633,6 +633,78 @@ namespace ArcadeRacer.Editor
             }
         }
 
+        /// <summary>
+        /// Valide le circuit et le marque comme roulable s'il passe toutes les vérifications.
+        /// Un circuit roulable apparaîtra dans la sélection de circuit en jeu.
+        /// </summary>
+        public void ValidateAndMarkAsRaceable()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Aucun CircuitData assigné !",
+                    "OK");
+                return;
+            }
+
+            bool hasSplinePoints = circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3;
+            bool hasCheckpoints = circuitData.checkpointData != null && circuitData.checkpointData.Length > 0;
+
+            if (!hasSplinePoints)
+            {
+                EditorUtility.DisplayDialog("Validation échouée",
+                    "Le circuit n'a pas assez de points de spline (minimum 3).\n\n" +
+                    "Veuillez d'abord exporter la spline via 'Export to CircuitData'.",
+                    "OK");
+                return;
+            }
+
+            if (!hasCheckpoints)
+            {
+                bool markAnyway = EditorUtility.DisplayDialog("Checkpoints manquants",
+                    "Le circuit n'a pas de checkpoints sauvegardés.\n\n" +
+                    "Il est recommandé de sauvegarder les checkpoints avant de marquer le circuit comme roulable.\n\n" +
+                    "Voulez-vous quand même le marquer comme roulable ?",
+                    "Oui, marquer quand même",
+                    "Non, annuler");
+                if (!markAnyway) return;
+            }
+
+            circuitData.isRaceable = true;
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' marqué comme ROULABLE ✅");
+            EditorUtility.DisplayDialog("Circuit roulable !",
+                $"✅ Le circuit '{circuitData.circuitName}' est maintenant marqué comme ROULABLE.\n\n" +
+                $"Il apparaîtra dans la sélection de circuit en jeu.",
+                "OK");
+        }
+
+        /// <summary>
+        /// Marque le circuit comme NON roulable (retiré de la sélection en jeu).
+        /// </summary>
+        public void MarkAsNotRaceable()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Aucun CircuitData assigné !",
+                    "OK");
+                return;
+            }
+
+            circuitData.isRaceable = false;
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' marqué comme NON ROULABLE ❌");
+            EditorUtility.DisplayDialog("Circuit retiré",
+                $"❌ Le circuit '{circuitData.circuitName}' est maintenant marqué comme NON ROULABLE.\n\n" +
+                $"Il n'apparaîtra plus dans la sélection de circuit en jeu.",
+                "OK");
+        }
+
         #endregion
 
         #region Private Methods

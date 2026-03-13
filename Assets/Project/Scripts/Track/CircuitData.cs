@@ -20,6 +20,10 @@ namespace ArcadeRacer.Settings
         [Tooltip("Description du circuit affichée dans le menu")]
         public string description = "A challenging racing circuit.";
         
+        [Header("=== STATUT ROULABLE ===")]
+        [Tooltip("Indique si le circuit est prêt à être joué. Activez via CircuitBuilder après validation.")]
+        public bool isRaceable = false;
+        
         [Header("=== SPLINE DATA ===")]
         [Tooltip("Points définissant la trajectoire du circuit")]
         public SplinePoint[] splinePoints = new SplinePoint[0];
