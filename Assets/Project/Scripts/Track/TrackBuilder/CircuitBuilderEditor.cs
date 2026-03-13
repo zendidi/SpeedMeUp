@@ -158,6 +158,53 @@ namespace ArcadeRacer.Editor
                 GUI.backgroundColor = Color.white;
 
                 EditorGUILayout.Space(15);
+                EditorGUILayout.LabelField("Gestion Décor", EditorStyles.boldLabel);
+
+                // Load Decor
+                GUI.backgroundColor = new Color(0.3f, 0.7f, 1f);
+                if (GUILayout.Button("📥 Charger Décor depuis CircuitData", GUILayout.Height(35)))
+                {
+                    builder.LoadDecorFromCircuitData();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Auto-generate Decor
+                GUI.backgroundColor = new Color(0.4f, 0.85f, 0.4f);
+                if (GUILayout.Button("🌿 Générer Décor Automatique", GUILayout.Height(40)))
+                {
+                    builder.GenerateAutoDecor();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Save Decor
+                GUI.backgroundColor = new Color(0.5f, 0.8f, 0.3f);
+                if (GUILayout.Button("💾 Sauvegarder Décor dans CircuitData", GUILayout.Height(35)))
+                {
+                    builder.SaveDecorToCircuitData();
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(5);
+
+                // Clear Decor
+                GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                if (GUILayout.Button("🧹 Effacer Décor", GUILayout.Height(30)))
+                {
+                    if (EditorUtility.DisplayDialog("Effacer le décor ?",
+                        "Tous les objets de décor de la scène seront supprimés.\n" +
+                        "Les données sauvegardées dans CircuitData ne sont PAS effacées.",
+                        "Effacer", "Annuler"))
+                    {
+                        builder.ClearDecor();
+                    }
+                }
+                GUI.backgroundColor = Color.white;
+
+                EditorGUILayout.Space(15);
                 EditorGUILayout.LabelField("Utilitaires", EditorStyles.boldLabel);
 
                 // Clear Preview

@@ -88,6 +88,13 @@ namespace ArcadeRacer.Settings
         [Tooltip("Texture de la minimap (générée automatiquement)")]
         public Texture2D minimapTexture;
         
+        [Header("=== DÉCOR ===")]
+        [Tooltip(
+            "Objets de décor du circuit.\n" +
+            "Positions stockées en coordonnées monde (le container de décor est placé à Vector3.zero).\n" +
+            "Utilisez CircuitBuilder pour générer ou éditer le décor.")]
+        public DecorObjectData[] decorObjects = new DecorObjectData[0];
+
         [Header("=== METADATA ===")]
         [SerializeField] 
         private float _totalLength;
@@ -231,5 +238,32 @@ namespace ArcadeRacer.Settings
         Bronze,
         Silver,
         Gold
+    }
+
+    /// <summary>
+    /// Données d'un objet de décor du circuit.
+    ///
+    /// Les positions sont stockées en coordonnées MONDE car le container de décor
+    /// est placé à Vector3.zero de la scène.  Cela est intentionnellement différent
+    /// des CheckpointData (relatifs au spawn) : le décor est une propriété de la
+    /// géométrie du circuit, indépendante du point de départ du véhicule.
+    /// </summary>
+    [System.Serializable]
+    public struct DecorObjectData
+    {
+        [Tooltip("Type de primitive 3D Unity")]
+        public PrimitiveType primitiveType;
+
+        [Tooltip("Position monde de l'objet (container de décor placé à Vector3.zero)")]
+        public Vector3 position;
+
+        [Tooltip("Rotation de l'objet")]
+        public Quaternion rotation;
+
+        [Tooltip("Échelle de l'objet")]
+        public Vector3 scale;
+
+        [Tooltip("Couleur appliquée au material Standard de l'objet")]
+        public Color color;
     }
 }

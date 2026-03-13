@@ -64,7 +64,18 @@ namespace ArcadeRacer.Editor
         
         [SerializeField]
         private GameObject previewCheckpointsObject;
-        
+
+        [Header("=== DÉCOR ===")]
+        [SerializeField]
+        [Tooltip("Container racine pour les objets de décor. " +
+                 "Doit être placé à Vector3.zero de la scène (créé automatiquement).")]
+        private GameObject decorContainer;
+
+        [SerializeField]
+        [Tooltip("Graine aléatoire pour la génération automatique du décor. " +
+                 "Changez-la pour obtenir un placement différent.")]
+        private int autoDecorSeed = 42;
+
         #endregion
         
         #region Mode Detection
@@ -112,6 +123,16 @@ namespace ArcadeRacer.Editor
                 if (child != null)
                 {
                     spawnPoint = child;
+                }
+            }
+
+            // Auto-detect DecorContainer si pas assigné
+            if (decorContainer == null)
+            {
+                Transform child = transform.Find(DECOR_CONTAINER_NAME);
+                if (child != null)
+                {
+                    decorContainer = child.gameObject;
                 }
             }
         }
@@ -366,6 +387,9 @@ namespace ArcadeRacer.Editor
             // Assigner automatiquement
             circuitData = newData;
 
+            // Effacer le décor du circuit précédent
+            ClearDecor();
+
             // Nettoyer le champ de nom
             newCircuitName = "";
 
@@ -458,6 +482,9 @@ namespace ArcadeRacer.Editor
             
             spawnPoint.position = circuitData.spawnPosition;
             spawnPoint.rotation = circuitData.spawnRotation;
+
+            // Charger le décor du circuit (remplace l'ancien décor)
+            LoadDecorFromCircuitData();
             
             Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' chargé dans l'éditeur !\n" +
                       $"  - {circuitData.splinePoints.Length} points de spline\n" +
@@ -705,9 +732,421 @@ namespace ArcadeRacer.Editor
                 "OK");
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        #region Gestion Décor
+
+        private const string DECOR_CONTAINER_NAME = "Decor";
+
+        /// <summary>
+        /// Renvoie le container de décor, le crée s'il n'existe pas encore.
+        /// Le container est un GO enfant du CircuitBuilder, positionné à (0,0,0) local
+        /// (= position monde 0 si le CircuitBuilder est lui-même à l'origine).
+        /// </summary>
+        private GameObject GetOrCreateDecorContainer()
+        {
+            if (decorContainer != null) return decorContainer;
+
+            // Chercher parmi les enfants du CircuitBuilder
+            Transform found = transform.Find(DECOR_CONTAINER_NAME);
+            if (found != null)
+            {
+                decorContainer = found.gameObject;
+                return decorContainer;
+            }
+
+            // Créer le container
+            decorContainer = new GameObject(DECOR_CONTAINER_NAME);
+            decorContainer.transform.SetParent(transform);
+            decorContainer.transform.localPosition = Vector3.zero;
+            decorContainer.transform.localRotation = Quaternion.identity;
+            decorContainer.transform.localScale = Vector3.one;
+
+            Debug.Log("[CircuitBuilder] Container de décor créé.");
+            return decorContainer;
+        }
+
+        /// <summary>
+        /// Supprime tous les objets de décor de la scène (vide le container).
+        /// Appeler avant de charger un nouveau circuit ou de régénérer le décor.
+        /// </summary>
+        public void ClearDecor()
+        {
+            var container = GetOrCreateDecorContainer();
+            int count = container.transform.childCount;
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                DestroyImmediate(container.transform.GetChild(i).gameObject);
+            }
+
+            if (count > 0)
+                Debug.Log($"[CircuitBuilder] {count} objet(s) de décor supprimés.");
+        }
+
+        /// <summary>
+        /// Sauvegarde la totalité du décor présent dans le container dans CircuitData.
+        ///
+        /// Pourquoi positions MONDE (et non relatives au spawn) ?
+        ///   • Le décor est une propriété de la géométrie du circuit, pas du point de départ.
+        ///   • Le container est toujours à Vector3.zero → position locale = position monde.
+        ///   • Si le spawn est déplacé, le décor ne bouge pas (comportement souhaité).
+        ///   • Cohérence parfaite éditeur ↔ runtime (les deux recréent le container à l'origine).
+        /// </summary>
+        public void SaveDecorToCircuitData()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", "Aucun CircuitData assigné !", "OK");
+                return;
+            }
+
+            var container = GetOrCreateDecorContainer();
+            int count = container.transform.childCount;
+
+            var list = new System.Collections.Generic.List<DecorObjectData>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                Transform child = container.transform.GetChild(i);
+
+                PrimitiveType prim = GetPrimitiveTypeFromName(child.name);
+
+                Color col = Color.white;
+                var rend = child.GetComponent<MeshRenderer>();
+                if (rend != null && rend.sharedMaterial != null)
+                    col = rend.sharedMaterial.color;
+
+                list.Add(new DecorObjectData
+                {
+                    primitiveType = prim,
+                    position      = child.position,
+                    rotation      = child.rotation,
+                    scale         = child.localScale,
+                    color         = col
+                });
+            }
+
+            circuitData.decorObjects = list.ToArray();
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] {count} objet(s) de décor sauvegardés dans '{circuitData.circuitName}'.");
+            EditorUtility.DisplayDialog("Décor sauvegardé",
+                $"✅ {count} objet(s) de décor sauvegardés dans '{circuitData.circuitName}'.",
+                "OK");
+        }
+
+        /// <summary>
+        /// Charge le décor sauvegardé depuis CircuitData dans la scène d'édition.
+        /// Efface d'abord le décor précédent (circuit précédemment ouvert).
+        /// </summary>
+        public void LoadDecorFromCircuitData()
+        {
+            if (circuitData == null) return;
+
+            ClearDecor();
+
+            if (circuitData.decorObjects == null || circuitData.decorObjects.Length == 0)
+            {
+                Debug.Log($"[CircuitBuilder] Pas de décor sauvegardé pour '{circuitData.circuitName}'.");
+                return;
+            }
+
+            var container = GetOrCreateDecorContainer();
+
+            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+            for (int i = 0; i < circuitData.decorObjects.Length; i++)
+            {
+                var data = circuitData.decorObjects[i];
+                CreateDecorGameObject(container, data.primitiveType, data.position,
+                    data.rotation, data.scale, data.color, i, matCache);
+            }
+
+            Debug.Log($"[CircuitBuilder] {circuitData.decorObjects.Length} objet(s) de décor chargés depuis '{circuitData.circuitName}'.");
+        }
+
+        /// <summary>
+        /// Génère automatiquement le décor autour du circuit.
+        /// Efface l'ancien décor, puis crée trois couches d'objets :
+        ///   • Tier 1 – Pylônes de vitesse : petits cylindres fins très proches du bord
+        ///              (effet parallaxe fort → sensation de vitesse élevée)
+        ///   • Tier 2 – Marqueurs de bord  : cubes/capsules à 4-10 m du bord
+        ///   • Tier 3 – Structures de fond : grands cubes (bâtiments) et cylindres (arbres/pylônes)
+        ///              à 15-40 m, sur les deux côtés
+        /// </summary>
+        public void GenerateAutoDecor()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", "Aucun CircuitData assigné !", "OK");
+                return;
+            }
+
+            // Obtenir les points de spline (spline en cours ou points exportés)
+            SplinePoint[] splinePoints = null;
+            if (splineContainer != null && splineContainer.Spline != null && splineContainer.Spline.Count >= 3)
+            {
+                splinePoints = ConvertSplineToPoints(splineContainer);
+            }
+            else if (circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3)
+            {
+                splinePoints = circuitData.splinePoints;
+            }
+
+            if (splinePoints == null || splinePoints.Length < 3)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Pas assez de points de spline.\n\n" +
+                    "Éditez la spline ou exportez-la d'abord via 'Export to CircuitData'.",
+                    "OK");
+                return;
+            }
+
+            // Générer les bords gauche/droite via CircuitMeshGenerator
+            var tempData = ScriptableObject.CreateInstance<CircuitData>();
+            tempData.splinePoints   = splinePoints;
+            tempData.trackWidth     = circuitData.trackWidth;
+            tempData.closedLoop     = circuitData.closedLoop;
+            tempData.generateWalls  = false;
+
+            var config = CircuitGenerationConstants.EditorConfig;
+            var result = CircuitMeshGenerator.Generate(tempData, config);
+            DestroyImmediate(tempData);
+
+            if (!result.success)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    $"Impossible de générer les bords du circuit : {result.errorMessage}", "OK");
+                return;
+            }
+
+            // Effacer l'ancien décor, puis recréer
+            ClearDecor();
+            var container = GetOrCreateDecorContainer();
+
+            Vector3[] leftEdge  = result.leftEdgePoints;
+            Vector3[] rightEdge = result.rightEdgePoints;
+
+            UnityEngine.Random.InitState(autoDecorSeed);
+            int totalObjects = 0;
+            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+
+            // ── TIER 1 : Pylônes de vitesse ──────────────────────────────────────
+            // Cylindres fins placés à 0.5-2 m du bord de route, toutes les ~10 m.
+            // L'effet de parallaxe intense à courte distance maximise la sensation de vitesse.
+            float tier1Spacing = 10f;
+            float accDist1 = 0f;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist1 += seg;
+                if (accDist1 < tier1Spacing) continue;
+                accDist1 = 0f;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                // Côté gauche
+                float offsetL = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posL  = leftEdge[i] - rightDir * offsetL;
+                posL.y = 0f;
+                float hL = UnityEngine.Random.Range(0.6f, 1.4f);
+                Color  cL = (UnityEngine.Random.value > 0.5f)
+                    ? new Color(0.9f, 0.15f, 0.15f)
+                    : new Color(0.95f, 0.65f, 0.05f);
+                CreateDecorGameObject(container, PrimitiveType.Cylinder, posL,
+                    Quaternion.identity, new Vector3(0.25f, hL, 0.25f), cL, totalObjects++, matCache);
+
+                // Côté droit
+                float offsetR = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posR  = rightEdge[i] + rightDir * offsetR;
+                posR.y = 0f;
+                float hR = UnityEngine.Random.Range(0.6f, 1.4f);
+                Color  cR = (UnityEngine.Random.value > 0.5f)
+                    ? new Color(0.9f, 0.15f, 0.15f)
+                    : new Color(0.95f, 0.65f, 0.05f);
+                CreateDecorGameObject(container, PrimitiveType.Cylinder, posR,
+                    Quaternion.identity, new Vector3(0.25f, hR, 0.25f), cR, totalObjects++, matCache);
+            }
+
+            // ── TIER 2 : Marqueurs de bord ───────────────────────────────────────
+            // Cubes/capsules à 4-10 m du bord, alternance gauche/droite toutes les ~22 m.
+            float tier2Spacing = 22f;
+            float accDist2 = 0f;
+            int tier2Index = 0;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist2 += seg;
+                if (accDist2 < tier2Spacing) continue;
+                accDist2 = 0f;
+                tier2Index++;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                bool isLeft   = (tier2Index % 2 == 0);
+                float offset  = UnityEngine.Random.Range(4f, 10f);
+                Vector3 edge  = isLeft ? leftEdge[i]  : rightEdge[i];
+                Vector3 perp  = isLeft ? (-rightDir)  : rightDir;
+                Vector3 pos   = edge + perp * offset;
+                pos.y = 0f;
+
+                PrimitiveType prim = (tier2Index % 3) switch
+                {
+                    0 => PrimitiveType.Capsule,
+                    1 => PrimitiveType.Cube,
+                    _ => PrimitiveType.Sphere
+                };
+
+                float h = UnityEngine.Random.Range(1f, 3.5f);
+                float w = UnityEngine.Random.Range(0.8f, 2.5f);
+                Vector3 scale = (prim == PrimitiveType.Sphere)
+                    ? Vector3.one * w
+                    : new Vector3(w, h, w);
+                Color col = new Color(
+                    UnityEngine.Random.Range(0.25f, 0.75f),
+                    UnityEngine.Random.Range(0.25f, 0.75f),
+                    UnityEngine.Random.Range(0.25f, 0.75f));
+                Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+
+                CreateDecorGameObject(container, prim, pos, rot, scale, col, totalObjects++, matCache);
+            }
+
+            // ── TIER 3 : Structures de fond ──────────────────────────────────────
+            // Grands bâtiments (cubes) et arbres/pylônes (cylindres) à 15-40 m du bord.
+            // Placés des deux côtés toutes les ~55 m → horizon varié, impression de monde peuplé.
+            float tier3Spacing = 55f;
+            float accDist3 = 0f;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist3 += seg;
+                if (accDist3 < tier3Spacing) continue;
+                accDist3 = 0f;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                for (int side = 0; side < 2; side++)
+                {
+                    bool   isLeft  = (side == 0);
+                    float  offset  = UnityEngine.Random.Range(15f, 40f);
+                    Vector3 edge   = isLeft ? leftEdge[i] : rightEdge[i];
+                    Vector3 perp   = isLeft ? (-rightDir) : rightDir;
+                    Vector3 pos    = edge + perp * offset;
+                    pos.y = 0f;
+
+                    bool isBuilding = (UnityEngine.Random.value > 0.35f);
+                    PrimitiveType prim;
+                    Vector3 scale;
+                    Color col;
+
+                    if (isBuilding)
+                    {
+                        prim  = PrimitiveType.Cube;
+                        scale = new Vector3(
+                            UnityEngine.Random.Range(4f, 14f),
+                            UnityEngine.Random.Range(3f, 10f),
+                            UnityEngine.Random.Range(4f, 14f));
+                        col = new Color(
+                            UnityEngine.Random.Range(0.45f, 0.85f),
+                            UnityEngine.Random.Range(0.45f, 0.85f),
+                            UnityEngine.Random.Range(0.45f, 0.85f));
+                    }
+                    else
+                    {
+                        prim = PrimitiveType.Cylinder;
+                        float w = UnityEngine.Random.Range(0.4f, 1.5f);
+                        scale = new Vector3(w, UnityEngine.Random.Range(5f, 15f), w);
+                        col = new Color(
+                            UnityEngine.Random.Range(0.05f, 0.25f),
+                            UnityEngine.Random.Range(0.35f, 0.75f),
+                            UnityEngine.Random.Range(0.05f, 0.2f));
+                    }
+
+                    Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+                    CreateDecorGameObject(container, prim, pos, rot, scale, col, totalObjects++, matCache);
+                }
+            }
+
+            Debug.Log($"[CircuitBuilder] ✅ {totalObjects} objets de décor générés (seed: {autoDecorSeed}).");
+            EditorUtility.DisplayDialog("Décor généré !",
+                $"✅ {totalObjects} objets de décor générés !\n\n" +
+                $"Seed : {autoDecorSeed}\n" +
+                $"  • Tier 1 – Pylônes de vitesse (proches bord)\n" +
+                $"  • Tier 2 – Marqueurs 4-10 m\n" +
+                $"  • Tier 3 – Structures 15-40 m\n\n" +
+                "Ajustez manuellement si besoin,\n" +
+                "puis cliquez '💾 Sauvegarder Décor'.",
+                "OK");
+        }
+
         #endregion
+        // ─────────────────────────────────────────────────────────────────────
 
         #region Private Methods
+
+        /// <summary>
+        /// Crée un primitive Unity comme objet de décor, lui applique couleur et supprime son collider.
+        /// Nommage : "Decor_PrimitiveType_Index" pour retrouver le type lors de la sauvegarde.
+        /// </summary>
+        private static void CreateDecorGameObject(
+            GameObject container,
+            PrimitiveType primitiveType,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            Color color,
+            int index,
+            System.Collections.Generic.Dictionary<Color, Material> matCache = null)
+        {
+            var go = GameObject.CreatePrimitive(primitiveType);
+            go.name = $"Decor_{primitiveType}_{index}";
+            go.transform.SetParent(container.transform);
+            go.transform.position   = position;
+            go.transform.rotation   = rotation;
+            go.transform.localScale = scale;
+
+            // Matériau avec couleur — réutilise le cache pour éviter les doublons
+            var rend = go.GetComponent<MeshRenderer>();
+            if (rend != null)
+            {
+                if (matCache != null)
+                {
+                    if (!matCache.TryGetValue(color, out Material mat))
+                    {
+                        mat = new Material(Shader.Find("Standard")) { color = color };
+                        matCache[color] = mat;
+                    }
+                    rend.sharedMaterial = mat;
+                }
+                else
+                {
+                    rend.sharedMaterial = new Material(Shader.Find("Standard")) { color = color };
+                }
+            }
+
+            // Le décor est purement visuel : on retire le collider généré automatiquement
+            var col = go.GetComponent<Collider>();
+            if (col != null) DestroyImmediate(col);
+        }
+
+        /// <summary>
+        /// Tente de déterminer le type de primitive depuis le nom d'un objet de décor.
+        /// Convention de nommage : "Decor_PrimitiveType_Index".
+        /// </summary>
+        private static PrimitiveType GetPrimitiveTypeFromName(string name)
+        {
+            if (name.Contains("Cylinder")) return PrimitiveType.Cylinder;
+            if (name.Contains("Sphere"))   return PrimitiveType.Sphere;
+            if (name.Contains("Capsule"))  return PrimitiveType.Capsule;
+            if (name.Contains("Quad"))     return PrimitiveType.Quad;
+            return PrimitiveType.Cube; // défaut
+        }
 
         private bool ValidateBeforeExport(out string errorMessage)
         {
