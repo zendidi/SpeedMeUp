@@ -99,7 +99,7 @@ namespace ArcadeRacer.Settings
             "Palette de couleurs appliquée cycliquement aux objets de décor au chargement.\n" +
             "Si vide, chaque objet conserve sa couleur individuelle (Dark Cyan par défaut).\n" +
             "Ex : 2 couleurs → objet 0=couleur0, objet 1=couleur1, objet 2=couleur0…")]
-        public Color[] decorPalette = new Color[0];
+        public Color[] decorPalette = new Color[5];
 
         [Header("=== METADATA ===")]
         [SerializeField] 

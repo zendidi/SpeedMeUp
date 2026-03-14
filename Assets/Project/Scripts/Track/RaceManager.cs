@@ -53,6 +53,7 @@ namespace ArcadeRacer.RaceSystem
         private float _pendingHighscoreLapTime;
         private string _pendingHighscoreCircuitName;
         private float[] _pendingCheckpointTimes; // NOUVEAU: sauvegarder les checkpoint times immédiatement
+        [SerializeField, Tooltip("UI de saisie du nom pour les highscores")]
         private ArcadeRacer.UI.HighscoreNameInputUI _highscoreNameInputUI;
 
         // Qualifying laps accumulated during the race, shown at race end
@@ -180,7 +181,6 @@ namespace ArcadeRacer.RaceSystem
         private void SetupHighscoreNameInput()
         {
             // Trouver et cacher l'UI de saisie du nom
-            _highscoreNameInputUI = FindFirstObjectByType<ArcadeRacer.UI.HighscoreNameInputUI>();
             
             if (_highscoreNameInputUI != null)
             {
