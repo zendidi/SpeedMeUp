@@ -185,7 +185,7 @@ namespace ArcadeRacer.Utilities
                     point.tangentOut,
                     point.rotation
                 );
-                tempSpline.Add(knot, TangentMode.Explicit);
+                tempSpline.Add(knot, TangentMode.Broken);
             }
 
             tempSpline.Closed = closedLoop;

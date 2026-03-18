@@ -370,7 +370,7 @@ namespace ArcadeRacer.Managers
                     point.rotation
                 );
                 // TangentMode.Explicit : même convention que InterpolateSpline
-                spline.Add(knot, TangentMode.Explicit);
+                spline.Add(knot, TangentMode.Broken);
             }
             
             spline.Closed = circuitData.closedLoop;
