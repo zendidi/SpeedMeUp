@@ -64,7 +64,18 @@ namespace ArcadeRacer.Editor
         
         [SerializeField]
         private GameObject previewCheckpointsObject;
-        
+
+        [Header("=== DÉCOR ===")]
+        [SerializeField]
+        [Tooltip("Container racine pour les objets de décor. " +
+                 "Doit être placé à Vector3.zero de la scène (créé automatiquement).")]
+        private GameObject decorContainer;
+
+        [SerializeField]
+        [Tooltip("Graine aléatoire pour la génération automatique du décor. " +
+                 "Changez-la pour obtenir un placement différent.")]
+        private int autoDecorSeed = 42;
+
         #endregion
         
         #region Mode Detection
@@ -112,6 +123,16 @@ namespace ArcadeRacer.Editor
                 if (child != null)
                 {
                     spawnPoint = child;
+                }
+            }
+
+            // Auto-detect DecorContainer si pas assigné
+            if (decorContainer == null)
+            {
+                Transform child = transform.Find(DECOR_CONTAINER_NAME);
+                if (child != null)
+                {
+                    decorContainer = child.gameObject;
                 }
             }
         }
@@ -366,6 +387,9 @@ namespace ArcadeRacer.Editor
             // Assigner automatiquement
             circuitData = newData;
 
+            // Effacer le décor du circuit précédent
+            ClearDecor();
+
             // Nettoyer le champ de nom
             newCircuitName = "";
 
@@ -458,6 +482,9 @@ namespace ArcadeRacer.Editor
             
             spawnPoint.position = circuitData.spawnPosition;
             spawnPoint.rotation = circuitData.spawnRotation;
+
+            // Charger le décor du circuit (remplace l'ancien décor)
+            LoadDecorFromCircuitData();
             
             Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' chargé dans l'éditeur !\n" +
                       $"  - {circuitData.splinePoints.Length} points de spline\n" +
@@ -633,9 +660,590 @@ namespace ArcadeRacer.Editor
             }
         }
 
+        /// <summary>
+        /// Valide le circuit et le marque comme roulable s'il passe toutes les vérifications.
+        /// Un circuit roulable apparaîtra dans la sélection de circuit en jeu.
+        /// </summary>
+        public void ValidateAndMarkAsRaceable()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Aucun CircuitData assigné !",
+                    "OK");
+                return;
+            }
+
+            bool hasSplinePoints = circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3;
+            bool hasCheckpoints = circuitData.checkpointData != null && circuitData.checkpointData.Length > 0;
+
+            if (!hasSplinePoints)
+            {
+                EditorUtility.DisplayDialog("Validation échouée",
+                    "Le circuit n'a pas assez de points de spline (minimum 3).\n\n" +
+                    "Veuillez d'abord exporter la spline via 'Export to CircuitData'.",
+                    "OK");
+                return;
+            }
+
+            if (!hasCheckpoints)
+            {
+                bool markAnyway = EditorUtility.DisplayDialog("Checkpoints manquants",
+                    "Le circuit n'a pas de checkpoints sauvegardés.\n\n" +
+                    "Il est recommandé de sauvegarder les checkpoints avant de marquer le circuit comme roulable.\n\n" +
+                    "Voulez-vous quand même le marquer comme roulable ?",
+                    "Oui, marquer quand même",
+                    "Non, annuler");
+                if (!markAnyway) return;
+            }
+
+            circuitData.isRaceable = true;
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' marqué comme ROULABLE ✅");
+            EditorUtility.DisplayDialog("Circuit roulable !",
+                $"✅ Le circuit '{circuitData.circuitName}' est maintenant marqué comme ROULABLE.\n\n" +
+                $"Il apparaîtra dans la sélection de circuit en jeu.",
+                "OK");
+        }
+
+        /// <summary>
+        /// Marque le circuit comme NON roulable (retiré de la sélection en jeu).
+        /// </summary>
+        public void MarkAsNotRaceable()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Aucun CircuitData assigné !",
+                    "OK");
+                return;
+            }
+
+            circuitData.isRaceable = false;
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] Circuit '{circuitData.circuitName}' marqué comme NON ROULABLE ❌");
+            EditorUtility.DisplayDialog("Circuit retiré",
+                $"❌ Le circuit '{circuitData.circuitName}' est maintenant marqué comme NON ROULABLE.\n\n" +
+                $"Il n'apparaîtra plus dans la sélection de circuit en jeu.",
+                "OK");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        #region Gestion Décor
+
+        private const string DECOR_CONTAINER_NAME = "Decor";
+
+        /// <summary>
+        /// Renvoie le container de décor, le crée s'il n'existe pas encore.
+        /// Le container est un GO enfant du CircuitBuilder, positionné à (0,0,0) local
+        /// (= position monde 0 si le CircuitBuilder est lui-même à l'origine).
+        /// </summary>
+        private GameObject GetOrCreateDecorContainer()
+        {
+            if (decorContainer != null) return decorContainer;
+
+            // Chercher parmi les enfants du CircuitBuilder
+            Transform found = transform.Find(DECOR_CONTAINER_NAME);
+            if (found != null)
+            {
+                decorContainer = found.gameObject;
+                return decorContainer;
+            }
+
+            // Créer le container
+            decorContainer = new GameObject(DECOR_CONTAINER_NAME);
+            decorContainer.transform.SetParent(transform);
+            decorContainer.transform.localPosition = Vector3.zero;
+            decorContainer.transform.localRotation = Quaternion.identity;
+            decorContainer.transform.localScale = Vector3.one;
+
+            Debug.Log("[CircuitBuilder] Container de décor créé.");
+            return decorContainer;
+        }
+
+        /// <summary>
+        /// Supprime tous les objets de décor de la scène (vide le container).
+        /// Appeler avant de charger un nouveau circuit ou de régénérer le décor.
+        /// </summary>
+        public void ClearDecor()
+        {
+            var container = GetOrCreateDecorContainer();
+            int count = container.transform.childCount;
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                DestroyImmediate(container.transform.GetChild(i).gameObject);
+            }
+
+            if (count > 0)
+                Debug.Log($"[CircuitBuilder] {count} objet(s) de décor supprimés.");
+        }
+
+        /// <summary>
+        /// Sauvegarde la totalité du décor présent dans le container dans CircuitData.
+        ///
+        /// Pourquoi positions MONDE (et non relatives au spawn) ?
+        ///   • Le décor est une propriété de la géométrie du circuit, pas du point de départ.
+        ///   • Le container est toujours à Vector3.zero → position locale = position monde.
+        ///   • Si le spawn est déplacé, le décor ne bouge pas (comportement souhaité).
+        ///   • Cohérence parfaite éditeur ↔ runtime (les deux recréent le container à l'origine).
+        /// </summary>
+        public void SaveDecorToCircuitData()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", "Aucun CircuitData assigné !", "OK");
+                return;
+            }
+
+            var container = GetOrCreateDecorContainer();
+            int count = container.transform.childCount;
+
+            var list = new System.Collections.Generic.List<DecorObjectData>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                Transform child = container.transform.GetChild(i);
+
+                PrimitiveType prim = GetPrimitiveTypeFromName(child.name);
+
+                Color col = Color.white;
+                var rend = child.GetComponent<MeshRenderer>();
+                if (rend != null && rend.sharedMaterial != null)
+                    col = rend.sharedMaterial.color;
+
+                list.Add(new DecorObjectData
+                {
+                    primitiveType = prim,
+                    position      = child.position,
+                    rotation      = child.rotation,
+                    scale         = child.localScale,
+                    color         = col
+                });
+            }
+
+            circuitData.decorObjects = list.ToArray();
+            EditorUtility.SetDirty(circuitData);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[CircuitBuilder] {count} objet(s) de décor sauvegardés dans '{circuitData.circuitName}'.");
+            EditorUtility.DisplayDialog("Décor sauvegardé",
+                $"✅ {count} objet(s) de décor sauvegardés dans '{circuitData.circuitName}'.",
+                "OK");
+        }
+
+        /// <summary>
+        /// Charge le décor sauvegardé depuis CircuitData dans la scène d'édition.
+        /// Efface d'abord le décor précédent (circuit précédemment ouvert).
+        /// </summary>
+        public void LoadDecorFromCircuitData()
+        {
+            if (circuitData == null) return;
+
+            ClearDecor();
+
+            if (circuitData.decorObjects == null || circuitData.decorObjects.Length == 0)
+            {
+                Debug.Log($"[CircuitBuilder] Pas de décor sauvegardé pour '{circuitData.circuitName}'.");
+                return;
+            }
+
+            var container = GetOrCreateDecorContainer();
+
+            Color[] palette = circuitData.decorPalette;
+            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+            for (int i = 0; i < circuitData.decorObjects.Length; i++)
+            {
+                var data  = circuitData.decorObjects[i];
+                Color col = ResolveDecorColor(i, data.color, palette);
+                CreateDecorGameObject(container, data.primitiveType, data.position,
+                    data.rotation, data.scale, col, i, matCache);
+            }
+
+            Debug.Log($"[CircuitBuilder] {circuitData.decorObjects.Length} objet(s) de décor chargés depuis '{circuitData.circuitName}'.");
+        }
+
+        /// <summary>
+        /// Génère automatiquement le décor autour du circuit.
+        /// Efface l'ancien décor, puis crée trois couches d'objets :
+        ///   • Tier 1 – Pylônes de vitesse : petits cylindres fins très proches du bord
+        ///              (effet parallaxe fort → sensation de vitesse élevée)
+        ///   • Tier 2 – Marqueurs de bord  : cubes/capsules à 4-10 m du bord
+        ///   • Tier 3 – Structures de fond : grands cubes (bâtiments) et cylindres (arbres/pylônes)
+        ///              à 15-40 m, sur les deux côtés
+        /// </summary>
+        public void GenerateAutoDecor()
+        {
+            if (circuitData == null)
+            {
+                EditorUtility.DisplayDialog("Erreur", "Aucun CircuitData assigné !", "OK");
+                return;
+            }
+
+            // ─── Choix de la source de données de spline ──────────────────────────
+            // RÈGLE DE CONSISTANCE : on utilise toujours circuitData.splinePoints en
+            // priorité, car c'est exactement la même source que celle utilisée par
+            // CircuitManager à l'exécution. Si le décor était généré depuis le
+            // SplineContainer en direct (et que celui-ci a été modifié depuis le dernier
+            // export), les positions seraient calculées sur une courbe différente de celle
+            // rendue en jeu → décalage visible entre éditeur et runtime.
+            //
+            // Si circuitData.splinePoints n'est pas encore disponible (premier export),
+            // on tombe en fallback sur le SplineContainer live, en avertissant l'utilisateur
+            // d'exporter d'abord.
+            SplinePoint[] splinePoints = null;
+            if (circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3)
+            {
+                splinePoints = circuitData.splinePoints;
+            }
+            else if (splineContainer != null && splineContainer.Spline != null && splineContainer.Spline.Count >= 3)
+            {
+                Debug.LogWarning(
+                    "[CircuitBuilder] ⚠ Génération du décor depuis le SplineContainer en direct " +
+                    "car circuitData.splinePoints est vide. " +
+                    "Exportez d'abord le circuit ('Export to CircuitData') pour garantir la cohérence " +
+                    "entre la position du décor et le rendu en jeu.");
+                splinePoints = ConvertSplineToPoints(splineContainer);
+            }
+
+            if (splinePoints == null || splinePoints.Length < 3)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    "Pas assez de points de spline.\n\n" +
+                    "Éditez la spline ou exportez-la d'abord via 'Export to CircuitData'.",
+                    "OK");
+                return;
+            }
+
+            // Générer les bords gauche/droite via CircuitMeshGenerator
+            var tempData = ScriptableObject.CreateInstance<CircuitData>();
+            tempData.splinePoints   = splinePoints;
+            tempData.trackWidth     = circuitData.trackWidth;
+            tempData.closedLoop     = circuitData.closedLoop;
+            tempData.generateWalls  = false;
+
+            var config = CircuitGenerationConstants.EditorConfig;
+            var result = CircuitMeshGenerator.Generate(tempData, config);
+            DestroyImmediate(tempData);
+
+            if (!result.success)
+            {
+                EditorUtility.DisplayDialog("Erreur",
+                    $"Impossible de générer les bords du circuit : {result.errorMessage}", "OK");
+                return;
+            }
+
+            // Effacer l'ancien décor, puis recréer
+            ClearDecor();
+            var container = GetOrCreateDecorContainer();
+
+            Vector3[] leftEdge  = result.leftEdgePoints;
+            Vector3[] rightEdge = result.rightEdgePoints;
+
+            UnityEngine.Random.InitState(autoDecorSeed);
+            int totalObjects = 0;
+            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+
+            // ── TIER 1 : Pylônes de vitesse ──────────────────────────────────────
+            // Cylindres fins placés à 0.5-2 m du bord de route, toutes les ~10 m.
+            // L'effet de parallaxe intense à courte distance maximise la sensation de vitesse.
+            float tier1Spacing = 10f;
+            float accDist1 = 0f;
+            float trackHW = (circuitData != null ? circuitData.trackWidth : 10f) * 0.5f;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist1 += seg;
+                if (accDist1 < tier1Spacing) continue;
+                accDist1 = 0f;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                // Côté gauche
+                float offsetL  = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posL   = leftEdge[i] - rightDir * offsetL;
+                float hL       = UnityEngine.Random.Range(0.6f, 1.4f);
+                var scaleL     = new Vector3(0.25f, hL, 0.25f);
+                float groundYL = GetGroundY(PrimitiveType.Cylinder, scaleL);
+                posL.y = groundYL;
+                posL   = PushOffTrack(posL, leftEdge, rightEdge, trackHW);
+                posL.y = groundYL; // restaurer Y après déplacement horizontal par PushOffTrack
+                CreateDecorGameObject(container, PrimitiveType.Cylinder, posL,
+                    Quaternion.identity, scaleL, DarkCyan, totalObjects++, matCache);
+
+                // Côté droit
+                float offsetR  = UnityEngine.Random.Range(0.5f, 2f);
+                Vector3 posR   = rightEdge[i] + rightDir * offsetR;
+                float hR       = UnityEngine.Random.Range(0.6f, 1.4f);
+                var scaleR     = new Vector3(0.25f, hR, 0.25f);
+                float groundYR = GetGroundY(PrimitiveType.Cylinder, scaleR);
+                posR.y = groundYR;
+                posR   = PushOffTrack(posR, leftEdge, rightEdge, trackHW);
+                posR.y = groundYR;
+                CreateDecorGameObject(container, PrimitiveType.Cylinder, posR,
+                    Quaternion.identity, scaleR, DarkCyan, totalObjects++, matCache);
+            }
+
+            // ── TIER 2 : Marqueurs de bord ───────────────────────────────────────
+            // Cubes/capsules à 4-10 m du bord, alternance gauche/droite toutes les ~22 m.
+            float tier2Spacing = 22f;
+            float accDist2 = 0f;
+            int tier2Index = 0;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist2 += seg;
+                if (accDist2 < tier2Spacing) continue;
+                accDist2 = 0f;
+                tier2Index++;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                bool isLeft   = (tier2Index % 2 == 0);
+                float offset  = UnityEngine.Random.Range(4f, 10f);
+                Vector3 edge  = isLeft ? leftEdge[i]  : rightEdge[i];
+                Vector3 perp  = isLeft ? (-rightDir)  : rightDir;
+                Vector3 pos   = edge + perp * offset;
+
+                PrimitiveType prim = (tier2Index % 3) switch
+                {
+                    0 => PrimitiveType.Capsule,
+                    1 => PrimitiveType.Cube,
+                    _ => PrimitiveType.Sphere
+                };
+
+                float h = UnityEngine.Random.Range(1f, 3.5f);
+                float w = UnityEngine.Random.Range(0.8f, 2.5f);
+                Vector3 scale = (prim == PrimitiveType.Sphere)
+                    ? Vector3.one * w
+                    : new Vector3(w, h, w);
+                pos.y = GetGroundY(prim, scale);
+                Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+
+                CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
+            }
+
+            // ── TIER 3 : Structures de fond ──────────────────────────────────────
+            // Grands bâtiments (cubes) et arbres/pylônes (cylindres) à 15-40 m du bord.
+            // Placés des deux côtés toutes les ~55 m → horizon varié, impression de monde peuplé.
+            float tier3Spacing = 55f;
+            float accDist3 = 0f;
+
+            for (int i = 0; i < leftEdge.Length - 1; i++)
+            {
+                float seg = Vector3.Distance(leftEdge[i], leftEdge[i + 1]);
+                accDist3 += seg;
+                if (accDist3 < tier3Spacing) continue;
+                accDist3 = 0f;
+
+                Vector3 fwd      = (leftEdge[i + 1] - leftEdge[i]).normalized;
+                Vector3 rightDir = Vector3.Cross(Vector3.up, fwd).normalized;
+
+                for (int side = 0; side < 2; side++)
+                {
+                    bool   isLeft  = (side == 0);
+                    float  offsetD = UnityEngine.Random.Range(15f, 40f);
+                    Vector3 edge   = isLeft ? leftEdge[i] : rightEdge[i];
+                    Vector3 perp   = isLeft ? (-rightDir) : rightDir;
+                    Vector3 pos    = edge + perp * offsetD;
+
+                    bool isBuilding = (UnityEngine.Random.value > 0.35f);
+                    PrimitiveType prim;
+                    Vector3 scale;
+
+                    if (isBuilding)
+                    {
+                        prim  = PrimitiveType.Cube;
+                        scale = new Vector3(
+                            UnityEngine.Random.Range(4f, 14f),
+                            UnityEngine.Random.Range(3f, 10f),
+                            UnityEngine.Random.Range(4f, 14f));
+                    }
+                    else
+                    {
+                        prim = PrimitiveType.Cylinder;
+                        float w = UnityEngine.Random.Range(0.4f, 1.5f);
+                        scale = new Vector3(w, UnityEngine.Random.Range(5f, 15f), w);
+                    }
+
+                    pos.y = GetGroundY(prim, scale);
+                    Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+                    CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
+                }
+            }
+
+            Debug.Log($"[CircuitBuilder] ✅ {totalObjects} objets de décor générés (seed: {autoDecorSeed}).");
+            EditorUtility.DisplayDialog("Décor généré !",
+                $"✅ {totalObjects} objets de décor générés !\n\n" +
+                $"Seed : {autoDecorSeed}\n" +
+                $"  • Tier 1 – Pylônes de vitesse (proches bord)\n" +
+                $"  • Tier 2 – Marqueurs 4-10 m\n" +
+                $"  • Tier 3 – Structures 15-40 m\n\n" +
+                "Ajustez manuellement si besoin,\n" +
+                "puis cliquez '💾 Sauvegarder Décor'.",
+                "OK");
+        }
+
         #endregion
+        // ─────────────────────────────────────────────────────────────────────
 
         #region Private Methods
+
+        /// <summary>
+        /// Couleur sombre cyan utilisée par défaut pour tous les objets de décor auto-générés.
+        /// Unity n'expose pas Color.darkCyan, on la définit ici : #008B8B (HTML DarkCyan).
+        /// </summary>
+        private static readonly Color DarkCyan = new Color(0f, 0.545f, 0.545f);
+
+        /// <summary>
+        /// Retourne le décalage en Y (halfHeight) pour que la base d'un primitive posé à (x,0,z)
+        /// soit exactement au niveau du sol.
+        ///
+        /// Dimensions des primitives Unity avec scale = Vector3.one :
+        ///   Cube     → extents.y = 0.5 → groundY = 0.5 * scale.y
+        ///   Sphere   → extents.y = 0.5 → groundY = 0.5 * scale.y
+        ///   Cylinder → extents.y = 1.0 → groundY = 1.0 * scale.y
+        ///   Capsule  → extents.y = 1.0 → groundY = 1.0 * scale.y
+        ///   Quad     → plat           → groundY = 0
+        /// </summary>
+        private static float GetGroundY(PrimitiveType primitiveType, Vector3 scale)
+        {
+            return primitiveType switch
+            {
+                PrimitiveType.Cylinder => scale.y,
+                PrimitiveType.Capsule  => scale.y,
+                _                      => scale.y * 0.5f   // Cube, Sphere, Quad
+            };
+        }
+
+        /// <summary>
+        /// Sélectionne la couleur à utiliser pour l'objet d'index <paramref name="index"/> :
+        ///   • Si la palette est renseignée → cycle dans la palette
+        ///   • Sinon → couleur individuelle stockée (data.color) ou DarkCyan par défaut
+        /// </summary>
+        private static Color ResolveDecorColor(int index, Color storedColor, Color[] palette)
+        {
+            if (palette != null && palette.Length > 0)
+                return palette[index % palette.Length];
+            return storedColor;
+        }
+
+        /// <summary>
+        /// Crée un primitive Unity comme objet de décor, lui applique couleur et supprime son collider.
+        /// Nommage : "Decor_PrimitiveType_Index" pour retrouver le type lors de la sauvegarde.
+        ///
+        /// La position <paramref name="position"/> est supposée déjà ajustée en Y (base au sol).
+        /// Le shader utilisé est celui du primitive Unity par défaut (compatible URP et Built-in).
+        /// </summary>
+        private static void CreateDecorGameObject(
+            GameObject container,
+            PrimitiveType primitiveType,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            Color color,
+            int index,
+            System.Collections.Generic.Dictionary<Color, Material> matCache = null)
+        {
+            var go = GameObject.CreatePrimitive(primitiveType);
+            go.name = $"Decor_{primitiveType}_{index}";
+            go.transform.SetParent(container.transform);
+            go.transform.position   = position;
+            go.transform.rotation   = rotation;
+            go.transform.localScale = scale;
+
+            // Matériau avec couleur.
+            // On clône le sharedMaterial du primitive (déjà correct pour URP/Built-in)
+            // plutôt que de chercher le shader "Standard" qui n'existe pas en URP.
+            var rend = go.GetComponent<MeshRenderer>();
+            if (rend != null)
+            {
+                if (matCache != null)
+                {
+                    if (!matCache.TryGetValue(color, out Material mat))
+                    {
+                        mat = new Material(rend.sharedMaterial) { color = color };
+                        matCache[color] = mat;
+                    }
+                    rend.sharedMaterial = mat;
+                }
+                else
+                {
+                    rend.sharedMaterial = new Material(rend.sharedMaterial) { color = color };
+                }
+            }
+
+            // Le décor est purement visuel : on retire le collider généré automatiquement
+            var col = go.GetComponent<Collider>();
+            if (col != null) DestroyImmediate(col);
+        }
+
+        /// <summary>
+        /// Tente de déterminer le type de primitive depuis le nom d'un objet de décor.
+        /// Convention de nommage : "Decor_PrimitiveType_Index".
+        /// </summary>
+        private static PrimitiveType GetPrimitiveTypeFromName(string name)
+        {
+            if (name.Contains("Cylinder")) return PrimitiveType.Cylinder;
+            if (name.Contains("Sphere"))   return PrimitiveType.Sphere;
+            if (name.Contains("Capsule"))  return PrimitiveType.Capsule;
+            if (name.Contains("Quad"))     return PrimitiveType.Quad;
+            return PrimitiveType.Cube; // défaut
+        }
+
+        /// <summary>
+        /// Pousse une position hors de la chaussée si elle se trouve à moins de
+        /// <c>trackHalfWidth + safetyMargin</c> du centre de la route le plus proche.
+        ///
+        /// Algorithme : itère jusqu'à 40 fois par pas de 0.3 m en s'éloignant du centre.
+        /// Utile pour les pylônes de Tier 1 dans les virages serrés.
+        /// </summary>
+        private static Vector3 PushOffTrack(
+            Vector3 pos,
+            Vector3[] leftEdge,
+            Vector3[] rightEdge,
+            float trackHalfWidth,
+            float safetyMargin = 0.5f)
+        {
+            const float pushStep  = 0.3f;
+            const int   maxIter   = 40;
+
+            for (int iter = 0; iter < maxIter; iter++)
+            {
+                // Trouver le point central le plus proche (en 2D)
+                float minDist = float.MaxValue;
+                int   closestIdx = 0;
+
+                for (int k = 0; k < leftEdge.Length; k++)
+                {
+                    Vector3 center = (leftEdge[k] + rightEdge[k]) * 0.5f;
+                    float d = Mathf.Sqrt(
+                        (pos.x - center.x) * (pos.x - center.x) +
+                        (pos.z - center.z) * (pos.z - center.z));
+                    if (d < minDist) { minDist = d; closestIdx = k; }
+                }
+
+                if (minDist > trackHalfWidth + safetyMargin) break; // déjà hors route
+
+                // Repousser en s'éloignant du centre
+                Vector3 center3 = (leftEdge[closestIdx] + rightEdge[closestIdx]) * 0.5f;
+                Vector3 outDir  = new Vector3(pos.x - center3.x, 0f, pos.z - center3.z);
+                if (outDir.sqrMagnitude < 0.001f) outDir = Vector3.right;
+                outDir.Normalize();
+                pos.x += outDir.x * pushStep;
+                pos.z += outDir.z * pushStep;
+            }
+
+            return pos;
+        }
 
         private bool ValidateBeforeExport(out string errorMessage)
         {
@@ -796,5 +1404,7 @@ namespace ArcadeRacer.Editor
         
         #endregion
     }
-#endif
+
 }
+#endregion
+#endif

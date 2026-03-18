@@ -113,6 +113,15 @@ namespace ArcadeRacer.Settings
             return GetCircuitByName(circuitName) != null;
         }
 
+        /// <summary>
+        /// Retourne uniquement les circuits marqués comme roulables
+        /// </summary>
+        public IReadOnlyList<CircuitData> GetRaceableCircuits()
+        {
+            if (availableCircuits == null) return new List<CircuitData>();
+            return availableCircuits.Where(c => c != null && c.isRaceable).ToList();
+        }
+
         #endregion
 
         #region Validation

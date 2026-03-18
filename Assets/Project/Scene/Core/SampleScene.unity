@@ -933,9 +933,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.UI.UIManager
   raceHUD: {fileID: 170474199}
   countdownUI: {fileID: 1512547417}
-  Info: {fileID: 0}
+  Info: {fileID: 51188396}
   circuitSelectionUI: {fileID: 709700062}
-  highscoreNameInputUI: {fileID: 0}
+  highscoreNameInputUI: {fileID: 324036855}
   raceManager: {fileID: 1071328594}
 --- !u!1 &251460384
 GameObject:
@@ -3406,6 +3406,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeRacer.UI.CircuitSelectionUI
   useCircuitDatabase: 1
   manualCircuitList: []
+  showOnlyRaceableCircuits: 1
   gridContainer: {fileID: 626289289}
   itemPrefab: {fileID: 7117726159943855213, guid: b433453828920ed408784f61b60dcb5f, type: 3}
   OnCircuitSelected:
@@ -4473,6 +4474,7 @@ MonoBehaviour:
   - {fileID: 618931062}
   enableWarmupLap: 1
   showDebugInfo: 1
+  _highscoreNameInputUI: {fileID: 324036855}
   _debugInfo:
     currentState: 0
     countdownTimer: 0

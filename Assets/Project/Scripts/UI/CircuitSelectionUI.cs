@@ -23,6 +23,10 @@ namespace ArcadeRacer.UI
         [Tooltip("Liste manuelle de circuits (si useCircuitDatabase = false)")]
         private List<CircuitData> manualCircuitList = new List<CircuitData>();
 
+        [SerializeField]
+        [Tooltip("Si activé, affiche uniquement les circuits marqués comme roulables")]
+        private bool showOnlyRaceableCircuits = true;
+
         [Header("=== UI REFERENCES ===")]
         [SerializeField]
         [Tooltip("Container avec GridLayoutGroup pour les items")]
@@ -216,22 +220,31 @@ namespace ArcadeRacer.UI
         /// </summary>
         private List<CircuitData> GetCircuitList()
         {
+            List<CircuitData> circuits;
+
             if (useCircuitDatabase)
             {
                 if (CircuitDatabase.Instance != null)
                 {
-                    return new List<CircuitData>(CircuitDatabase.Instance.AvailableCircuits);
+                    circuits = new List<CircuitData>(CircuitDatabase.Instance.AvailableCircuits);
                 }
                 else
                 {
                     Debug.LogWarning("[CircuitSelectionUI] CircuitDatabase non trouvée! Utilisation de la liste manuelle.");
-                    return manualCircuitList;
+                    circuits = manualCircuitList;
                 }
             }
             else
             {
-                return manualCircuitList;
+                circuits = manualCircuitList;
             }
+
+            if (showOnlyRaceableCircuits)
+            {
+                circuits = circuits.FindAll(c => c != null && c.isRaceable);
+            }
+
+            return circuits;
         }
 
         #endregion
