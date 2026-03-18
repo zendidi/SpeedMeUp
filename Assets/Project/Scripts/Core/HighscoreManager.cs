@@ -588,7 +588,10 @@ namespace ArcadeRacer.Core
 
         private IEnumerator SyncFromNetwork(string circuitName)
         {
-            string url = GetNetworkUrl(circuitName);
+            // Les règles Firebase exigent auth != null pour les lectures comme pour les
+            // écritures. On passe withAuth: true afin d'inclure le jeton ?auth= si
+            // FirebaseAuthManager est authentifié.
+            string url = GetNetworkUrl(circuitName, withAuth: true);
 
             using (UnityWebRequest req = UnityWebRequest.Get(url))
             {
@@ -641,6 +644,26 @@ namespace ArcadeRacer.Core
         {
             if (Settings.CircuitDatabase.Instance == null)
                 yield break;
+
+            // Attendre que FirebaseAuthManager ait terminé son authentification avant
+            // d'envoyer les requêtes GET, afin que le jeton ?auth= soit disponible.
+            // On attend au maximum networkTimeoutSeconds secondes pour ne pas bloquer
+            // indéfiniment si l'auth échoue ou si le composant est absent.
+            FirebaseAuthManager authManager = FirebaseAuthManager.Instance;
+            if (authManager != null && authManager.IsAuthEnabled)
+            {
+                float elapsed = 0f;
+                while (!authManager.IsAuthenticated && elapsed < networkTimeoutSeconds)
+                {
+                    yield return null;
+                    elapsed += Time.unscaledDeltaTime;
+                }
+
+                if (!authManager.IsAuthenticated)
+                {
+                    Debug.LogWarning("[HighscoreManager] Authentification Firebase non disponible après délai. La synchronisation sera tentée sans token.");
+                }
+            }
 
             foreach (var circuit in Settings.CircuitDatabase.Instance.AvailableCircuits)
             {
