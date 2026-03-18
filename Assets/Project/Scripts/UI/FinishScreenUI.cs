@@ -70,7 +70,7 @@ namespace ArcadeRacer.UI
             {
                 if (finishPanel != null && ! finishPanel.activeSelf)
                 {
-                    ShowResults();
+                    Show();
                 }
             }
         }
@@ -79,41 +79,13 @@ namespace ArcadeRacer.UI
 
         #region Display
 
-        private void ShowResults()
+        public void Show()
         {
             if (finishPanel != null) finishPanel.SetActive(true);
 
-            if (_playerVehicle == null || raceManager == null) return;
-
-            LapTimer timer = raceManager.GetVehicleTimer(_playerVehicle);
-            int position = raceManager.GetVehiclePosition(_playerVehicle);
-
-            // Title
-            if (titleText != null)
-            {
-                titleText. text = position == 1 ? winTitle :  loseTitle;
-            }
-
-            // Position
-            if (positionText != null)
-            {
-                positionText.text = $"Position: {GetPositionSuffix(position)}";
-            }
-
-            // Total time
-            if (totalTimeText != null && timer != null)
-            {
-                totalTimeText.text = $"Total Time: {LapTimer.FormatTime(timer.TotalRaceTime)}";
-            }
-
-            // Best lap
-            if (bestLapText != null && timer != null)
-            {
-                bestLapText.text = $"Best Lap: {LapTimer.FormatTime(timer.BestLapTime)}";
-            }
         }
 
-        private void Hide()
+        public  void Hide()
         {
             if (finishPanel != null) finishPanel.SetActive(false);
         }

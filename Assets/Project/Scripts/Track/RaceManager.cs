@@ -78,11 +78,42 @@ namespace ArcadeRacer.RaceSystem
         #region Properties
 
         public RaceState CurrentState => _currentState;
-        public int TotalLaps => totalLaps;
+        public int TotalLaps
+        {
+            get => totalLaps;
+            set => totalLaps = Mathf.Max(1, value);
+        }
         public float CountdownTimer => _countdownTimer;
         public float CountdownDuration => countdownDuration;
         public bool IsRacing => _currentState == RaceState.Racing;
         public List<VehicleController> FinishedVehicles => _finishedVehicles;
+
+        /// <summary>
+        /// Active ou désactive le tour de formation.
+        /// Peut être modifié à tout moment avant le démarrage de la course.
+        /// </summary>
+        public bool EnableWarmupLap
+        {
+            get => enableWarmupLap;
+            set
+            {
+                enableWarmupLap = value;
+
+                // Mettre à jour les véhicules déjà enregistrés si la course n'a pas encore commencé
+                if (_currentState == RaceState.NotStarted)
+                {
+                    foreach (var vehicle in racingVehicles)
+                    {
+                        if (_warmupLapActive.ContainsKey(vehicle))
+                        {
+                            _warmupLapActive[vehicle] = value;
+                        }
+                    }
+                }
+
+                Debug.Log($"[RaceManager] EnableWarmupLap → {value}");
+            }
+        }
 
         #endregion
 
@@ -314,9 +345,9 @@ namespace ArcadeRacer.RaceSystem
                 _warmupLapActive[vehicle] = enableWarmupLap;
                 _vehicleTimers[vehicle].Reset();
                 checkpointManager?.ResetVehicleProgress(vehicle);
-
+                CircuitManager.Instance.SpawnVehicle(vehicle.transform);
                 // Téléporter au spawn point
-                vehicle.ResetToSpawnPoint();
+               // vehicle.ResetToSpawnPoint();
             }
 
             _finishedVehicles.Clear();

@@ -56,10 +56,10 @@ namespace ArcadeRacer.Vehicle
         private float _steeringInput;
         private bool _driftInput;
 
-        private Vector3 _velocity;
+        public Vector3 _velocity;
         private bool _isGrounded;
         private Vector3 _groundNormal;
-        private float _currentSpeed;
+        public float _currentSpeed;
         private float _currentSteeringAngle;
 
         // Freinage adaptatif [0-1] — monte lentement, retombe plus vite

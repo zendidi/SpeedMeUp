@@ -1,6 +1,8 @@
 using ArcadeRacer.RaceSystem;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace ArcadeRacer.UI
 {
@@ -17,6 +19,11 @@ namespace ArcadeRacer.UI
         [SerializeField] private CircuitSelectionUI circuitSelectionUI;
         [SerializeField] private HighscoreNameInputUI highscoreNameInputUI;
 
+        [Header("=== RACE SETTINGS UI ===")]
+        [SerializeField] private Toggle warmUpToggle;
+        [SerializeField] private Slider lapCountSlider;
+        [SerializeField] private TextMeshProUGUI lapCountText;
+
         [Header("=== REFERENCES ===")]
         [SerializeField] private RaceManager raceManager;
 
@@ -31,9 +38,10 @@ namespace ArcadeRacer.UI
         {
             InitializeUI();
             InitializeInput();
+            InitializeRaceSettingsUI();
+
             if (Info != null)
             {
-
                 Info.gameObject.SetActive(true);
                 Debug.Log("[UIManager] Affichage de l'écran d'info au lancement");
             }
@@ -61,7 +69,6 @@ namespace ArcadeRacer.UI
                 raceManager = FindFirstObjectByType<RaceManager>();
             }
 
-            // Auto-find UI components si non assignés
             if (raceHUD == null)
             {
                 raceHUD = FindFirstObjectByType<RaceHUD>();
@@ -90,7 +97,6 @@ namespace ArcadeRacer.UI
 
         private void InitializeUI()
         {
-            // Cacher tous les éléments UI au départ
             if (raceHUD != null)
             {
                 raceHUD.SetVisible(false);
@@ -101,7 +107,6 @@ namespace ArcadeRacer.UI
                 countdownUI.gameObject.SetActive(false);
             }
 
-
             if (circuitSelectionUI != null)
             {
                 circuitSelectionUI.Hide();
@@ -111,27 +116,99 @@ namespace ArcadeRacer.UI
             {
                 highscoreNameInputUI.Hide();
             }
+
             if (Info != null)
             {
-
                 Info.gameObject.SetActive(true);
                 Debug.Log("[UIManager] Affichage de l'écran d'info au lancement");
             }
         }
 
-        public void ShowInfo()
+        /// <summary>
+        /// Initialise les contrôles de réglage de course (Toggle warmup + Slider lap count)
+        /// et synchronise leur état initial avec le RaceManager.
+        /// </summary>
+        private void InitializeRaceSettingsUI()
         {
-            Debug.Log("[UIManager] Show Info Screen");
-            Info.gameObject.SetActive(true);
-            circuitSelectionUI.Hide();          
+            if (raceManager == null) return;
+
+            // === TOGGLE WARMUP ===
+            if (warmUpToggle != null)
+            {
+                // Synchroniser l'état du toggle avec la valeur actuelle du RaceManager
+                warmUpToggle.isOn = raceManager.EnableWarmupLap;
+
+                // S'abonner au changement de valeur
+                warmUpToggle.onValueChanged.AddListener(OnWarmupToggleChanged);
+            }
+
+            // === SLIDER LAP COUNT ===
+            if (lapCountSlider != null)
+            {
+                lapCountSlider.wholeNumbers = true;
+
+                // Synchroniser le slider avec la valeur actuelle du RaceManager
+                lapCountSlider.value = raceManager.TotalLaps;
+
+                // S'abonner au changement de valeur
+                lapCountSlider.onValueChanged.AddListener(OnLapCountSliderChanged);
+            }
+
+            // Mettre à jour le texte immédiatement
+            UpdateLapCountText(raceManager.TotalLaps);
         }
 
-        public void ShowMenu()
+        #endregion
+
+        #region Race Settings UI Handlers
+
+        /// <summary>
+        /// Appelé quand le Toggle warmup change d'état.
+        /// Propage la valeur au RaceManager immédiatement.
+        /// </summary>
+        private void OnWarmupToggleChanged(bool isOn)
         {
-            Debug.Log("[UIManager] Show Menu Screen");
-            Info.gameObject.SetActive(false);
-            circuitSelectionUI.Show();
+            if (raceManager != null)
+            {
+                raceManager.EnableWarmupLap = isOn;
+                Debug.Log($"[UIManager] Warmup Lap : {(isOn ? "activé" : "désactivé")}");
+            }
         }
+
+        /// <summary>
+        /// Appelé quand le Slider de nombre de tours change de valeur.
+        /// Propage la valeur au RaceManager et met à jour le texte.
+        /// </summary>
+        private void OnLapCountSliderChanged(float value)
+        {
+            int lapCount = Mathf.RoundToInt(value);
+
+            if (raceManager != null)
+            {
+                raceManager.TotalLaps = lapCount;
+                Debug.Log($"[UIManager] Nombre de tours : {lapCount}");
+            }
+
+            UpdateLapCountText(lapCount);
+        }
+
+        private void UpdateLapCountText(int lapCount)
+        {
+            if (lapCountText != null)
+            {
+                lapCountText.text = $"Lap Count: {lapCount}";
+            }
+        }
+
+        #endregion
+
+        #region Screen Navigation
+
+
+
+        #endregion
+
+        #region Race Event Subscriptions
 
         private void SubscribeToRaceEvents()
         {
@@ -159,13 +236,11 @@ namespace ArcadeRacer.UI
 
         private void HandleCountdownStarted()
         {
-            // Afficher le countdown UI
             if (countdownUI != null)
             {
                 countdownUI.gameObject.SetActive(true);
             }
 
-            // Cacher les autres UI
             if (raceHUD != null)
             {
                 raceHUD.SetVisible(false);
@@ -181,7 +256,6 @@ namespace ArcadeRacer.UI
 
         private void HandleRaceStarted()
         {
-            // Afficher le HUD de course
             if (raceHUD != null)
             {
                 raceHUD.SetVisible(true);
@@ -190,21 +264,12 @@ namespace ArcadeRacer.UI
             Debug.Log("[UIManager] Race HUD activé");
         }
 
-
-
         private void HandleRaceFinished()
         {
-            // Cacher le HUD
             if (raceHUD != null)
             {
                 raceHUD.SetVisible(false);
             }
-
-            //// Afficher l'écran de fin
-            //if (finishScreenUI != null)
-            //{
-            //    finishScreenUI.gameObject.SetActive(true);
-            //}
 
             Debug.Log("[UIManager] Finish Screen activé");
         }
@@ -236,51 +301,21 @@ namespace ArcadeRacer.UI
         {
             countdownUI?.Reset();
             raceHUD?.SetVisible(false);
-            Info?.gameObject.SetActive(false);
+            Info?.Hide();
             circuitSelectionUI?.Hide();
             highscoreNameInputUI?.Hide();
         }
-        private Car_Actions _carActions;
 
-        private void InitializeInput()
+        public void ShowInfo()
         {
-            // Créer l'instance du Input Actions
-            _carActions = new Car_Actions();
-
-            // S'abonner aux événements
-            SubscribeToInputEvents();
-        }
-
-        private void SubscribeToInputEvents()
-        {
-            // Actions continues (Value)
-            Debug.Log("[UIManager] Abonnement à l'input MenuTrigger");
-            _carActions.Driving.MenuTrigger.performed += SelectionCircuitTrigger;
-            
-            // Activer l'action map pour que les inputs fonctionnent
-            _carActions.Driving.Enable();
+            ResetUI();
+            if (Info != null)
+            {
+                Info.Show();
+                Debug.Log("[UIManager] Affichage de l'écran d'info");
+            }
         }
         
-        private void UnsubscribeFromInputEvents()
-        {
-            if (_carActions == null) return;
-            
-            _carActions.Driving.MenuTrigger.performed -= SelectionCircuitTrigger;
-            _carActions.Driving.Disable();
-        }
-        public void SelectionCircuitTrigger(InputAction.CallbackContext context)
-        {
-            Debug.Log("[UIManager] Menu Trigger activé");
-            if (circuitSelectionUI.isActiveAndEnabled)
-            {
-                circuitSelectionUI.Hide();
-            }
-            else
-            {
-                circuitSelectionUI.Show();
-            }
-        }
-
         /// <summary>
         /// Afficher l'UI de sélection de circuits
         /// </summary>
@@ -288,9 +323,8 @@ namespace ArcadeRacer.UI
         {
             if (circuitSelectionUI != null)
             {
+                ResetUI();
                 circuitSelectionUI.Show();
-                HideRaceHUD();
-                Debug.Log("[UIManager] Circuit Selection UI activé");
             }
         }
 
@@ -323,9 +357,53 @@ namespace ArcadeRacer.UI
         }
 
         #endregion
-        
+
+        #region Input
+
+        private Car_Actions _carActions;
+
+        private void InitializeInput()
+        {
+            _carActions = new Car_Actions();
+            SubscribeToInputEvents();
+        }
+
+        private void SubscribeToInputEvents()
+        {
+            Debug.Log("[UIManager] Abonnement à l'input MenuTrigger");
+            _carActions.Driving.MenuTrigger.performed += SelectionCircuitTrigger;
+            _carActions.Driving.Enable();
+        }
+
+        private void UnsubscribeFromInputEvents()
+        {
+            if (_carActions == null) return;
+
+            _carActions.Driving.MenuTrigger.performed -= SelectionCircuitTrigger;
+            _carActions.Driving.Disable();
+        }
+
+        public void SelectionCircuitTrigger(InputAction.CallbackContext context)
+        {
+            Debug.Log("[UIManager] Menu Trigger activé");
+            if (circuitSelectionUI.isActiveAndEnabled)
+            {
+                circuitSelectionUI.Hide();
+            }
+            else
+            {
+                circuitSelectionUI.Show();
+            }
+        }
+
+        #endregion
+
         private void OnDestroy()
         {
+            // Désabonner les listeners UI pour éviter les fuites mémoire
+            warmUpToggle?.onValueChanged.RemoveListener(OnWarmupToggleChanged);
+            lapCountSlider?.onValueChanged.RemoveListener(OnLapCountSliderChanged);
+
             if (_carActions != null)
             {
                 _carActions.Dispose();

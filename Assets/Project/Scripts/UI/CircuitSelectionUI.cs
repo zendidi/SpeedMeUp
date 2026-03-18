@@ -2,6 +2,8 @@ using ArcadeRacer.Core;
 using ArcadeRacer.Managers;
 using ArcadeRacer.RaceSystem;
 using ArcadeRacer.Settings;
+using ArcadeRacer.Vehicle;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -56,7 +58,7 @@ namespace ArcadeRacer.UI
             // Écouter la sélection de circuit
 
             OnCircuitSelected.AddListener(LoadAndStartCircuit);
-            
+
             // Cache vehicle controller reference
             _cachedVehicleController = FindFirstObjectByType<ArcadeRacer.Vehicle.VehicleController>();
             if (_cachedVehicleController == null)
@@ -280,37 +282,35 @@ namespace ArcadeRacer.UI
 
         private void LoadAndStartCircuit(CircuitData circuit)
         {
+
+            VehiclePhysics vehiclePhysics = _cachedVehicleController.GetComponent<VehiclePhysics>();
+            if (vehiclePhysics != null)
+            {
+                vehiclePhysics._velocity = Vector3.zero;
+
+            }
             CircuitManager.Instance.LoadCircuit(circuit);
             DisplayBestTime(circuit.circuitName);
-            
-            // Spawn the vehicle at the circuit's spawn point
-            if (_cachedVehicleController != null)
-            {
-                CircuitManager.Instance.SpawnVehicle(_cachedVehicleController.transform);
-                
-                // Reset vehicle velocity
-                Rigidbody vehicleRb = _cachedVehicleController.GetComponent<Rigidbody>();
-                if (vehicleRb != null)
-                {
-                    vehicleRb.linearVelocity = Vector3.zero;
-                    vehicleRb.angularVelocity = Vector3.zero;
-                }
-                
-                Debug.Log($"[CircuitSelectionUI] Vehicle spawned at circuit spawn point");
-            }
-            else
-            {
-                Debug.LogWarning("[CircuitSelectionUI] No VehicleController cached!");
-            }
+
+            //CircuitManager.Instance.CurrentCircuit.spawnRotation= circuit.spawnRotation;
+            //CircuitManager.Instance.CurrentCircuit.spawnRotation = circuit.spawnRotation;
+
+            StartCoroutine(spawnVeh());
 
             if (raceManager != null)
             {
                 raceManager.RestartRace();
             }
-            
+
             // Auto-hide the circuit selection panel after selecting a circuit
             Hide();
             Debug.Log("[CircuitSelectionUI] Circuit selection panel hidden after selection");
+        }
+        
+        IEnumerator spawnVeh()
+        {
+            yield return new WaitForSeconds(.1f);
+            CircuitManager.Instance.SpawnVehicle(_cachedVehicleController.transform);
         }
 
         private void DisplayBestTime(string circuitName)

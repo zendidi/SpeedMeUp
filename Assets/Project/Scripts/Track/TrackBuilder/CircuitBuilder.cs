@@ -1403,8 +1403,8 @@ namespace ArcadeRacer.Editor
         }
         
         #endregion
+#endregion
     }
 
-}
-#endregion
 #endif
+}
