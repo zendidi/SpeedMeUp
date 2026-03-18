@@ -419,17 +419,16 @@ namespace ArcadeRacer.Managers
             _decorRoot = new GameObject($"Decor_{circuitData.circuitName}");
             _decorRoot.transform.position = Vector3.zero;
 
-            Color[] palette  = circuitData.decorPalette;
-            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+            Material[] palette = circuitData.decorPalette;
 
             for (int i = 0; i < circuitData.decorObjects.Length; i++)
             {
                 var data = circuitData.decorObjects[i];
 
-                // Résolution de la couleur : palette en priorité, sinon couleur individuelle
-                Color col = (palette != null && palette.Length > 0)
+                // Résolution du material : palette en priorité, sinon material individuel
+                Material mat = (palette != null && palette.Length > 0)
                     ? palette[i % palette.Length]
-                    : data.color;
+                    : data.material;
 
                 var go = GameObject.CreatePrimitive(data.primitiveType);
                 go.name = $"Decor_{data.primitiveType}_{i}";
@@ -439,14 +438,8 @@ namespace ArcadeRacer.Managers
                 go.transform.localScale = data.scale;
 
                 var rend = go.GetComponent<MeshRenderer>();
-                if (rend != null)
+                if (rend != null && mat != null)
                 {
-                    // Clôner le sharedMaterial du primitive (compatible URP + Built-in)
-                    if (!matCache.TryGetValue(col, out Material mat))
-                    {
-                        mat = new Material(rend.sharedMaterial) { color = col };
-                        matCache[col] = mat;
-                    }
                     rend.sharedMaterial = mat;
                 }
 

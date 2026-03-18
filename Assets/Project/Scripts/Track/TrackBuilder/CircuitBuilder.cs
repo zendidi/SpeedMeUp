@@ -811,10 +811,10 @@ namespace ArcadeRacer.Editor
 
                 PrimitiveType prim = GetPrimitiveTypeFromName(child.name);
 
-                Color col = Color.white;
+                Material mat = null;
                 var rend = child.GetComponent<MeshRenderer>();
                 if (rend != null && rend.sharedMaterial != null)
-                    col = rend.sharedMaterial.color;
+                    mat = rend.sharedMaterial;
 
                 list.Add(new DecorObjectData
                 {
@@ -822,7 +822,7 @@ namespace ArcadeRacer.Editor
                     position      = child.position,
                     rotation      = child.rotation,
                     scale         = child.localScale,
-                    color         = col
+                    material      = mat
                 });
             }
 
@@ -854,14 +854,13 @@ namespace ArcadeRacer.Editor
 
             var container = GetOrCreateDecorContainer();
 
-            Color[] palette = circuitData.decorPalette;
-            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
+            Material[] palette = circuitData.decorPalette;
             for (int i = 0; i < circuitData.decorObjects.Length; i++)
             {
                 var data  = circuitData.decorObjects[i];
-                Color col = ResolveDecorColor(i, data.color, palette);
+                Material mat = ResolveDecorMaterial(i, data.material, palette);
                 CreateDecorGameObject(container, data.primitiveType, data.position,
-                    data.rotation, data.scale, col, i, matCache);
+                    data.rotation, data.scale, mat, i);
             }
 
             Debug.Log($"[CircuitBuilder] {circuitData.decorObjects.Length} objet(s) de décor chargés depuis '{circuitData.circuitName}'.");
@@ -946,7 +945,6 @@ namespace ArcadeRacer.Editor
 
             UnityEngine.Random.InitState(autoDecorSeed);
             int totalObjects = 0;
-            var matCache = new System.Collections.Generic.Dictionary<Color, Material>();
 
             // ── TIER 1 : Pylônes de vitesse ──────────────────────────────────────
             // Cylindres fins placés à 0.5-2 m du bord de route, toutes les ~10 m.
@@ -975,7 +973,7 @@ namespace ArcadeRacer.Editor
                 posL   = PushOffTrack(posL, leftEdge, rightEdge, trackHW);
                 posL.y = groundYL; // restaurer Y après déplacement horizontal par PushOffTrack
                 CreateDecorGameObject(container, PrimitiveType.Cylinder, posL,
-                    Quaternion.identity, scaleL, DarkCyan, totalObjects++, matCache);
+                    Quaternion.identity, scaleL, null, totalObjects++);
 
                 // Côté droit
                 float offsetR  = UnityEngine.Random.Range(0.5f, 2f);
@@ -987,7 +985,7 @@ namespace ArcadeRacer.Editor
                 posR   = PushOffTrack(posR, leftEdge, rightEdge, trackHW);
                 posR.y = groundYR;
                 CreateDecorGameObject(container, PrimitiveType.Cylinder, posR,
-                    Quaternion.identity, scaleR, DarkCyan, totalObjects++, matCache);
+                    Quaternion.identity, scaleR, null, totalObjects++);
             }
 
             // ── TIER 2 : Marqueurs de bord ───────────────────────────────────────
@@ -1028,7 +1026,7 @@ namespace ArcadeRacer.Editor
                 pos.y = GetGroundY(prim, scale);
                 Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
 
-                CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
+                CreateDecorGameObject(container, prim, pos, rot, scale, null, totalObjects++);
             }
 
             // ── TIER 3 : Structures de fond ──────────────────────────────────────
@@ -1076,7 +1074,7 @@ namespace ArcadeRacer.Editor
 
                     pos.y = GetGroundY(prim, scale);
                     Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
-                    CreateDecorGameObject(container, prim, pos, rot, scale, DarkCyan, totalObjects++, matCache);
+                    CreateDecorGameObject(container, prim, pos, rot, scale, null, totalObjects++);
                 }
             }
 
@@ -1096,12 +1094,6 @@ namespace ArcadeRacer.Editor
         // ─────────────────────────────────────────────────────────────────────
 
         #region Private Methods
-
-        /// <summary>
-        /// Couleur sombre cyan utilisée par défaut pour tous les objets de décor auto-générés.
-        /// Unity n'expose pas Color.darkCyan, on la définit ici : #008B8B (HTML DarkCyan).
-        /// </summary>
-        private static readonly Color DarkCyan = new Color(0f, 0.545f, 0.545f);
 
         /// <summary>
         /// Retourne le décalage en Y (halfHeight) pour que la base d'un primitive posé à (x,0,z)
@@ -1125,23 +1117,23 @@ namespace ArcadeRacer.Editor
         }
 
         /// <summary>
-        /// Sélectionne la couleur à utiliser pour l'objet d'index <paramref name="index"/> :
+        /// Sélectionne le material à utiliser pour l'objet d'index <paramref name="index"/> :
         ///   • Si la palette est renseignée → cycle dans la palette
-        ///   • Sinon → couleur individuelle stockée (data.color) ou DarkCyan par défaut
+        ///   • Sinon → material individuel stocké (data.material)
         /// </summary>
-        private static Color ResolveDecorColor(int index, Color storedColor, Color[] palette)
+        private static Material ResolveDecorMaterial(int index, Material storedMaterial, Material[] palette)
         {
             if (palette != null && palette.Length > 0)
                 return palette[index % palette.Length];
-            return storedColor;
+            return storedMaterial;
         }
 
         /// <summary>
-        /// Crée un primitive Unity comme objet de décor, lui applique couleur et supprime son collider.
+        /// Crée un primitive Unity comme objet de décor, lui applique un material et supprime son collider.
         /// Nommage : "Decor_PrimitiveType_Index" pour retrouver le type lors de la sauvegarde.
         ///
         /// La position <paramref name="position"/> est supposée déjà ajustée en Y (base au sol).
-        /// Le shader utilisé est celui du primitive Unity par défaut (compatible URP et Built-in).
+        /// Si <paramref name="material"/> est null, le material par défaut du primitive est conservé.
         /// </summary>
         private static void CreateDecorGameObject(
             GameObject container,
@@ -1149,9 +1141,8 @@ namespace ArcadeRacer.Editor
             Vector3 position,
             Quaternion rotation,
             Vector3 scale,
-            Color color,
-            int index,
-            System.Collections.Generic.Dictionary<Color, Material> matCache = null)
+            Material material,
+            int index)
         {
             var go = GameObject.CreatePrimitive(primitiveType);
             go.name = $"Decor_{primitiveType}_{index}";
@@ -1160,25 +1151,10 @@ namespace ArcadeRacer.Editor
             go.transform.rotation   = rotation;
             go.transform.localScale = scale;
 
-            // Matériau avec couleur.
-            // On clône le sharedMaterial du primitive (déjà correct pour URP/Built-in)
-            // plutôt que de chercher le shader "Standard" qui n'existe pas en URP.
             var rend = go.GetComponent<MeshRenderer>();
-            if (rend != null)
+            if (rend != null && material != null)
             {
-                if (matCache != null)
-                {
-                    if (!matCache.TryGetValue(color, out Material mat))
-                    {
-                        mat = new Material(rend.sharedMaterial) { color = color };
-                        matCache[color] = mat;
-                    }
-                    rend.sharedMaterial = mat;
-                }
-                else
-                {
-                    rend.sharedMaterial = new Material(rend.sharedMaterial) { color = color };
-                }
+                rend.sharedMaterial = material;
             }
 
             // Le décor est purement visuel : on retire le collider généré automatiquement

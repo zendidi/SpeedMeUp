@@ -96,10 +96,10 @@ namespace ArcadeRacer.Settings
         public DecorObjectData[] decorObjects = new DecorObjectData[0];
 
         [Tooltip(
-            "Palette de couleurs appliquée cycliquement aux objets de décor au chargement.\n" +
-            "Si vide, chaque objet conserve sa couleur individuelle (Dark Cyan par défaut).\n" +
-            "Ex : 2 couleurs → objet 0=couleur0, objet 1=couleur1, objet 2=couleur0…")]
-        public Color[] decorPalette = new Color[5];
+            "Palette de materials appliquée cycliquement aux objets de décor au chargement.\n" +
+            "Si vide, chaque objet conserve son material individuel.\n" +
+            "Ex : 2 materials → objet 0=mat0, objet 1=mat1, objet 2=mat0…")]
+        public Material[] decorPalette = new Material[0];
 
         [Header("=== METADATA ===")]
         [SerializeField] 
@@ -269,7 +269,7 @@ namespace ArcadeRacer.Settings
         [Tooltip("Échelle de l'objet")]
         public Vector3 scale;
 
-        [Tooltip("Couleur appliquée au material par défaut du primitive (compatible URP et Built-in)")]
-        public Color color;
+        [Tooltip("Material appliqué au primitive (utilisé comme fallback si aucune palette n'est définie)")]
+        public Material material;
     }
 }
