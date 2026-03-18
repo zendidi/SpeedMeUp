@@ -165,7 +165,16 @@ namespace ArcadeRacer.Utilities
         {
             var interpolatedPoints = new List<Vector3>();
 
-            // Créer une Spline Unity temporaire
+            // Créer une Spline Unity temporaire.
+            // IMPORTANT : TangentMode.Explicit est obligatoire ici.
+            // Le mode par défaut (AutoSmooth) d'Unity Splines 2.0 ignore les tangentes
+            // stockées et recalcule de nouvelles tangentes lissées à partir des positions
+            // uniquement. Pour des circuits avec des formes précises (virages en épingle,
+            // formes géométriques spécifiques), cela produit une courbe différente de celle
+            // conçue dans le SplineContainer de l'éditeur.
+            // TangentMode.Explicit conserve les valeurs de tangentes telles qu'elles ont
+            // été enregistrées via ConvertSplineToPoints, assurant que le mesh de route
+            // correspond exactement à la spline visible dans l'éditeur.
             var tempSpline = new UnityEngine.Splines.Spline();
 
             foreach (var point in splinePoints)
@@ -176,7 +185,7 @@ namespace ArcadeRacer.Utilities
                     point.tangentOut,
                     point.rotation
                 );
-                tempSpline.Add(knot);
+                tempSpline.Add(knot, TangentMode.Explicit);
             }
 
             tempSpline.Closed = closedLoop;

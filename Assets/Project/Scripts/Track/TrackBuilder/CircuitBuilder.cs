@@ -884,15 +884,30 @@ namespace ArcadeRacer.Editor
                 return;
             }
 
-            // Obtenir les points de spline (spline en cours ou points exportés)
+            // ─── Choix de la source de données de spline ──────────────────────────
+            // RÈGLE DE CONSISTANCE : on utilise toujours circuitData.splinePoints en
+            // priorité, car c'est exactement la même source que celle utilisée par
+            // CircuitManager à l'exécution. Si le décor était généré depuis le
+            // SplineContainer en direct (et que celui-ci a été modifié depuis le dernier
+            // export), les positions seraient calculées sur une courbe différente de celle
+            // rendue en jeu → décalage visible entre éditeur et runtime.
+            //
+            // Si circuitData.splinePoints n'est pas encore disponible (premier export),
+            // on tombe en fallback sur le SplineContainer live, en avertissant l'utilisateur
+            // d'exporter d'abord.
             SplinePoint[] splinePoints = null;
-            if (splineContainer != null && splineContainer.Spline != null && splineContainer.Spline.Count >= 3)
-            {
-                splinePoints = ConvertSplineToPoints(splineContainer);
-            }
-            else if (circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3)
+            if (circuitData.splinePoints != null && circuitData.splinePoints.Length >= 3)
             {
                 splinePoints = circuitData.splinePoints;
+            }
+            else if (splineContainer != null && splineContainer.Spline != null && splineContainer.Spline.Count >= 3)
+            {
+                Debug.LogWarning(
+                    "[CircuitBuilder] ⚠ Génération du décor depuis le SplineContainer en direct " +
+                    "car circuitData.splinePoints est vide. " +
+                    "Exportez d'abord le circuit ('Export to CircuitData') pour garantir la cohérence " +
+                    "entre la position du décor et le rendu en jeu.");
+                splinePoints = ConvertSplineToPoints(splineContainer);
             }
 
             if (splinePoints == null || splinePoints.Length < 3)

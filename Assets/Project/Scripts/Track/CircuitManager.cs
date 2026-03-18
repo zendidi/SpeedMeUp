@@ -366,9 +366,11 @@ namespace ArcadeRacer.Managers
                 var knot = new BezierKnot(
                     point.position,
                     point.tangentIn,
-                    point.tangentOut
+                    point.tangentOut,
+                    point.rotation
                 );
-                spline.Add(knot);
+                // TangentMode.Explicit : même convention que InterpolateSpline
+                spline.Add(knot, TangentMode.Explicit);
             }
             
             spline.Closed = circuitData.closedLoop;
