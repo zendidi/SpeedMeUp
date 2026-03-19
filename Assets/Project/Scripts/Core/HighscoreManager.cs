@@ -609,25 +609,20 @@ namespace ArcadeRacer.Core
                     _networkCache[circuitName] = networkScores;
                     _syncedFromNetwork.Add(circuitName);
 
-                    if (networkScores.Count > 0)
-                    {
-                        MergeIntoLocal(circuitName, networkScores);
-                        Debug.Log($"[HighscoreManager] Synchronisation réseau OK pour '{circuitName}': {networkScores.Count} scores.");
-                    }
-                    else
-                    {
-                        Debug.Log($"[HighscoreManager] Aucun score Firebase pour '{circuitName}'.");
-                    }
-
+                    // Firebase est la source de vérité : les PlayerPrefs sont TOUJOURS
+                    // remplacées par les données Firebase, même quand Firebase retourne
+                    // 0 scores. Cela élimine les données périmées d'une ancienne build.
+                    OverwriteLocalFromNetwork(circuitName, networkScores);
+                    Debug.Log($"[HighscoreManager] Synchronisation réseau OK pour '{circuitName}': {networkScores.Count} scores.");
                     OnNetworkHighscoresLoaded?.Invoke(circuitName);
                 }
                 else if (req.responseCode == 404)
                 {
                     // Aucune donnée encore enregistrée pour ce circuit – c'est normal.
-                    // On marque quand même comme synchronisé avec 0 scores pour éviter
-                    // que les données PlayerPrefs périmées ne s'affichent.
+                    // On efface quand même les données périmées des PlayerPrefs.
                     _networkCache[circuitName] = new List<HighscoreEntry>();
                     _syncedFromNetwork.Add(circuitName);
+                    OverwriteLocalFromNetwork(circuitName, new List<HighscoreEntry>());
                     Debug.Log($"[HighscoreManager] Aucun score réseau pour '{circuitName}' (404).");
                     OnNetworkHighscoresLoaded?.Invoke(circuitName);
                 }
@@ -661,7 +656,7 @@ namespace ArcadeRacer.Core
 
                 if (!authManager.IsAuthenticated)
                 {
-                    Debug.LogWarning("[HighscoreManager] Authentification Firebase non disponible après délai. La synchronisation sera tentée sans token.");
+                    Debug.LogWarning("[HighscoreManager] Authentification Firebase non disponible après délai. Les requêtes réseau risquent d'échouer avec 401 si les règles Firebase exigent auth != null.");
                 }
             }
 
@@ -700,41 +695,34 @@ namespace ArcadeRacer.Core
             }
         }
 
-        // ── Merge network scores into local cache (PlayerPrefs) ───────────────
+        // ── Overwrite local PlayerPrefs cache with authoritative Firebase data ────
 
-        private void MergeIntoLocal(string circuitName, List<HighscoreEntry> networkScores)
+        /// <summary>
+        /// Remplace intégralement les données PlayerPrefs du circuit par les scores
+        /// Firebase. Firebase est la source de vérité : toute donnée locale périmée
+        /// (ancienne build, anciennes sessions) est effacée.
+        /// </summary>
+        private void OverwriteLocalFromNetwork(string circuitName, List<HighscoreEntry> networkScores)
         {
-            List<HighscoreEntry> local = GetHighscores(circuitName);
-
-            // Fusionner en dédupliquant sur (playerName, timeInSeconds)
-            foreach (var ns in networkScores)
-            {
-                bool alreadyPresent = local.Any(l =>
-                    l.playerName == ns.playerName &&
-                    Mathf.Abs(l.timeInSeconds - ns.timeInSeconds) < FLOAT_COMPARISON_EPSILON);
-
-                if (!alreadyPresent)
-                    local.Add(ns);
-            }
-
-            List<HighscoreEntry> merged = local
+            List<HighscoreEntry> toSave = networkScores
                 .OrderBy(s => s.timeInSeconds)
                 .Take(MAX_HIGHSCORES_PER_CIRCUIT)
                 .ToList();
 
-            for (int i = 0; i < merged.Count; i++)
+            for (int i = 0; i < toSave.Count; i++)
             {
-                var e = merged[i];
+                var e = toSave[i];
                 e.rank = i + 1;
-                merged[i] = e;
+                toSave[i] = e;
             }
 
-            // Sauvegarder localement uniquement (pas de push réseau ici pour éviter la boucle)
+            // Effacer toutes les entrées existantes (y compris les données périmées)
             for (int i = 0; i < MAX_HIGHSCORES_PER_CIRCUIT; i++)
                 PlayerPrefs.DeleteKey(GetHighscoreKey(circuitName, i));
 
-            for (int i = 0; i < merged.Count; i++)
-                PlayerPrefs.SetString(GetHighscoreKey(circuitName, i), FormatHighscoreData(merged[i]));
+            // Écrire exactement ce que Firebase a retourné
+            for (int i = 0; i < toSave.Count; i++)
+                PlayerPrefs.SetString(GetHighscoreKey(circuitName, i), FormatHighscoreData(toSave[i]));
 
             PlayerPrefs.Save();
         }
