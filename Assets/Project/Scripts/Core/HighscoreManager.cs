@@ -110,6 +110,38 @@ namespace ArcadeRacer.Core
         private const string HIGHSCORE_SEPARATOR = "|";
         private const float FLOAT_COMPARISON_EPSILON = 0.001f; // Tolérance pour comparaison de floats
 
+        // Délai maximal d'attente de l'authentification Firebase avant d'envoyer les requêtes GET.
+        // Doit être supérieur au délai total possible de FirebaseAuthManager.InitializeAuth()
+        // (refresh token : 10 s + sign-in anonyme : 10 s = 20 s max) pour éviter d'envoyer
+        // des requêtes non-authentifiées qui seraient rejetées en 401 dans les builds.
+        private const float AUTH_WAIT_TIMEOUT_SECONDS = 30f;
+
+        // In-memory cache populated by Firebase fetches.
+        // When Firebase is enabled, this is the source of truth for GetHighscores().
+        private readonly Dictionary<string, List<HighscoreEntry>> _networkCache =
+            new Dictionary<string, List<HighscoreEntry>>();
+
+        // Tracks circuits that have been successfully checked against Firebase
+        // (including circuits with 0 scores or a 404 response).
+        private readonly HashSet<string> _syncedFromNetwork = new HashSet<string>();
+
+        // Scores soumis avant que la synchronisation Firebase du circuit ne soit terminée.
+        // Traités après la sync pour éviter de pousser des données PlayerPrefs périmées vers Firebase.
+        [System.Serializable]
+        private struct PendingScoreData
+        {
+            public string circuitName;
+            public float timeInSeconds;
+            public string playerName;
+            public float[] checkpointTimes;
+            public string timeOfDay;
+        }
+
+        private readonly List<PendingScoreData> _pendingScores = new List<PendingScoreData>();
+
+        // Circuits pour lesquels une coroutine SyncThenProcessPending est déjà en cours.
+        private readonly HashSet<string> _syncInProgressForPending = new HashSet<string>();
+
         #region Network Settings
 
         [Header("=== RÉSEAU (Firebase Realtime Database) ===")]
@@ -195,6 +227,34 @@ namespace ArcadeRacer.Core
                 return false;
             }
 
+            // Si Firebase est actif mais que ce circuit n'a pas encore été synchronisé,
+            // les PlayerPrefs peuvent contenir des données périmées d'une ancienne build.
+            // Mettre le score en file d'attente et le traiter après la sync Firebase
+            // pour ne jamais pousser de données stale vers Firebase.
+            if (IsNetworkEnabled && !_syncedFromNetwork.Contains(circuitName))
+            {
+                _pendingScores.Add(new PendingScoreData
+                {
+                    circuitName = circuitName,
+                    timeInSeconds = timeInSeconds,
+                    playerName = playerName,
+                    checkpointTimes = checkpointTimes,
+                    timeOfDay = timeOfDay
+                });
+
+                if (!_syncInProgressForPending.Contains(circuitName))
+                {
+                    _syncInProgressForPending.Add(circuitName);
+                    StartCoroutine(SyncThenProcessPending(circuitName));
+                }
+
+                Debug.Log($"[HighscoreManager] Score '{HighscoreEntry.FormatTime(timeInSeconds)}' en attente de sync Firebase pour '{circuitName}'.");
+
+                // Réponse de meilleure tentative basée sur les données locales disponibles.
+                // Sera recalculée correctement après la sync Firebase.
+                return WouldBeTopScoreLocally(circuitName, timeInSeconds);
+            }
+
             // Récupérer les scores actuels
             List<HighscoreEntry> scores = GetHighscores(circuitName);
 
@@ -234,16 +294,28 @@ namespace ArcadeRacer.Core
         }
 
         /// <summary>
-        /// Récupère les highscores d'un circuit (max 10)
+        /// Récupère les highscores d'un circuit (max 10).
+        /// Quand Firebase est activé et que le circuit a été synchronisé, retourne
+        /// les données du cache réseau (source de vérité). Sinon, retourne PlayerPrefs.
         /// </summary>
         public List<HighscoreEntry> GetHighscores(string circuitName)
         {
+            if (string.IsNullOrEmpty(circuitName))
+                return new List<HighscoreEntry>();
+
+            // Quand Firebase est activé et que ce circuit a été récupéré depuis Firebase,
+            // utiliser le cache réseau comme source de vérité pour éviter les données
+            // périmées de PlayerPrefs provenant d'une build précédente.
+            if (IsNetworkEnabled && _syncedFromNetwork.Contains(circuitName))
+            {
+                return _networkCache.TryGetValue(circuitName, out List<HighscoreEntry> cached)
+                    ? new List<HighscoreEntry>(cached)
+                    : new List<HighscoreEntry>();
+            }
+
+            // Fallback: PlayerPrefs (mode hors-ligne ou avant la première synchro Firebase)
             List<HighscoreEntry> scores = new List<HighscoreEntry>();
 
-            if (string.IsNullOrEmpty(circuitName))
-                return scores;
-
-            // Charger depuis PlayerPrefs
             for (int i = 0; i < MAX_HIGHSCORES_PER_CIRCUIT; i++)
             {
                 string key = GetHighscoreKey(circuitName, i);
@@ -251,7 +323,7 @@ namespace ArcadeRacer.Core
                 {
                     string data = PlayerPrefs.GetString(key);
                     HighscoreEntry entry = ParseHighscoreData(data, i + 1);
-                    
+
                     if (entry.timeInSeconds > 0)
                     {
                         scores.Add(entry);
@@ -385,6 +457,13 @@ namespace ArcadeRacer.Core
             // Synchroniser vers Firebase si activé
             if (IsNetworkEnabled)
             {
+                // Mise à jour optimiste du cache réseau : le nouveau score est immédiatement
+                // visible même avant la confirmation Firebase.
+                // En cas d'échec du push, le score reste dans PlayerPrefs.
+                // Au prochain démarrage, la synchro Firebase rétablit Firebase comme source de vérité.
+                _networkCache[circuitName] = new List<HighscoreEntry>(scores);
+                _syncedFromNetwork.Add(circuitName);
+
                 StartCoroutine(PushToNetwork(circuitName, scores));
             }
         }
@@ -558,9 +637,12 @@ namespace ArcadeRacer.Core
 
         // ── Fetch scores from Firebase for a single circuit ───────────────────
 
-        private IEnumerator SyncFromNetwork(string circuitName)
+        private IEnumerator SyncFromNetwork(string circuitName, bool allowRetry = true)
         {
-            string url = GetNetworkUrl(circuitName);
+            // Les règles Firebase exigent auth != null pour les lectures comme pour les
+            // écritures. On passe withAuth: true afin d'inclure le jeton ?auth= si
+            // FirebaseAuthManager est authentifié.
+            string url = GetNetworkUrl(circuitName, withAuth: true);
 
             using (UnityWebRequest req = UnityWebRequest.Get(url))
             {
@@ -570,21 +652,60 @@ namespace ArcadeRacer.Core
                 if (req.result == UnityWebRequest.Result.Success)
                 {
                     List<HighscoreEntry> networkScores = DeserializeEntries(req.downloadHandler.text);
-                    if (networkScores.Count > 0)
+
+                    // Mettre à jour le cache réseau et marquer le circuit comme synchronisé.
+                    // Cela inclut le cas où Firebase retourne 0 scores (circuit vide) :
+                    // GetHighscores() retournera une liste vide plutôt que les données
+                    // périmées de PlayerPrefs.
+                    _networkCache[circuitName] = networkScores;
+                    _syncedFromNetwork.Add(circuitName);
+
+                    // Firebase est la source de vérité : les PlayerPrefs sont TOUJOURS
+                    // remplacées par les données Firebase, même quand Firebase retourne
+                    // 0 scores. Cela élimine les données périmées d'une ancienne build.
+                    OverwriteLocalFromNetwork(circuitName, networkScores);
+                    Debug.Log($"[HighscoreManager] Synchronisation réseau OK pour '{circuitName}': {networkScores.Count} scores.");
+                    OnNetworkHighscoresLoaded?.Invoke(circuitName);
+                }
+                else if ((req.responseCode == 401 || req.responseCode == 403) && allowRetry)
+                {
+                    // Le token d'authentification n'était pas encore disponible lors de l'envoi
+                    // de la requête (délai d'authentification dépassé). On attend que
+                    // FirebaseAuthManager soit authentifié puis on tente une nouvelle requête.
+                    Debug.LogWarning($"[HighscoreManager] {req.responseCode} pour '{circuitName}': auth non prête, attente avant nouvelle tentative...");
+                    FirebaseAuthManager authMgr = FirebaseAuthManager.Instance;
+                    if (authMgr != null && authMgr.IsAuthEnabled)
                     {
-                        MergeIntoLocal(circuitName, networkScores);
-                        Debug.Log($"[HighscoreManager] Synchronisation réseau OK pour '{circuitName}': {networkScores.Count} scores.");
-                        OnNetworkHighscoresLoaded?.Invoke(circuitName);
+                        float waited = 0f;
+                        while (!authMgr.IsAuthenticated && waited < networkTimeoutSeconds)
+                        {
+                            yield return new WaitForSeconds(0.5f);
+                            waited += 0.5f;
+                        }
+
+                        if (authMgr.IsAuthenticated)
+                        {
+                            Debug.Log($"[HighscoreManager] Auth disponible, nouvelle tentative pour '{circuitName}'.");
+                            yield return SyncFromNetwork(circuitName, allowRetry: false);
+                            yield break;
+                        }
                     }
+
+                    Debug.LogWarning($"[HighscoreManager] Auth indisponible, synchronisation abandonnée pour '{circuitName}'.");
                 }
                 else if (req.responseCode == 404)
                 {
-                    // Aucune donnée encore enregistrée pour ce circuit – c'est normal
+                    // Aucune donnée encore enregistrée pour ce circuit – c'est normal.
+                    // On efface quand même les données périmées des PlayerPrefs.
+                    _networkCache[circuitName] = new List<HighscoreEntry>();
+                    _syncedFromNetwork.Add(circuitName);
+                    OverwriteLocalFromNetwork(circuitName, new List<HighscoreEntry>());
                     Debug.Log($"[HighscoreManager] Aucun score réseau pour '{circuitName}' (404).");
+                    OnNetworkHighscoresLoaded?.Invoke(circuitName);
                 }
                 else
                 {
-                    Debug.LogWarning($"[HighscoreManager] Échec synchronisation réseau pour '{circuitName}': {req.error}");
+                    Debug.LogWarning($"[HighscoreManager] Échec synchronisation réseau pour '{circuitName}': {req.error} (code: {req.responseCode})");
                 }
             }
         }
@@ -595,6 +716,29 @@ namespace ArcadeRacer.Core
         {
             if (Settings.CircuitDatabase.Instance == null)
                 yield break;
+
+            // Attendre que FirebaseAuthManager ait terminé son authentification avant
+            // d'envoyer les requêtes GET, afin que le jeton ?auth= soit disponible.
+            // On utilise AUTH_WAIT_TIMEOUT_SECONDS (30 s) au lieu de networkTimeoutSeconds
+            // car FirebaseAuthManager.InitializeAuth() peut prendre jusqu'à 20 s
+            // (10 s refresh + 10 s sign-in anonyme). Sans ce délai suffisant, les requêtes
+            // partent sans token, reçoivent un 401 et la sync ne s'effectue jamais dans
+            // les builds (où l'auth est plus lente qu'en éditeur).
+            FirebaseAuthManager authManager = FirebaseAuthManager.Instance;
+            if (authManager != null && authManager.IsAuthEnabled)
+            {
+                float elapsed = 0f;
+                while (!authManager.IsAuthenticated && elapsed < AUTH_WAIT_TIMEOUT_SECONDS)
+                {
+                    yield return null;
+                    elapsed += Time.unscaledDeltaTime;
+                }
+
+                if (!authManager.IsAuthenticated)
+                {
+                    Debug.LogWarning("[HighscoreManager] Authentification Firebase non disponible après délai. Les requêtes réseau risquent d'échouer avec 401 si les règles Firebase exigent auth != null.");
+                }
+            }
 
             foreach (var circuit in Settings.CircuitDatabase.Instance.AvailableCircuits)
             {
@@ -631,43 +775,91 @@ namespace ArcadeRacer.Core
             }
         }
 
-        // ── Merge network scores into local cache (PlayerPrefs) ───────────────
+        // ── Overwrite local PlayerPrefs cache with authoritative Firebase data ────
 
-        private void MergeIntoLocal(string circuitName, List<HighscoreEntry> networkScores)
+        /// <summary>
+        /// Remplace intégralement les données PlayerPrefs du circuit par les scores
+        /// Firebase. Firebase est la source de vérité : toute donnée locale périmée
+        /// (ancienne build, anciennes sessions) est effacée.
+        /// </summary>
+        private void OverwriteLocalFromNetwork(string circuitName, List<HighscoreEntry> networkScores)
         {
-            List<HighscoreEntry> local = GetHighscores(circuitName);
-
-            // Fusionner en dédupliquant sur (playerName, timeInSeconds)
-            foreach (var ns in networkScores)
-            {
-                bool alreadyPresent = local.Any(l =>
-                    l.playerName == ns.playerName &&
-                    Mathf.Abs(l.timeInSeconds - ns.timeInSeconds) < FLOAT_COMPARISON_EPSILON);
-
-                if (!alreadyPresent)
-                    local.Add(ns);
-            }
-
-            List<HighscoreEntry> merged = local
+            List<HighscoreEntry> toSave = networkScores
                 .OrderBy(s => s.timeInSeconds)
                 .Take(MAX_HIGHSCORES_PER_CIRCUIT)
                 .ToList();
 
-            for (int i = 0; i < merged.Count; i++)
+            for (int i = 0; i < toSave.Count; i++)
             {
-                var e = merged[i];
+                var e = toSave[i];
                 e.rank = i + 1;
-                merged[i] = e;
+                toSave[i] = e;
             }
 
-            // Sauvegarder localement uniquement (pas de push réseau ici pour éviter la boucle)
+            // Effacer toutes les entrées existantes (y compris les données périmées)
             for (int i = 0; i < MAX_HIGHSCORES_PER_CIRCUIT; i++)
                 PlayerPrefs.DeleteKey(GetHighscoreKey(circuitName, i));
 
-            for (int i = 0; i < merged.Count; i++)
-                PlayerPrefs.SetString(GetHighscoreKey(circuitName, i), FormatHighscoreData(merged[i]));
+            // Écrire exactement ce que Firebase a retourné
+            for (int i = 0; i < toSave.Count; i++)
+                PlayerPrefs.SetString(GetHighscoreKey(circuitName, i), FormatHighscoreData(toSave[i]));
 
             PlayerPrefs.Save();
+        }
+
+        // ── Pending score queue (scores submitted before Firebase sync) ────────
+
+        /// <summary>
+        /// Vérifie localement (PlayerPrefs uniquement, sans le cache réseau) si un
+        /// temps serait dans le top 10 actuel. Utilisé comme réponse de meilleure
+        /// tentative avant que la sync Firebase soit disponible.
+        /// </summary>
+        private bool WouldBeTopScoreLocally(string circuitName, float timeInSeconds)
+        {
+            List<HighscoreEntry> local = new List<HighscoreEntry>();
+            for (int i = 0; i < MAX_HIGHSCORES_PER_CIRCUIT; i++)
+            {
+                string key = GetHighscoreKey(circuitName, i);
+                if (PlayerPrefs.HasKey(key))
+                {
+                    HighscoreEntry entry = ParseHighscoreData(PlayerPrefs.GetString(key), i + 1);
+                    if (entry.timeInSeconds > 0)
+                        local.Add(entry);
+                }
+            }
+
+            if (local.Count < MAX_HIGHSCORES_PER_CIRCUIT)
+                return true;
+
+            return timeInSeconds < local.OrderBy(s => s.timeInSeconds).Last().timeInSeconds;
+        }
+
+        /// <summary>
+        /// Synchronise le circuit depuis Firebase, puis traite les scores en attente
+        /// qui avaient été soumis avant la fin de la première synchronisation.
+        /// </summary>
+        private IEnumerator SyncThenProcessPending(string circuitName)
+        {
+            yield return SyncFromNetwork(circuitName);
+            _syncInProgressForPending.Remove(circuitName);
+            ProcessPendingScores(circuitName);
+        }
+
+        /// <summary>
+        /// Traite les scores en attente pour un circuit donné en les ajoutant
+        /// maintenant que Firebase est synchronisé (données propres disponibles).
+        /// </summary>
+        private void ProcessPendingScores(string circuitName)
+        {
+            for (int i = _pendingScores.Count - 1; i >= 0; i--)
+            {
+                if (_pendingScores[i].circuitName != circuitName) continue;
+
+                PendingScoreData score = _pendingScores[i];
+                _pendingScores.RemoveAt(i);
+                Debug.Log($"[HighscoreManager] Traitement du score en attente pour '{circuitName}': {HighscoreEntry.FormatTime(score.timeInSeconds)} - {score.playerName}");
+                TryAddScore(score.circuitName, score.timeInSeconds, score.playerName, score.checkpointTimes, score.timeOfDay);
+            }
         }
 
         // ── Public method for manual refresh from network ─────────────────────
