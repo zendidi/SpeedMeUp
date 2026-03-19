@@ -50,6 +50,16 @@ namespace ArcadeRacer.UI
             {
                 InitializeDropdown();
                 RefreshDisplay();
+
+                // Déclencher une sync réseau pour s'assurer d'avoir les données les plus
+                // récentes de Firebase à chaque ouverture de l'écran des highscores.
+                // OnNetworkHighscoresLoaded mettra à jour l'affichage dès que Firebase répond.
+                if (!string.IsNullOrEmpty(_currentCircuitName) &&
+                    HighscoreManager.Instance != null &&
+                    HighscoreManager.Instance.IsNetworkEnabled)
+                {
+                    HighscoreManager.Instance.RefreshFromNetwork(_currentCircuitName);
+                }
             }
         }
 
