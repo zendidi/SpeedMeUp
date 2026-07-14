@@ -157,16 +157,25 @@ namespace ArcadeRacer.Vehicle
         private void OnAccelerate(InputAction.CallbackContext context)
         {
             _throttle = context.ReadValue<float>();
+            _throttle = _throttle> 0.32f ? 1f : 0f;
         }
 
         private void OnBrake(InputAction.CallbackContext context)
         {
             _brake = context.ReadValue<float>();
+            _brake = _brake > 0.32f ? 1f : 0f;
         }
 
         private void OnSteering(InputAction.CallbackContext context)
         {
-            _steering = context.ReadValue<float>();
+            if (context.control is UnityEngine.InputSystem.Controls.StickControl)
+            {
+                _steering = context.ReadValue<Vector2>().x;
+            }
+            else
+            {
+                _steering = context.ReadValue<float>();
+            }
         }
 
         private void OnDriftStarted(InputAction.CallbackContext context)

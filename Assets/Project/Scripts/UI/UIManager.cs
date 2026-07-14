@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace ArcadeRacer.UI
 {
     /// <summary>
-    /// Gestionnaire central de l'UI.   
-    /// Coordonne le HUD, le countdown, l'écran de fin et la sélection de circuits. 
+    /// Gestionnaire central de l'UI.
+    /// Coordonne le HUD, le countdown, l'écran de fin et la sélection de circuits.
     /// </summary>
     public class UIManager : MonoBehaviour
     {
@@ -39,12 +39,6 @@ namespace ArcadeRacer.UI
             InitializeUI();
             InitializeInput();
             InitializeRaceSettingsUI();
-
-            if (Info != null)
-            {
-                Info.gameObject.SetActive(true);
-                Debug.Log("[UIManager] Affichage de l'écran d'info au lancement");
-            }
         }
 
         private void OnEnable()
@@ -95,31 +89,25 @@ namespace ArcadeRacer.UI
             }
         }
 
+        /// <summary>
+        /// Cache tous les panneaux d'UI. Point d'entrée unique pour garantir
+        /// qu'un seul écran est visible à la fois (évite les superpositions).
+        /// </summary>
+        private void HideAllPanels()
+        {
+            if (raceHUD != null) raceHUD.SetVisible(false);
+            if (countdownUI != null) countdownUI.gameObject.SetActive(false);
+            if (Info != null) Info.Hide();
+            if (circuitSelectionUI != null) circuitSelectionUI.Hide();
+            if (highscoreNameInputUI != null) highscoreNameInputUI.Hide();
+        }
+
         private void InitializeUI()
         {
-            if (raceHUD != null)
-            {
-                raceHUD.SetVisible(false);
-            }
-
-            if (countdownUI != null)
-            {
-                countdownUI.gameObject.SetActive(false);
-            }
-
-            if (circuitSelectionUI != null)
-            {
-                circuitSelectionUI.Hide();
-            }
-
-            if (highscoreNameInputUI != null)
-            {
-                highscoreNameInputUI.Hide();
-            }
-
+            HideAllPanels();
             if (Info != null)
             {
-                Info.gameObject.SetActive(true);
+                Info.Show();
                 Debug.Log("[UIManager] Affichage de l'écran d'info au lancement");
             }
         }
@@ -202,12 +190,6 @@ namespace ArcadeRacer.UI
 
         #endregion
 
-        #region Screen Navigation
-
-
-
-        #endregion
-
         #region Race Event Subscriptions
 
         private void SubscribeToRaceEvents()
@@ -236,19 +218,11 @@ namespace ArcadeRacer.UI
 
         private void HandleCountdownStarted()
         {
+            HideAllPanels();
+
             if (countdownUI != null)
             {
                 countdownUI.gameObject.SetActive(true);
-            }
-
-            if (raceHUD != null)
-            {
-                raceHUD.SetVisible(false);
-            }
-
-            if (Info != null)
-            {
-                Info.gameObject.SetActive(false);
             }
 
             Debug.Log("[UIManager] Countdown UI activé");
@@ -256,6 +230,11 @@ namespace ArcadeRacer.UI
 
         private void HandleRaceStarted()
         {
+            if (countdownUI != null)
+            {
+                countdownUI.gameObject.SetActive(false);
+            }
+
             if (raceHUD != null)
             {
                 raceHUD.SetVisible(true);
@@ -295,19 +274,17 @@ namespace ArcadeRacer.UI
         }
 
         /// <summary>
-        /// Reset toute l'UI
+        /// Reset toute l'UI (cache tous les panneaux)
         /// </summary>
         public void ResetUI()
         {
             countdownUI?.Reset();
-            raceHUD?.SetVisible(false);
-            Info?.Hide();
-            circuitSelectionUI?.Hide();
-            highscoreNameInputUI?.Hide();
+            HideAllPanels();
         }
 
         public void ShowInfo()
         {
+            Debug.Log("[UIManager] Show Info Screen");
             ResetUI();
             if (Info != null)
             {
@@ -315,7 +292,14 @@ namespace ArcadeRacer.UI
                 Debug.Log("[UIManager] Affichage de l'écran d'info");
             }
         }
-        
+
+        public void ShowMenu()
+        {
+            Debug.Log("[UIManager] Show Menu Screen");
+            ResetUI();
+            if (circuitSelectionUI != null) circuitSelectionUI.Show();
+        }
+
         /// <summary>
         /// Afficher l'UI de sélection de circuits
         /// </summary>
@@ -386,13 +370,13 @@ namespace ArcadeRacer.UI
         public void SelectionCircuitTrigger(InputAction.CallbackContext context)
         {
             Debug.Log("[UIManager] Menu Trigger activé");
-            if (circuitSelectionUI.isActiveAndEnabled)
+            if (circuitSelectionUI != null && circuitSelectionUI.isActiveAndEnabled)
             {
-                circuitSelectionUI.Hide();
+                ShowInfo();
             }
             else
             {
-                circuitSelectionUI.Show();
+                ShowMenu();
             }
         }
 
